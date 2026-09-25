@@ -6,7 +6,7 @@ import type { SceneTheme } from '../lib/types';
 import { AnimePanel } from '../widgets/Anime';
 import { CreditPanel } from '../widgets/Credit';
 import { Dock, type DockItem } from '../widgets/Dock';
-import { FavoriteButton } from '../widgets/Favorite';
+import { FavoriteButton, FavoriteRotationToggle } from '../widgets/Favorite';
 import { NextSceneButton } from '../widgets/NextScene';
 import { FocusPanel, useFocus } from '../widgets/Focus';
 import { useWeather, WeatherBadge } from '../widgets/Weather';
@@ -222,6 +222,14 @@ export function App() {
               <>
                 <NextSceneButton onNext={next} />
                 <FavoriteButton scene={scene} limit={settings.favoritesLimit} />
+                <FavoriteRotationToggle
+                  on={settings.favoritesOnly}
+                  onChange={(on) => {
+                    void saveSettings({ ...settings, favoritesOnly: on });
+                    // show a favourite right away rather than at the next rotation
+                    if (on) void next({ favoritesOnly: true });
+                  }}
+                />
               </>
             )
           }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { queueTarget } from '../lib/messages';
-import { isDue, pickCached } from '../lib/scene-store';
+import { isDue, nextInRotation, pickCached, pickFavorite } from '../lib/scene-store';
 import type { RotationRule, Scene } from '../lib/types';
 
 const rule = (r: Partial<RotationRule>): RotationRule => ({ rotation: 'tab', rotationMinutes: 30, rotationTabs: 3, ...r });
@@ -69,5 +69,25 @@ describe('pickCached', () => {
     const pool = [scene('day', 1, { bucket: 'day' }), scene('night', 2, { bucket: 'night' })];
     expect(pickCached(pool, { bucket: 'night', blacklist: none }, 0)?.id).toBe('night');
     expect(pickCached([scene('day', 1, { bucket: 'day' })], { bucket: 'night', blacklist: none })?.id).toBe('day');
+  });
+});
+
+describe('favourites', () => {
+  const fav = (id: string, bucket?: Scene['bucket']) => ({ id, bucket }) as unknown as Scene;
+
+  it('prefer the time of day, falling back to any favourite', () => {
+    const favs = [fav('day', 'day'), fav('night', 'night'), fav('old')];
+    const night = [0, 0.99].map((r) => pickFavorite(favs, { bucket: 'night' }, r)?.id);
+    expect(night).toEqual(['night', 'old']); // untagged older favourites suit any time
+    expect(pickFavorite([fav('day', 'day')], { bucket: 'night' })?.id).toBe('day');
+    expect(pickFavorite([fav('a')], { excludeId: 'a' })).toBeUndefined();
+  });
+
+  it('rotation shows each favourite before repeating one', () => {
+    const favs = [fav('a'), fav('b'), fav('c')];
+    expect(nextInRotation(favs, ['a', 'b'], 'a', 0)?.id).toBe('c');
+    // everything shown recently: any but the one on screen
+    expect(nextInRotation(favs, ['a', 'b', 'c'], 'a', 0)?.id).toBe('b');
+    expect(nextInRotation([fav('a')], [], 'a')).toBeUndefined();
   });
 });

@@ -96,6 +96,8 @@ export interface Settings {
   favoritesWeight: number;
   /** Most favourites to keep; adding beyond it drops the oldest. 0 = no limit. */
   favoritesLimit: number;
+  /** Favourites-only rotation (the new tab's toggle): ignores the other rules while on. */
+  favoritesOnly: boolean;
   sources: {
     wallhaven: boolean;
     /** Follow the time of day (day / evening / night backgrounds); otherwise use wallhavenQuery. */
@@ -162,6 +164,7 @@ export const DEFAULT_SETTINGS: Settings = {
   rotationTabs: 3,
   favoritesWeight: 0.2,
   favoritesLimit: 200,
+  favoritesOnly: false,
   sources: {
     wallhaven: true,
     timeAware: true,

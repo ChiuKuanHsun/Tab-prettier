@@ -77,11 +77,12 @@ export function useScene(settings: Settings | undefined, lowPower: boolean) {
   const favWeight = settings?.favoritesWeight ?? 0;
   const bucket = settings?.sources.timeAware ? timeBucket() : undefined;
   const cacheOnly = settings?.powerSave === 'cache';
+  const favoritesOnly = settings?.favoritesOnly;
 
   useEffect(() => {
     if (!rule) return;
     let alive = true;
-    void pickScene(rule, { favWeight, bucket, cacheOnly }).then((s) => alive && setScene(s ?? null));
+    void pickScene(rule, { favWeight, bucket, cacheOnly, favoritesOnly }).then((s) => alive && setScene(s ?? null));
     void send({ to: 'bg', type: 'refill', lowPower });
     const onMsg = (m: Broadcast) => {
       if (m?.type !== 'queue-updated') return;
@@ -98,9 +99,10 @@ export function useScene(settings: Settings | undefined, lowPower: boolean) {
     // lowPower only matters for the first refill request, so it is not a dependency
   }, [rotation]);
 
-  const next = async () => {
+  /** Swaps in the next scene now; `favoritesOnly` overrides the setting (it may not have saved yet). */
+  const next = async (opts: { favoritesOnly?: boolean } = {}) => {
     if (!rule) return false;
-    const s = await pickScene(rule, { favWeight, force: true, bucket, cacheOnly });
+    const s = await pickScene(rule, { favWeight, force: true, bucket, cacheOnly, favoritesOnly, ...opts });
     void send({ to: 'bg', type: 'refill', lowPower });
     if (s && s.id !== scene?.id) {
       setScene(s);

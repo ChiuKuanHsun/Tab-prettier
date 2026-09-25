@@ -4,6 +4,8 @@ import {
   db,
   dequeue,
   getCurrent,
+  kvGet,
+  kvSet,
   pushHistory,
   setCurrent,
   takeCached,
@@ -28,14 +30,51 @@ export function isDue(cur: Pick<ShownScene, 'shownAt' | 'views'>, rule: Rotation
   }
 }
 
-async function randomFavorite(excludeId?: string): Promise<Scene | undefined> {
-  const d = await db();
-  const ids = (await d.getAllKeys('favorites')).filter((id) => id !== excludeId);
-  if (!ids.length) return undefined;
-  const fav = await d.get('favorites', ids[Math.floor(Math.random() * ids.length)]);
-  if (!fav) return undefined;
-  const { favAt: _favAt, ...scene } = fav;
-  return scene;
+/** A random favourite (not the one on screen), one suiting the time of day if any does. */
+export function pickFavorite<T extends Scene>(
+  favs: T[],
+  opts: { excludeId?: string; bucket?: TimeBucket },
+  rand = Math.random(),
+): T | undefined {
+  const ok = favs.filter((f) => f.id !== opts.excludeId);
+  const timely = ok.filter((f) => !opts.bucket || !f.bucket || f.bucket === opts.bucket);
+  const from = timely.length ? timely : ok;
+  return from[Math.floor(rand * from.length)];
+}
+
+/**
+ * Favourites-only rotation: a favourite not among the `recent` ones (and not on screen), so each
+ * comes round before any repeats. Time of day doesn't matter here.
+ */
+export function nextInRotation<T extends Scene>(favs: T[], recent: string[], excludeId?: string, rand = Math.random()): T | undefined {
+  const ok = favs.filter((f) => f.id !== excludeId);
+  const fresh = ok.filter((f) => !recent.includes(f.id));
+  const from = fresh.length ? fresh : ok;
+  return from[Math.floor(rand * from.length)];
+}
+
+const toScene = ({ favAt: _favAt, ...scene }: FavoriteScene): Scene => scene;
+
+async function randomFavorite(excludeId?: string, bucket?: TimeBucket): Promise<Scene | undefined> {
+  const fav = pickFavorite(await (await db()).getAll('favorites'), { excludeId, bucket });
+  return fav && toScene(fav);
+}
+
+const ROTATION_KEY = 'fav:recent';
+
+/**
+ * The next favourite for the favourites-only mode. `none` when there are no favourites at all
+ * (the usual rules take over); `stay` when the one on screen is the only one.
+ */
+async function rotateFavorite(excludeId?: string): Promise<Scene | 'none' | 'stay'> {
+  const favs = await (await db()).getAll('favorites');
+  if (!favs.length) return 'none';
+  const recent = (await kvGet<string[]>(ROTATION_KEY)) ?? [];
+  const fav = nextInRotation(favs, recent, excludeId);
+  if (!fav) return 'stay';
+  // remember all but one, so the rotation goes through every favourite before repeating
+  await kvSet(ROTATION_KEY, [fav.id, ...recent.filter((id) => id !== fav.id)].slice(0, Math.max(0, favs.length - 1)));
+  return toScene(fav);
 }
 
 const blocked = (s: Scene, blacklist: Set<string>) =>
@@ -67,20 +106,31 @@ export interface PickOptions {
   bucket?: TimeBucket;
   /** Power saving: rotate through stored scenes instead of using up the queue. */
   cacheOnly?: boolean;
+  /** Favourites only, in rotation, ignoring the other rules (while there are favourites). */
+  favoritesOnly?: boolean;
 }
 
 /**
- * Scene for this new tab. When the rotation says it's time for a new one, a favourite comes back
- * with probability `favWeight`; otherwise the next queued scene is used (falling back to a
- * favourite when the queue is empty) — or, cache-only, any stored scene. Otherwise the current
- * scene stays. The replaced scene is kept in the history.
+ * Scene for this new tab. When the rotation says it's time for a new one: in the favourites-only
+ * mode, the next favourite in rotation. Otherwise a favourite suiting the time of day comes back
+ * with probability `favWeight`, else the next queued scene is used (falling back to a favourite
+ * when the queue is empty) — or, cache-only, any stored scene. Otherwise the current scene
+ * stays. The replaced scene is kept in the history.
  */
 export async function pickScene(rule: RotationRule, opts: PickOptions): Promise<Scene | undefined> {
   const cur = await getCurrent();
   if (opts.force || !cur || isDue(cur, rule)) {
-    const fav = Math.random() < opts.favWeight ? await randomFavorite(cur?.scene.id) : undefined;
+    const rotated = opts.favoritesOnly ? await rotateFavorite(cur?.scene.id) : 'none';
+    // the only favourite is already on screen: nothing else to rotate to
+    if (rotated === 'stay' && cur) return cur.scene;
+    const fav =
+      typeof rotated === 'object'
+        ? rotated
+        : Math.random() < opts.favWeight
+          ? await randomFavorite(cur?.scene.id, opts.bucket)
+          : undefined;
     const next = fav ?? (await (opts.cacheOnly ? fromCache(cur?.scene.id, opts.bucket) : dequeue(opts.bucket)));
-    const chosen = next ?? (await randomFavorite(cur?.scene.id));
+    const chosen = next ?? (await randomFavorite(cur?.scene.id, opts.bucket));
     if (chosen) {
       if (cur && cur.scene.id !== chosen.id) await pushHistory(cur.scene, cur.shownAt);
       await setCurrent(chosen);

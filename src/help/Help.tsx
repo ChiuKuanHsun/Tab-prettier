@@ -48,6 +48,7 @@ const ITEMS: Record<SectionId, Item[]> = {
   favorites: [
     [null, 'help.favorites.how'],
     ['options.favorites.limit', 'help.favorites.limit'],
+    ['help.favorites.rotationTerm', 'help.favorites.rotation'],
     [null, 'help.favorites.storage'],
     ['help.favorites.blacklist', 'help.favorites.blacklistText'],
   ],
