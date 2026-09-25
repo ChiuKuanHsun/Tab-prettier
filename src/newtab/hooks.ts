@@ -113,6 +113,7 @@ export function useScene(settings: Settings | undefined, lowPower: boolean) {
     return {
       bg: URL.createObjectURL(scene.bg.blob),
       char: scene.char ? URL.createObjectURL(scene.char.blob) : undefined,
+      depth: scene.bg.depth ? URL.createObjectURL(scene.bg.depth) : undefined,
     };
   }, [scene]);
   useEffect(
@@ -120,6 +121,7 @@ export function useScene(settings: Settings | undefined, lowPower: boolean) {
       if (urls) {
         URL.revokeObjectURL(urls.bg);
         if (urls.char) URL.revokeObjectURL(urls.char);
+        if (urls.depth) URL.revokeObjectURL(urls.depth);
       }
     },
     [urls],

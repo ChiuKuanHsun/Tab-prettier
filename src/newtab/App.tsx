@@ -6,6 +6,10 @@ import { AnimePanel } from '../widgets/Anime';
 import { CreditPanel } from '../widgets/Credit';
 import { Dock, type DockItem } from '../widgets/Dock';
 import { FavoriteButton } from '../widgets/Favorite';
+import { FocusPanel, useFocus } from '../widgets/Focus';
+import { useWeather, WeatherBadge } from '../widgets/Weather';
+import { weatherParticle } from '../lib/weather';
+import { countdownActive, formatRemaining, PHASE_LABEL, remainingMs } from '../lib/focus';
 import { LinksPanel, LinkStrip } from '../widgets/Links';
 import { Search } from '../widgets/Search';
 import { NotesPanel, TodoPanel } from '../widgets/Todo';
@@ -40,7 +44,11 @@ export function App() {
   const reducedMotion = useMedia('(prefers-reduced-motion: reduce)');
   const visible = usePageVisible();
   const vp = useViewport();
-  const now = useNow();
+  const focus = useFocus();
+  const weatherState = useWeather(settings?.weatherMode, settings?.weatherLocation);
+  const weather = weatherState?.w;
+  const focusActive = focus.status === 'running';
+  const now = useNow(focusActive || settings?.clockSeconds ? 1000 : 60_000);
   const { scene, urls, next } = useScene(settings, lowPower);
   const stage = useRef<HTMLElement>(null);
   const [ready, setReady] = useState(false);
@@ -77,9 +85,10 @@ export function App() {
   const t = layout.text;
   const colLeft = Math.min(t.inner, t.outer);
   const colW = Math.abs(t.inner - t.outer);
-  const clockSize = Math.max(96, Math.min(colW / 2.35, vp.h * (t.side === 'center' ? 0.34 : 0.3), t.side === 'center' ? 440 : 380));
+  // HH:MM is ~2.35em wide; small seconds add ~0.45em
+  const clockSize = Math.max(96, Math.min(colW / (settings.clockSeconds && !countdownActive(focus) ? 2.8 : 2.35), vp.h * (t.side === 'center' ? 0.34 : 0.3), t.side === 'center' ? 440 : 380));
 
-  const particleKind = settings.particles === 'auto' ? autoParticle() : settings.particles;
+  const particleKind = settings.particles === 'auto' ? (weatherParticle(weather?.mood) ?? autoParticle()) : settings.particles;
   const showParticles = particleKind !== 'off' && !lowPower && !reducedMotion;
 
   const style = {
@@ -103,10 +112,23 @@ export function App() {
     '--outer': `${Math.max(32, vp.w * 0.05)}px`,
   };
 
+  const focusLeft = remainingMs(focus, now.getTime());
+  const countdown = focusLeft !== undefined ? formatRemaining(focusLeft) : undefined;
+  const hhmm = (d: Date) => d.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: !settings.clock24h });
+  const focusStatus =
+    focus.status === 'running'
+      ? `${PHASE_LABEL[focus.phase]}中 · ${hhmm(new Date(focus.endAt))} 結束 · 現在 ${hhmm(now)}`
+      : focus.status === 'paused'
+        ? `${PHASE_LABEL[focus.phase]}已暫停 · 現在 ${hhmm(now)}`
+        : undefined;
+  const focusProgress =
+    focusLeft !== undefined && (focus.status === 'running' || focus.status === 'paused') ? 1 - focusLeft / focus.durationMs : undefined;
+
   const dockItems: DockItem[] = [
     { id: 'links', label: '連結', render: () => <LinksPanel /> },
     { id: 'todo', label: '待辦', render: () => <TodoPanel /> },
     { id: 'notes', label: '便條', render: () => <NotesPanel /> },
+    { id: 'focus', label: '專注', render: () => <FocusPanel state={focus} now={now} /> },
     { id: 'anime', label: '番劇', render: () => <AnimePanel clientId={settings.anilistClientId} /> },
     ...(scene ? [{ id: 'credit', label: '出處', render: () => <CreditPanel scene={scene} onNext={next} /> }] : []),
   ];
@@ -124,14 +146,20 @@ export function App() {
   return (
     <main ref={stage} class={classes} data-theme={settings.theme} style={style}>
       {scene && urls ? (
-        <Background scene={scene} url={urls.bg} playing={visible && !lowPower} />
+        <Background
+          scene={scene}
+          url={urls.bg}
+          depthUrl={urls.depth}
+          depthStrength={animate && !lowPower ? settings.depthMotion : 0}
+          playing={visible && !lowPower}
+        />
       ) : (
         <div class="layer layer-bg bg-placeholder" />
       )}
 
       <div class="layer layer-text" aria-hidden="true">
         <div class="col col-clock" data-enter="rise">
-          <Clock now={now} h24={settings.clock24h} size={clockSize} />
+          <Clock now={now} h24={settings.clock24h} seconds={settings.clockSeconds} size={clockSize} countdown={countdown} />
         </div>
       </div>
 
@@ -146,10 +174,19 @@ export function App() {
         </div>
         <div class="col col-ui" style={{ top: `${t.top + clockSize * 0.92}px` }}>
           <div data-enter="rise">
-            <Dateline now={now} />
+            <Dateline
+              now={now}
+              status={focusStatus}
+              progress={focusProgress}
+              extra={weatherState && <WeatherBadge w={weatherState.w} place={weatherState.place} />}
+            />
           </div>
           <div data-enter="rise">
-            <Search engine={settings.searchEngine} onEngine={(e) => void saveSettings({ ...settings, searchEngine: e })} />
+            <Search
+              engine={settings.searchEngine}
+              suggest={settings.searchSuggest}
+              onEngine={(e) => void saveSettings({ ...settings, searchEngine: e })}
+            />
           </div>
           {settings.pinLinks && <LinkStrip />}
           {!scene && <p class="preparing">正在準備第一幅畫…首次需要下載與處理圖片,約數十秒。</p>}

@@ -18,6 +18,7 @@ import {
 } from '../lib/settings';
 import type { MediaKind, Settings, Upload } from '../lib/types';
 import { DEFAULT_EXCLUDED_TAGS } from '../lib/curation';
+import { detectLocation, geocode, type Place } from '../lib/weather';
 import { THEMES } from '../themes';
 
 const NEKOSIA_CATEGORIES = ['random', 'catgirl', 'foxgirl', 'wolf-girl', 'animal-ears', 'maid', 'uniform', 'cute', 'young-girl', 'white-hair', 'blue-hair', 'kimono', 'vtuber'];
@@ -52,6 +53,104 @@ function Range(props: { value: number; min: number; max: number; step: number; o
       <input type="range" min={props.min} max={props.max} step={props.step} value={props.value} onInput={(e) => props.onChange(Number((e.target as HTMLInputElement).value))} />
       <output>{props.fmt ? props.fmt(props.value) : props.value}</output>
     </>
+  );
+}
+
+/** City search for the weather: Open-Meteo geocoding, results picked from a short list. */
+function WeatherPicker({
+  mode,
+  value,
+  onChange,
+}: {
+  mode: Settings['weatherMode'];
+  value: Settings['weatherLocation'];
+  onChange: (patch: Pick<Settings, 'weatherMode' | 'weatherLocation'>) => void;
+}) {
+  const [q, setQ] = useState('');
+  const [results, setResults] = useState<Place[]>();
+  const [err, setErr] = useState<string>();
+  const [detected, setDetected] = useState<string>();
+
+  useEffect(() => {
+    if (mode !== 'auto') return;
+    setDetected(undefined);
+    detectLocation().then(
+      (l) => setDetected(l.name),
+      () => setDetected('(偵測失敗)'),
+    );
+  }, [mode]);
+
+  const search = async (e: Event) => {
+    e.preventDefault();
+    if (!q.trim()) return;
+    setErr(undefined);
+    try {
+      const r = await geocode(q);
+      setResults(r);
+      if (!r.length) setErr('找不到這個地點,試試英文名稱(例如 Taipei)。');
+    } catch (e) {
+      setErr((e as Error).message);
+    }
+  };
+
+  const modes: [Settings['weatherMode'], string][] = [
+    ['auto', '自動(依網路位置)'],
+    ['manual', '手動選城市'],
+    ['off', '關閉'],
+  ];
+
+  return (
+    <div class="opt-field opt-field-block">
+      <span class="opt-label">
+        天氣
+        <small>日期旁顯示天氣;下雨下雪時背景會換成雨景、雪景,粒子也會跟著變。</small>
+      </span>
+      <div class="focus-chips" role="radiogroup" aria-label="天氣位置">
+        {modes.map(([m, label]) => (
+          <label key={m} class="radio">
+            <input type="radio" name="weather-mode" checked={mode === m} onChange={() => onChange({ weatherMode: m, weatherLocation: value })} />
+            {label}
+          </label>
+        ))}
+      </div>
+      {mode === 'auto' && (
+        <small class="opt-muted">
+          目前偵測:{detected ?? '偵測中…'}。依 IP 判斷,只到城市等級;用 VPN 或公司網路時可能不準,不準就改用手動。
+        </small>
+      )}
+      {mode === 'manual' && (
+        <>
+          <small class="opt-muted">{value ? `目前:${value.name}` : '尚未選擇城市,暫時使用自動偵測。'}</small>
+          <form class="weather-search" onSubmit={search}>
+            <input value={q} placeholder="城市名稱,英文較準確(例如 Taipei)" onInput={(e) => setQ((e.target as HTMLInputElement).value)} />
+            <button type="submit" class="opt-button">搜尋</button>
+          </form>
+          {err && <small class="opt-warn">{err}</small>}
+          {results && results.length > 0 && (
+            <ul class="weather-results">
+              {results.map((r) => {
+                const name = [r.name, r.admin1, r.country].filter(Boolean).join(',');
+                return (
+                  <li key={`${r.latitude},${r.longitude}`}>
+                    <button
+                      type="button"
+                      class="opt-link"
+                      onClick={() => {
+                        onChange({ weatherMode: 'manual', weatherLocation: { name: r.name, latitude: r.latitude, longitude: r.longitude } });
+                        setResults(undefined);
+                        setQ('');
+                      }}
+                    >
+                      {name}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </>
+      )}
+    </div>
   );
 }
 
@@ -238,9 +337,16 @@ export function Options() {
         <Field label="24 小時制">
           <input type="checkbox" checked={s.clock24h} onChange={() => set({ clock24h: !s.clock24h })} />
         </Field>
+        <Field label="顯示秒數" hint="以小字顯示在分鐘旁">
+          <input type="checkbox" checked={s.clockSeconds} onChange={() => set({ clockSeconds: !s.clockSeconds })} />
+        </Field>
         <Field label="在搜尋列下方常駐連結" hint="預設收在「連結」面板裡">
           <input type="checkbox" checked={s.pinLinks} onChange={() => set({ pinLinks: !s.pinLinks })} />
         </Field>
+        <Field label="搜尋建議" hint="輸入時向 Google 取得建議字詞(和網址列的建議相同)">
+          <input type="checkbox" checked={s.searchSuggest} onChange={() => set({ searchSuggest: !s.searchSuggest })} />
+        </Field>
+        <WeatherPicker mode={s.weatherMode} value={s.weatherLocation} onChange={(patch) => set(patch)} />
       </Section>
 
       <Section id="sources" title="圖源" note="背景取自 Wallhaven 的無人場景;角色取自 Nekosia / waifu.im 並自動去背。僅使用 SFW 內容。">
@@ -314,6 +420,9 @@ export function Options() {
       <Section id="motion" title="動態" note="系統開啟「減少動態效果」時,所有動畫會自動停用。">
         <Field label="滑鼠視差">
           <Range value={s.parallax} min={0} max={2} step={0.1} onChange={(v) => set({ parallax: v })} fmt={(v) => (v ? `×${v.toFixed(1)}` : '關')} />
+        </Field>
+        <Field label="背景景深運鏡" hint="依背景的深度圖做出立體視差與緩慢推鏡;新產生的畫面才有深度資料">
+          <Range value={s.depthMotion} min={0} max={2} step={0.1} onChange={(v) => set({ depthMotion: v })} fmt={(v) => (v ? `×${v.toFixed(1)}` : '關')} />
         </Field>
         <Field label="角色呼吸感">
           <input type="checkbox" checked={s.breathing} onChange={() => set({ breathing: !s.breathing })} />

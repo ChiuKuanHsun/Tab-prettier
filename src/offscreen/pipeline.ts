@@ -13,11 +13,13 @@ import {
 } from '../lib/curation';
 import { db } from '../lib/db';
 import { deriveTheme, quantize } from '../lib/palette';
+import { lastWeather } from '../lib/weather';
 import { uid } from '../lib/settings';
 import type { Credit, MediaKind, Scene, SceneChar, Settings, Upload } from '../lib/types';
 import { applyRimLight, labStats, lightDirection, toGray, transferColors, type LabStats } from './harmonize';
 import { canvas, fetchBlob, fit, pixels } from './image';
 import { fadeCutEdges, hasCharacter, refineMask, type RefinedMask } from './refine';
+import { estimateDepth } from './depth';
 import { segment } from './segment';
 import { nekosia, returnToPool, waifuim, wallhaven, type Candidate } from './sources';
 
@@ -81,8 +83,9 @@ async function bgFromUpload(u: Upload): Promise<Bg> {
 }
 
 async function bgFromWallhaven(s: Settings, blacklist: Set<string>, bucket: TimeBucket): Promise<Bg> {
+  const weather = (await lastWeather())?.mood;
   for (let attempt = 0; attempt < 5; attempt++) {
-    const cand = await wallhaven(s, blacklist, bucket);
+    const cand = await wallhaven(s, blacklist, bucket, weather);
     try {
       const bmp = await createImageBitmap(await fetchBlob(cand.url));
       // Reject backgrounds that already contain a character: they'd fight the composited one.
@@ -257,6 +260,17 @@ function regionAverage(img: ImageData, x0: number, x1: number, y0: number, y1: n
 
 export async function buildScene(s: Settings, blacklist: Set<string>): Promise<Scene> {
   const bg = await buildBackground(s, blacklist, timeBucket());
+  // Depth map for the new tab's 2.5D motion (images only; optional — the tab falls back to flat).
+  let depth: Blob | undefined;
+  if (bg.kind === 'image') {
+    try {
+      const t0 = performance.now();
+      depth = await estimateDepth(await createImageBitmap(bg.blob));
+      log('depth', `${Math.round(performance.now() - t0)}ms`, `${Math.round(depth.size / 1024)}KB`);
+    } catch (e) {
+      log('depth failed', e);
+    }
+  }
   const gray = toGray(bg.thumb.data);
   const emptiness = analyseEmptiness(gray, THUMB_W, THUMB_H);
   const light = lightDirection(gray, THUMB_W, THUMB_H);
@@ -283,7 +297,7 @@ export async function buildScene(s: Settings, blacklist: Set<string>): Promise<S
   return {
     id: uid(),
     createdAt: Date.now(),
-    bg: { blob: bg.blob, kind: bg.kind, width: bg.width, height: bg.height, palette: bg.palette, credit: bg.credit },
+    bg: { blob: bg.blob, kind: bg.kind, width: bg.width, height: bg.height, palette: bg.palette, credit: bg.credit, depth },
     char,
     layout: { charSide, emptiness, light, variant },
     theme: { ...deriveTheme(bg.palette, cells), low: { ink: low.ink, inkSoft: low.inkSoft, surface: low.surface, accent: low.accent } },

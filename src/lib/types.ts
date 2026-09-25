@@ -2,6 +2,8 @@ import { DEFAULT_EXCLUDED_TAGS, type TimeBucket, type Variant } from './curation
 
 export interface Rect { x: number; y: number; w: number; h: number }
 
+export interface WeatherLocation { name: string; latitude: number; longitude: number }
+
 export interface Credit {
   /** Source-scoped id, e.g. "wallhaven:nelqxr", used for blacklisting. */
   id: string;
@@ -49,7 +51,16 @@ export interface SceneChar {
 export interface Scene {
   id: string;
   createdAt: number;
-  bg: { blob: Blob; kind: MediaKind; width: number; height: number; palette: string[]; credit: Credit };
+  bg: {
+    blob: Blob;
+    kind: MediaKind;
+    width: number;
+    height: number;
+    palette: string[];
+    credit: Credit;
+    /** Greyscale depth map (white = near) for 2.5D motion; images only. */
+    depth?: Blob;
+  };
   char?: SceneChar;
   layout: SceneLayout;
   theme: SceneTheme;
@@ -107,6 +118,8 @@ export interface Settings {
   harmonize: number; // 0..1 colour-transfer strength
   rimLight: number; // 0..1
   parallax: number; // 0..2 multiplier
+  /** 2.5D camera motion on the background from its depth map; 0 = off (flat image). */
+  depthMotion: number;
   breathing: boolean;
   particles: ParticleKind;
   enterAnimation: boolean;
@@ -114,7 +127,13 @@ export interface Settings {
   processOnlyWhenIdle: boolean;
   pinLinks: boolean;
   searchEngine: string;
+  searchSuggest: boolean;
+  /** auto = locate by IP; manual = weatherLocation; off = no weather. */
+  weatherMode: 'auto' | 'manual' | 'off';
+  /** The city picked by hand (used in manual mode). */
+  weatherLocation: WeatherLocation | null;
   clock24h: boolean;
+  clockSeconds: boolean;
   anilistClientId: string;
 }
 
@@ -142,6 +161,7 @@ export const DEFAULT_SETTINGS: Settings = {
   harmonize: 0.35,
   rimLight: 0.6,
   parallax: 1,
+  depthMotion: 1,
   breathing: true,
   particles: 'auto',
   enterAnimation: true,
@@ -149,6 +169,10 @@ export const DEFAULT_SETTINGS: Settings = {
   processOnlyWhenIdle: false,
   pinLinks: false,
   searchEngine: 'default',
+  searchSuggest: true,
+  weatherMode: 'auto',
+  weatherLocation: null,
   clock24h: true,
+  clockSeconds: false,
   anilistClientId: '',
 };

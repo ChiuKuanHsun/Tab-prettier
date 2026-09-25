@@ -47,6 +47,8 @@ export async function getSettings(): Promise<Settings> {
     ...s,
     sources: { ...DEFAULT_SETTINGS.sources, ...s?.sources },
   };
+  // Before auto-location existed, a saved city meant "on" and none meant "off".
+  if (!s?.weatherMode && s?.weatherLocation) merged.weatherMode = 'manual';
   const legacy = LEGACY_ROTATION[merged.rotation as string];
   if (legacy) {
     merged.rotation = 'minutes';

@@ -26,7 +26,8 @@
     "identity",
     "favicon",
     "search",
-    "idle"
+    "idle",
+    "notifications"
   ],
   "host_permissions": [
     "https://wallhaven.cc/*",
@@ -36,7 +37,12 @@
     "https://api.waifu.im/*",
     "https://cdn.waifu.im/*",
     "https://graphql.anilist.co/*",
-    "https://anilist.co/*"
+    "https://anilist.co/*",
+    "https://suggestqueries.google.com/*",
+    "https://api.open-meteo.com/*",
+    "https://geocoding-api.open-meteo.com/*",
+    "https://ipwho.is/*",
+    "https://ipinfo.io/*"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"

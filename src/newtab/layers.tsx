@@ -1,9 +1,26 @@
-import { useEffect, useRef } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
+import { DepthBackground } from './DepthBackground';
 import type { Layout } from '../lib/compose';
 import type { ParticleKind, Scene } from '../lib/types';
 
-export function Background({ scene, url, playing }: { scene: Scene; url: string; playing: boolean }) {
+export function Background({
+  scene,
+  url,
+  depthUrl,
+  depthStrength,
+  playing,
+}: {
+  scene: Scene;
+  url: string;
+  /** Depth map URL; with depthStrength > 0 the image is drawn through the 2.5D WebGL warp. */
+  depthUrl?: string;
+  depthStrength: number;
+  playing: boolean;
+}) {
   const vid = useRef<HTMLVideoElement>(null);
+  const [flat, setFlat] = useState(false);
+  useEffect(() => setFlat(false), [url]);
+  const useDepth = scene.bg.kind === 'image' && !!depthUrl && depthStrength > 0 && !flat;
   useEffect(() => {
     const v = vid.current;
     if (!v) return;
@@ -17,6 +34,16 @@ export function Background({ scene, url, playing }: { scene: Scene; url: string;
         <video ref={vid} class="bg-media" src={url} muted loop playsInline autoplay={playing} />
       ) : (
         <img class="bg-media" src={url} alt="" decoding="async" />
+      )}
+      {useDepth && (
+        <DepthBackground
+          src={url}
+          depthSrc={depthUrl!}
+          strength={depthStrength}
+          running={playing}
+          onReady={() => {}}
+          onFail={() => setFlat(true)}
+        />
       )}
       <div class="bg-haze" />
       <div class={`bg-scrim ${scene.theme.scrim ? 'is-strong' : ''}`} />

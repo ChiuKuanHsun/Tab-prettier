@@ -49,6 +49,17 @@ Chrome 的分頁列 / 工具列配色只能用「佈景主題」這種特殊擴�
 去背模型:[SkyTNT anime-segmentation](https://github.com/SkyTNT/anime-segmentation)(Apache-2.0),
 以 `tools/convert_model.py` 轉成 fp16(`public/models/anime-seg-fp16.onnx`,約 88MB)。
 
+景深模型:[Depth Anything V2 Small](https://huggingface.co/onnx-community/depth-anything-v2-small)(Apache-2.0;
+Base / Large 版為非商用授權,不可替換),fp16(`public/models/depth-anything-v2-small-fp16.onnx`,約 50MB)。
+每幅背景在背景處理時算出深度圖,新分頁用 WebGL 做 2.5D 視差與推鏡。
+
+## 其他功能
+
+- **天氣**:設定頁選城市(Open-Meteo,免金鑰)。日期旁顯示天氣;下雨/下雪時優先挑雨景、雪景,粒子也會跟著變。
+- **專注計時**:「專注」面板開始後,大時鐘變成倒數;時間到由背景程式發系統通知(關掉分頁也會提醒)。
+- **搜尋建議**:輸入時向 Google 取得建議字詞,可在設定關閉。
+- **今日壽星**:番劇面板顯示今天生日的角色(AniList)。
+
 ## AniList 追番清單
 
 今日播出與本季新番不需登入。要看自己的追番清單:到設定頁的 AniList 區塊,照步驟建立 API Client,
@@ -57,4 +68,4 @@ Redirect URL 填設定頁顯示的 `https://<擴充ID>.chromiumapp.org/`。注�
 ## 快捷鍵
 
 - `/` 聚焦搜尋
-- `Alt+1…5` 開關 連結 / 待辦 / 便條 / 番劇 / 出處 面板,`Esc` 關閉
+- `Alt+1…6` 開關 連結 / 待辦 / 便條 / 專注 / 番劇 / 出處 面板,`Esc` 關閉

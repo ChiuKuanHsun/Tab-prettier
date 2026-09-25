@@ -70,6 +70,14 @@ button, input, textarea { font: inherit; color: inherit; }
   will-change: transform;
 }
 
+/* The WebGL depth canvas fills the layer exactly; the shader does its own zoom and motion. */
+.bg-media.is-depth {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: none;
+}
+
 /* Atmospheric haze pools at the bottom where the character stands, plus a gentle vignette. */
 .bg-haze {
   position: absolute;
@@ -137,11 +145,28 @@ button, input, textarea { font: inherit; color: inherit; }
   transform: translateY(-0.06em);
 }
 
+/* Seconds and AM/PM sit small beside the minutes: AM/PM on top, seconds on the baseline. */
+.clock-tail {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-self: stretch;
+  margin-left: 0.08em;
+  padding: 0.04em 0 0.02em;
+}
 .clock-ampm {
   font-size: 0.16em;
   letter-spacing: 0.2em;
-  margin-left: 0.4em;
   color: var(--ink-soft);
+}
+.clock-s {
+  margin-top: auto;
+  font-size: 0.3em;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+  /* both values: setting only tabular-nums would drop the clock's lining figures */
+  font-variant-numeric: lining-nums tabular-nums;
 }
 
 /* --- Character ------------------------------------------------------------ */
@@ -261,6 +286,32 @@ button, input, textarea { font: inherit; color: inherit; }
 }
 .text-right .dateline { flex-direction: row-reverse; }
 
+.weather {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-inline-start: 4px;
+  font-style: normal;
+}
+.weather svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 4px var(--surface));
+}
+.text-right .weather { margin-inline: 0 4px; }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .dateline-no {
   font-style: normal;
   font-weight: 500;
@@ -270,11 +321,19 @@ button, input, textarea { font: inherit; color: inherit; }
 }
 
 .dateline-rule {
+  position: relative;
   width: 56px;
   height: 1px;
-  background: currentColor;
-  opacity: 0.55;
+  background: color-mix(in oklab, currentColor 55%, transparent);
 }
+/* focus progress fills the rule in the accent */
+.dateline-rule > span {
+  position: absolute;
+  inset: -0.5px auto -0.5px 0;
+  background: var(--accent);
+  transition: width 1s linear;
+}
+.text-right .dateline-rule > span { inset: -0.5px 0 -0.5px auto; }
 
 /* Search: a hairline on the page rather than a box. */
 .search {
@@ -325,6 +384,41 @@ button, input, textarea { font: inherit; color: inherit; }
 }
 .search-engine-menu button:hover,
 .search-engine-menu [aria-selected='true'] { color: var(--accent); }
+
+/* Suggestions hang below the hairline, same surface as the engine menu. */
+.search-suggest {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 5;
+  margin: 0;
+  padding: 6px 0;
+  list-style: none;
+  background: var(--surface);
+  backdrop-filter: blur(14px);
+  border: 1px solid color-mix(in oklab, var(--ink) 14%, transparent);
+  text-shadow: none;
+  transition: opacity 0.15s;
+
+  @starting-style {
+    opacity: 0;
+  }
+}
+.search-suggest li {
+  padding: 7px 14px;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink);
+}
+.search-suggest-typed { color: var(--ink-soft); }
+.search-suggest [aria-selected='true'] {
+  background: color-mix(in oklab, var(--accent) 22%, transparent);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
 
 .search-input {
   flex: 1;
@@ -588,6 +682,48 @@ textarea:focus { border-color: var(--accent); }
 .dock-settings:hover .gear-hub,
 .dock-settings:focus-visible .gear-hub { transform: scale(0.72); fill: var(--accent); }
 .dock-settings:active .gear-teeth { transform: rotate(135deg); transition-duration: 0.35s; }
+
+/* Focus timer */
+.focus { display: grid; gap: 14px; }
+.focus-row { display: grid; gap: 6px; }
+.focus-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+  padding: 5px 14px;
+  font-size: 13px;
+  border: 1px solid color-mix(in oklab, var(--ink) 25%, transparent);
+  border-radius: 999px;
+  background: none;
+  cursor: pointer;
+}
+.chip[aria-checked='true'] { border-color: var(--accent); color: var(--accent); }
+.chip-input { padding: 0 10px; display: inline-flex; align-items: center; }
+.chip-input input { width: 52px; border: 0; padding: 5px 0; font-size: 13px; text-align: center; }
+.focus-start {
+  padding: 8px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--surface);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+}
+.focus-phase { margin: 0; font-size: 13px; letter-spacing: 0.2em; color: var(--ink-soft); }
+.focus-remaining {
+  margin: 0;
+  font-family: var(--serif-display);
+  font-weight: 300;
+  font-size: 64px;
+  line-height: 1;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.focus-done { margin: 0; color: var(--accent); font-size: 13px; }
+.focus-bar { height: 2px; background: color-mix(in oklab, var(--ink) 15%, transparent); }
+.focus-bar span { display: block; height: 100%; background: var(--accent); transition: width 1s linear; }
+
+/* Countdown: same face as the clock, the colon keeps a slow pulse */
+.clock.is-countdown .clock-colon { animation: countdown-pulse 2s ease-in-out infinite; }
+@keyframes countdown-pulse { 50% { opacity: 0.35; } }
 
 /* Links */
 .links { display: grid; gap: 18px; }

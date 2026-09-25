@@ -11,10 +11,24 @@ export const ENGINES: Record<string, { label: string; url?: string }> = {
   pixiv: { label: 'pixiv', url: 'https://www.pixiv.net/tags/%s' },
 };
 
-export function Search({ engine, onEngine }: { engine: string; onEngine: (e: string) => void }) {
+/** Google's suggestion endpoint (the one Chrome's omnibox uses); YouTube has its own dataset. */
+async function fetchSuggestions(q: string, engine: string, signal: AbortSignal): Promise<string[]> {
+  const params = new URLSearchParams({ client: 'chrome', hl: navigator.language, q });
+  if (engine === 'youtube') params.set('ds', 'yt');
+  const res = await fetch(`https://suggestqueries.google.com/complete/search?${params}`, { signal });
+  const data = (await res.json()) as [string, string[]];
+  return (data[1] ?? []).slice(0, 7);
+}
+
+const isUrl = (t: string) => /^https?:\/\/\S+$/i.test(t);
+
+export function Search({ engine, onEngine, suggest }: { engine: string; onEngine: (e: string) => void; suggest: boolean }) {
   const input = useRef<HTMLInputElement>(null);
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
+  const [items, setItems] = useState<string[]>([]);
+  const [active, setActive] = useState(-1);
+  const [showList, setShowList] = useState(false);
   const cur = ENGINES[engine] ?? ENGINES.default;
 
   useEffect(() => {
@@ -29,17 +43,60 @@ export function Search({ engine, onEngine }: { engine: string; onEngine: (e: str
     return () => removeEventListener('keydown', onKey);
   }, []);
 
-  const submit = (e: Event) => {
-    e.preventDefault();
+  // Debounced suggestions; each keystroke aborts the previous request.
+  useEffect(() => {
     const text = q.trim();
+    if (!suggest || !text || isUrl(text)) {
+      setItems([]);
+      return;
+    }
+    const ctrl = new AbortController();
+    const t = setTimeout(() => {
+      fetchSuggestions(text, engine, ctrl.signal).then(
+        (s) => {
+          setItems(s.filter((x) => x !== text));
+          setActive(-1);
+        },
+        () => {},
+      );
+    }, 140);
+    return () => {
+      clearTimeout(t);
+      ctrl.abort();
+    };
+  }, [q, engine, suggest]);
+
+  const go = (raw: string) => {
+    const text = raw.trim();
     if (!text) return;
-    if (/^https?:\/\/\S+$/i.test(text)) location.href = text;
+    if (isUrl(text)) location.href = text;
     else if (cur.url) location.href = cur.url.replace('%s', encodeURIComponent(text));
     else void chrome.search.query({ text, disposition: 'CURRENT_TAB' });
   };
 
+  const listOpen = showList && items.length > 0;
+
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (!listOpen) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const n = items.length;
+      setActive((a) => (e.key === 'ArrowDown' ? (a + 1) % n : (a - 1 + n) % n));
+    } else if (e.key === 'Escape') {
+      e.stopPropagation();
+      setShowList(false);
+    }
+  };
+
   return (
-    <form class="search" role="search" onSubmit={submit}>
+    <form
+      class="search"
+      role="search"
+      onSubmit={(e) => {
+        e.preventDefault();
+        go(listOpen && active >= 0 ? items[active] : q);
+      }}
+    >
       <div class="search-engine">
         <button
           type="button"
@@ -78,10 +135,47 @@ export function Search({ engine, onEngine }: { engine: string; onEngine: (e: str
         placeholder="搜尋,或輸入網址…"
         aria-label="搜尋"
         aria-keyshortcuts="/"
-        value={q}
-        onInput={(e) => setQ((e.target as HTMLInputElement).value)}
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={listOpen}
+        aria-controls="search-suggestions"
+        aria-activedescendant={listOpen && active >= 0 ? `sugg-${active}` : undefined}
+        autoComplete="off"
+        value={listOpen && active >= 0 ? items[active] : q}
+        onInput={(e) => {
+          setQ((e.target as HTMLInputElement).value);
+          setShowList(true);
+        }}
+        onKeyDown={onKeyDown}
+        onFocus={() => setShowList(true)}
+        onBlur={() => setShowList(false)}
         autoFocus
       />
+      {listOpen && (
+        <ul id="search-suggestions" class="search-suggest" role="listbox" aria-label="搜尋建議">
+          {items.map((s, i) => {
+            const typed = q.trim();
+            const head = s.toLowerCase().startsWith(typed.toLowerCase()) ? s.slice(0, typed.length) : '';
+            return (
+              <li
+                key={s}
+                id={`sugg-${i}`}
+                role="option"
+                aria-selected={i === active}
+                // mousedown (not click) so the input's blur doesn't close the list first
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  go(s);
+                }}
+                onMouseEnter={() => setActive(i)}
+              >
+                {head && <span class="search-suggest-typed">{head}</span>}
+                <span>{s.slice(head.length)}</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </form>
   );
 }

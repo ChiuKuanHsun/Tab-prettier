@@ -2,11 +2,16 @@
  * Pointer parallax: eases CSS custom properties --px/--py (-1..1) on `root`; each layer maps
  * them to its own depth in CSS. The rAF loop only runs while the values are settling.
  */
+/** The eased pointer position (-1..1), shared with the WebGL depth background. */
+export const pointer = { x: 0, y: 0 };
+
 export function startParallax(root: HTMLElement): () => void {
   let tx = 0, ty = 0, x = 0, y = 0, raf = 0;
   const tick = () => {
     x += (tx - x) * 0.07;
     y += (ty - y) * 0.07;
+    pointer.x = x;
+    pointer.y = y;
     root.style.setProperty('--px', x.toFixed(4));
     root.style.setProperty('--py', y.toFixed(4));
     raf = Math.abs(tx - x) + Math.abs(ty - y) > 0.0015 ? requestAnimationFrame(tick) : 0;

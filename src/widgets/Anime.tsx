@@ -2,6 +2,7 @@ import type { ComponentChildren } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import {
   airedEpisodes,
+  birthdays,
   displayTitle,
   getToken,
   login,
@@ -11,11 +12,12 @@ import {
   seasonAnime,
   todayAiring,
   type Airing,
+  type BirthdayCharacter,
   type ListEntry,
   type MediaLite,
 } from '../lib/anilist';
 
-type Tab = 'today' | 'season' | 'mine';
+type Tab = 'today' | 'season' | 'mine' | 'birthday';
 
 function useAsync<T>(load: () => Promise<T>, deps: unknown[]) {
   const [state, setState] = useState<{ data?: T; error?: string; loading: boolean }>({ loading: true });
@@ -118,6 +120,37 @@ function Season() {
         <Cover key={m.id} m={m} sub={m.nextAiringEpisode ? `EP${m.nextAiringEpisode.episode} · ${untilText(m.nextAiringEpisode.airingAt)}` : undefined} />
       ))}
     </div>
+  );
+}
+
+function Birthdays() {
+  const { data, error, loading } = useAsync<BirthdayCharacter[]>(birthdays, []);
+  if (loading) return <p class="panel-muted">載入中…</p>;
+  if (error) return <p class="panel-muted">讀取失敗:{error}</p>;
+  if (!data?.length) return <p class="panel-muted">今天沒有登記生日的角色。</p>;
+  const today = new Date();
+  return (
+    <>
+      <p class="panel-muted">
+        {today.getMonth() + 1} 月 {today.getDate()} 日生日的角色 🎂
+      </p>
+      <div class="cover-grid">
+        {data.map((c) => {
+          const work = c.media.nodes[0];
+          return (
+            <div class="cover-item" key={c.id}>
+              <a class="cover" href={c.siteUrl}>
+                <img src={c.image.large} alt="" loading="lazy" />
+                <span class="cover-title">{c.name.native || c.name.full}</span>
+                <span class="cover-sub">
+                  {work ? displayTitle(work.title) : c.name.full} · ♥ {c.favourites.toLocaleString()}
+                </span>
+              </a>
+            </div>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
@@ -228,6 +261,7 @@ export function AnimePanel({ clientId }: { clientId: string }) {
     ['today', '今日播出'],
     ['season', '本季新番'],
     ['mine', '追番清單'],
+    ['birthday', '今日壽星'],
   ];
   return (
     <div class="anime">
@@ -242,6 +276,7 @@ export function AnimePanel({ clientId }: { clientId: string }) {
         {tab === 'today' && <Today />}
         {tab === 'season' && <Season />}
         {tab === 'mine' && <Mine clientId={clientId} />}
+        {tab === 'birthday' && <Birthdays />}
       </div>
     </div>
   );

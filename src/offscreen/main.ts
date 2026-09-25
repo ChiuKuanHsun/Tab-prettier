@@ -1,6 +1,7 @@
 import { enqueue, queueCount } from '../lib/db';
 import type { Broadcast, ToBackground, ToOffscreen } from '../lib/messages';
 import { buildScene } from './pipeline';
+import { releaseDepth } from './depth';
 import { backend, releaseModel } from './segment';
 
 const IDLE_CLOSE_MS = 30_000;
@@ -55,7 +56,7 @@ async function refill(msg: ToOffscreen) {
   }
   // Free the model and let the service worker close this document once idle.
   idleTimer = setTimeout(async () => {
-    await releaseModel();
+    await Promise.all([releaseModel(), releaseDepth()]);
     chrome.runtime.sendMessage({ to: 'bg', type: 'offscreen-idle' } satisfies ToBackground).catch(() => {});
   }, IDLE_CLOSE_MS);
 }

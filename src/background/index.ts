@@ -1,4 +1,5 @@
 import { queueCount } from '../lib/db';
+import { FOCUS_ALARM, getFocus, getFocusPrefs, PHASE_LABEL, setFocus, startFocus, type FocusState } from '../lib/focus';
 import { queueTarget, type ToBackground, type ToOffscreen } from '../lib/messages';
 import { getBlacklist, getSettings } from '../lib/settings';
 
@@ -53,6 +54,48 @@ chrome.runtime.onInstalled.addListener(async () => {
 chrome.runtime.onStartup.addListener(() => void refill());
 chrome.alarms.onAlarm.addListener((a) => {
   if (a.name === 'refill') void refill();
+  if (a.name === FOCUS_ALARM) void finishFocus();
+});
+
+// --- Focus timer -------------------------------------------------------------------
+
+/** Keeps the alarm in step with the shared timer state, whichever tab changed it. */
+async function scheduleFocus(s: FocusState) {
+  await chrome.alarms.clear(FOCUS_ALARM);
+  if (s.status === 'running') await chrome.alarms.create(FOCUS_ALARM, { when: s.endAt });
+}
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.focus) void scheduleFocus((changes.focus.newValue as FocusState) ?? { status: 'idle' });
+});
+
+async function finishFocus() {
+  const s = await getFocus();
+  if (s.status !== 'running' || s.endAt > Date.now() + 2000) return;
+  await setFocus({ status: 'done', phase: s.phase, finishedAt: Date.now() });
+  const prefs = await getFocusPrefs();
+  const wasWork = s.phase === 'work';
+  await chrome.notifications.create('focus', {
+    type: 'basic',
+    iconUrl: chrome.runtime.getURL('icons/icon-128.png'),
+    title: wasWork ? '專注時間結束' : '休息結束',
+    message: wasWork ? `完成 ${Math.round(s.durationMs / 60_000)} 分鐘的專注,起來動一動吧。` : '準備好就開始下一輪專注。',
+    buttons: wasWork
+      ? [{ title: `休息 ${prefs.break} 分鐘` }, { title: `再${PHASE_LABEL.work} ${prefs.work} 分鐘` }]
+      : [{ title: `${PHASE_LABEL.work} ${prefs.work} 分鐘` }],
+    priority: 2,
+    // stays until dismissed, so a break reminder isn't missed while away from the screen
+    requireInteraction: true,
+  });
+}
+
+chrome.notifications.onButtonClicked.addListener(async (id, index) => {
+  if (id !== 'focus') return;
+  const s = await getFocus();
+  const prefs = await getFocusPrefs();
+  const startBreak = s.status === 'done' && s.phase === 'work' && index === 0;
+  await (startBreak ? startFocus('break', prefs.break) : startFocus('work', prefs.work));
+  await chrome.notifications.clear('focus');
 });
 
 chrome.idle.setDetectionInterval(60);

@@ -55,6 +55,26 @@ export function todayAiring(): Promise<Airing[]> {
   });
 }
 
+export interface BirthdayCharacter {
+  id: number;
+  siteUrl: string;
+  favourites: number;
+  name: { full: string; native: string | null };
+  image: { large: string };
+  media: { nodes: { title: Title; siteUrl: string }[] };
+}
+
+/** Characters whose birthday is today, most-loved first. */
+export function birthdays(): Promise<BirthdayCharacter[]> {
+  const d = new Date();
+  return cached(`anilist:birthdays:${d.getMonth() + 1}-${d.getDate()}`, 12 * HOUR, async () => {
+    const data = await gql<{ Page: { characters: BirthdayCharacter[] } }>(
+      `query{ Page(perPage:12){ characters(isBirthday:true, sort:FAVOURITES_DESC){ id siteUrl favourites name{ full native } image{ large } media(perPage:1, sort:POPULARITY_DESC, type:ANIME){ nodes{ title{ romaji native english } siteUrl } } } } }`,
+    );
+    return data.Page.characters;
+  });
+}
+
 export function currentSeason(date = new Date()) {
   const m = date.getMonth();
   const season = m < 3 ? 'WINTER' : m < 6 ? 'SPRING' : m < 9 ? 'SUMMER' : 'FALL';

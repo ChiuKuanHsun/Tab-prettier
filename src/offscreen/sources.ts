@@ -1,4 +1,5 @@
 import { BUCKET_QUERIES, isExcluded, parseTagList, WAIFUIM_ALWAYS_EXCLUDED, type TimeBucket } from '../lib/curation';
+import { WEATHER_QUERIES, type WeatherMood } from '../lib/weather';
 import { kvGet, kvSet } from '../lib/db';
 import type { Credit, Settings } from '../lib/types';
 import { fetchJson } from './image';
@@ -57,11 +58,18 @@ interface WallhavenItem {
   file_size: number;
 }
 
-export function wallhaven(s: Settings, blacklist: Set<string>, bucket: TimeBucket) {
+/**
+ * Background candidates. With time-awareness on, queries follow the time of day — or, 60% of the
+ * time when it is raining/snowing/foggy outside, the weather.
+ */
+export function wallhaven(s: Settings, blacklist: Set<string>, bucket: TimeBucket, weather?: WeatherMood) {
   const timed = s.sources.timeAware;
-  return fromPool(timed ? `pool:wallhaven:${bucket}` : 'pool:wallhaven', notBlacklisted(blacklist), async () => {
+  const weatherQueries = timed && weather ? WEATHER_QUERIES[weather] : undefined;
+  const useWeather = !!weatherQueries && Math.random() < 0.6;
+  const key = useWeather ? `pool:wallhaven:weather:${weather}` : timed ? `pool:wallhaven:${bucket}` : 'pool:wallhaven';
+  return fromPool(key, notBlacklisted(blacklist), async () => {
     const custom = s.sources.wallhavenQuery.split(',').map((q) => q.trim()).filter(Boolean);
-    const queries = timed ? BUCKET_QUERIES[bucket] : custom.length ? custom : ['landscape'];
+    const queries = useWeather ? weatherQueries! : timed ? BUCKET_QUERIES[bucket] : custom.length ? custom : ['landscape'];
     const params = new URLSearchParams({
       categories: '010', // anime only
       purity: '100', // SFW only
