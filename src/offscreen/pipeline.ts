@@ -2,7 +2,6 @@ import { hexToRgb, luminance, rgbToHsl, hslToRgb, type RGB } from '../lib/color'
 import { analyseEmptiness, chooseCharSide } from '../lib/compose';
 import {
   classifyBucket,
-  isExcluded,
   moodDistance,
   parseTagList,
   pickCharVariant,
@@ -156,11 +155,7 @@ function sceneFeatured(s: Settings, listAnime?: ListAnime[]): Featured | undefin
   if (!s.sources.danbooru) return undefined;
   const favs = s.sources.favoriteChars;
   if (favs.length && Math.random() < s.sources.favoriteCharsWeight) return async () => pickOne(favs);
-  if (listAnime?.length && Math.random() < s.sources.listCharsWeight) {
-    const exclude = parseTagList(s.sources.excludeTags);
-    const noMale = isExcluded(['male'], exclude) || isExcluded(['boy'], exclude);
-    return () => listCharacterTag(listAnime, noMale);
-  }
+  if (listAnime?.length && Math.random() < s.sources.listCharsWeight) return () => listCharacterTag(listAnime);
   return undefined;
 }
 

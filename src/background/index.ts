@@ -4,7 +4,8 @@ import { FOCUS_ALARM, getFocus, getFocusPrefs, PHASE_LABEL, setFocus, startFocus
 import { queueTarget, type ToBackground, type ToOffscreen } from '../lib/messages';
 import { getBlacklist, getSettings } from '../lib/settings';
 import { getToken, myListAnime } from '../lib/anilist';
-import { chosenAnime, type ListAnime } from '../lib/list-chars';
+import { chosenAnime, withPickedCharacters, type ListAnime } from '../lib/list-chars';
+import { getCharPicks } from '../lib/list-picks';
 import type { Settings } from '../lib/types';
 
 const OFFSCREEN_URL = 'offscreen.html';
@@ -27,13 +28,16 @@ async function ensureOffscreen() {
   await creating;
 }
 
-/** Shows on the user's AniList lists to take characters from, when that's switched on and logged in. */
+/**
+ * Shows on the user's AniList lists to take characters from, each with only the characters the
+ * user has ticked — when that's switched on and logged in.
+ */
 async function listAnimeFor(s: Settings): Promise<ListAnime[] | undefined> {
   if (!s.sources.danbooru || !s.sources.listChars) return undefined;
   const token = await getToken();
   if (!token) return undefined;
   try {
-    return chosenAnime(await myListAnime(token), s.sources);
+    return withPickedCharacters(chosenAnime(await myListAnime(token), s.sources), await getCharPicks());
   } catch (e) {
     console.warn('[bg] AniList list', e);
     return undefined;

@@ -7,13 +7,13 @@ import {
   GENERAL_QUERIES,
   postCredit,
   postsUrl,
-  searchCharacters,
   usablePost,
   type DanbooruPost,
   type PostQuery,
 } from '../lib/danbooru';
 import { kvGet, kvSet } from '../lib/db';
-import { matchCharacterTag, usableCharacters, type ListAnime } from '../lib/list-chars';
+import { lookupCharacter } from '../lib/char-map';
+import { drawCharacter, MIN_POSTS, type ListAnime } from '../lib/list-chars';
 import type { Credit, Settings } from '../lib/types';
 import { fetchJson } from './image';
 
@@ -177,23 +177,16 @@ export function waifuim(s: Settings, blacklist: Set<string>) {
 }
 
 /**
- * A Danbooru tag for a random main character from the user's AniList shows. Each character is
- * looked up once — Japanese name first, English only if that fails — and the answer is kept,
- * including "no sure match" (''), so this rarely touches the network.
+ * A Danbooru tag for a random ticked character from the user's AniList shows (main characters
+ * twice as likely). The lookup is cached, so this rarely touches the network; characters without
+ * a sure match or with too few images are passed over.
  */
-export async function listCharacterTag(anime: ListAnime[], noMale: boolean): Promise<string | undefined> {
+export async function listCharacterTag(anime: ListAnime[]): Promise<string | undefined> {
   for (let i = 0; i < 4; i++) {
-    const chars = usableCharacters(pick(anime), noMale);
-    if (!chars.length) continue;
-    const c = pick(chars);
-    const key = `danbooru:map:${c.id}`;
-    let tag = await kvGet<string>(key);
-    if (tag === undefined) {
-      const byNative = c.name.native ? await searchCharacters(c.name.native) : [];
-      tag = matchCharacterTag(byNative, [], c.name) ?? matchCharacterTag([], await searchCharacters(c.name.full), c.name) ?? '';
-      await kvSet(key, tag);
-    }
-    if (tag) return tag;
+    const c = drawCharacter(pick(anime).characters);
+    if (!c) continue;
+    const match = await lookupCharacter(c);
+    if (match && match.posts >= MIN_POSTS) return match.tag;
   }
   return undefined;
 }

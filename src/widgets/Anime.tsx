@@ -19,7 +19,9 @@ import {
   type MediaLite,
 } from '../lib/anilist';
 import { t, tRich } from '../i18n';
+import type { ListAnime } from '../lib/list-chars';
 import type { Settings } from '../lib/types';
+import { ListCharacters, useCharPicks } from './ListCharacters';
 
 type Tab = 'today' | 'season' | 'mine' | 'birthday';
 
@@ -238,6 +240,10 @@ function Mine({ clientId, src, onSources }: { clientId: string; src: Sources; on
   );
   const [entries, setEntries] = useState<ListEntry[]>([]);
   useEffect(() => setEntries(list.data?.entries ?? []), [list.data]);
+  // the show whose characters are open, over the list
+  const [sheet, setSheet] = useState<{ m: MediaLite; status: ListStatus }>();
+  const cast = useAsync<ListAnime[] | null>(async () => (token && sheet ? myListAnime(token) : null), [token, sheet?.m.id]);
+  const picks = useCharPicks();
 
   if (token === undefined) return null;
   if (!token) {
@@ -271,6 +277,50 @@ function Mine({ clientId, src, onSources }: { clientId: string; src: Sources; on
   if (list.loading) return <p class="panel-muted">{t('common.loading')}</p>;
   if (list.error) return <p class="panel-muted">{t('common.loadFailed', { error: list.error })}</p>;
   const name = list.data?.name;
+  const charsButton = (m: MediaLite, status: ListStatus) => (
+    <button
+      type="button"
+      class="cover-chars"
+      aria-label={t('widgets.listChars.openLabel', { title: displayTitle(m.title) })}
+      onClick={(e) => {
+        setSheet({ m, status });
+        // the panel may be scrolled down the list; the characters start at the top
+        (e.currentTarget as HTMLElement).closest('.panel')?.scrollTo({ top: 0 });
+      }}
+    >
+      {t('widgets.listChars.open')}
+    </button>
+  );
+  const sheetShow = sheet && cast.data?.find((a) => a.id === sheet.m.id);
+  // a show's characters take the list's place until closed
+  if (sheet) {
+    return (
+      <div class="chars-sheet" role="dialog" aria-label={displayTitle(sheet.m.title)}>
+        <div class="panel-actions">
+          <strong class="chars-sheet-title">{displayTitle(sheet.m.title)}</strong>
+          <button type="button" class="text-btn" onClick={() => setSheet(undefined)}>
+            {t('widgets.listChars.close')}
+          </button>
+        </div>
+        {cast.loading ? (
+          <p class="panel-muted">{t('common.loading')}</p>
+        ) : cast.error ? (
+          <p class="panel-muted">{t('common.loadFailed', { error: cast.error })}</p>
+        ) : sheetShow ? (
+          <ListCharacters
+            anime={sheetShow}
+            picks={picks}
+            disabled={
+              pickBlocked(src, sheet.status) ?? (src.listExcluded.includes(sheet.m.id) ? t('widgets.listChars.showOff') : undefined)
+            }
+          />
+        ) : (
+          <p class="panel-muted">{t('widgets.listChars.notInList')}</p>
+        )}
+      </div>
+    );
+  }
+
   const views: [ListStatus, string][] = [
     ['CURRENT', t('widgets.anime.showWatching')],
     ['COMPLETED', t('widgets.anime.showCompleted')],
@@ -341,6 +391,7 @@ function Mine({ clientId, src, onSources }: { clientId: string; src: Sources; on
                   action={
                     <>
                       <PickToggle m={e.media} status="CURRENT" src={src} onSources={onSources} />
+                      {charsButton(e.media, 'CURRENT')}
                       <PlusOne
                         token={token}
                         entry={e}
@@ -371,7 +422,12 @@ function Mine({ clientId, src, onSources }: { clientId: string; src: Sources; on
                 key={e.id}
                 m={e.media}
                 sub={e.media.episodes ? t('widgets.anime.episodesTotal', { n: e.media.episodes }) : undefined}
-                action={<PickToggle m={e.media} status="COMPLETED" src={src} onSources={onSources} />}
+                action={
+                  <>
+                    <PickToggle m={e.media} status="COMPLETED" src={src} onSources={onSources} />
+                    {charsButton(e.media, 'COMPLETED')}
+                  </>
+                }
               />
             ))}
           </div>

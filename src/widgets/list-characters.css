@@ -1,0 +1,39 @@
+/* Character ticks for list characters; used on the new tab and the settings page, so colours
+   fall back from the new tab's tokens to the settings page's. */
+.lc-note { margin: 0 0 8px; font-size: 12px; color: var(--ink-soft, var(--muted)); }
+.lc-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 6px;
+}
+/* name, role and Danbooru status each get a line, so the status is never cut off */
+.lc label {
+  display: grid;
+  grid-template-columns: auto 34px minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  align-items: center;
+  column-gap: 8px;
+  padding: 5px 8px;
+  border: 1px solid color-mix(in oklab, currentColor 14%, transparent);
+  cursor: pointer;
+}
+.lc.is-on label { border-color: var(--accent); }
+.lc input { grid-row: span 3; margin: 0; accent-color: var(--accent); }
+.lc img,
+.lc .lc-img {
+  grid-row: span 3;
+  width: 34px;
+  height: 44px;
+  object-fit: cover;
+  background: color-mix(in oklab, currentColor 12%, transparent);
+}
+.lc-name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lc small { font-size: 11px; line-height: 1.35; color: var(--ink-soft, var(--muted)); }
+.lc .lc-status { overflow-wrap: anywhere; }
+/* no Danbooru tag, or too few images: never picked, whatever the tick says */
+.lc.is-weak label { opacity: 0.45; }
+.lc input:disabled { cursor: default; }
+.lc:has(input:disabled) label { cursor: default; }

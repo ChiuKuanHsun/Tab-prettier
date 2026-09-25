@@ -1,12 +1,29 @@
 import { describe, expect, it } from 'vitest';
-import { chosenAnime, matchCharacterTag, usableCharacters, type ListAnime } from '../lib/list-chars';
+import {
+  chosenAnime,
+  drawCharacter,
+  isPicked,
+  matchCharacterTag,
+  withPickedCharacters,
+  type ListAnime,
+  type ListCharacter,
+} from '../lib/list-chars';
 
-const anime = (id: number, status: ListAnime['status'], genders: (string | null)[] = []): ListAnime => ({
+const char = (id: number, gender: string | null, role: ListCharacter['role'] = 'MAIN'): ListCharacter => ({
+  id,
+  name: { full: `c${id}`, native: null },
+  gender,
+  role,
+  image: null,
+  favourites: 0,
+});
+
+const anime = (id: number, status: ListAnime['status'], characters: ListCharacter[] = []): ListAnime => ({
   id,
   status,
   title: { romaji: `show ${id}`, native: null },
   cover: null,
-  characters: genders.map((gender, i) => ({ id: id * 10 + i, name: { full: `c${i}`, native: null }, gender })),
+  characters,
 });
 
 describe('chosenAnime', () => {
@@ -20,11 +37,32 @@ describe('chosenAnime', () => {
   });
 });
 
-describe('usableCharacters', () => {
-  it('skips male characters only when asked', () => {
-    const a = anime(1, 'CURRENT', ['Female', 'Male', null]);
-    expect(usableCharacters(a, true).map((c) => c.gender)).toEqual(['Female', null]);
-    expect(usableCharacters(a, false)).toHaveLength(3);
+describe('character picks', () => {
+  it('ticks female characters by default', () => {
+    expect(isPicked(char(1, 'Female'), {})).toBe(true);
+    expect(isPicked(char(2, 'Female (formerly)'), {})).toBe(true);
+    expect(isPicked(char(3, 'Male'), {})).toBe(false);
+    expect(isPicked(char(4, null), {})).toBe(false);
+  });
+
+  it("lets the user's ticks override the default either way", () => {
+    expect(isPicked(char(1, 'Female'), { 1: false })).toBe(false);
+    expect(isPicked(char(3, 'Male'), { 3: true })).toBe(true);
+  });
+
+  it('keeps only ticked characters and drops shows left with none', () => {
+    const list = [anime(1, 'CURRENT', [char(1, 'Female'), char(2, 'Male')]), anime(2, 'CURRENT', [char(3, 'Male')])];
+    const out = withPickedCharacters(list, {});
+    expect(out.map((a) => a.id)).toEqual([1]);
+    expect(out[0].characters.map((c) => c.id)).toEqual([1]);
+  });
+
+  it('draws main characters twice as often as supporting ones', () => {
+    const chars = [char(1, 'Female', 'MAIN'), char(2, 'Female', 'SUPPORTING')];
+    // total weight 3: [0, 2) main, [2, 3) supporting
+    expect(drawCharacter(chars, 0.6)?.id).toBe(1);
+    expect(drawCharacter(chars, 0.7)?.id).toBe(2);
+    expect(drawCharacter([], 0.5)).toBeUndefined();
   });
 });
 
@@ -33,12 +71,12 @@ describe('matchCharacterTag', () => {
 
   it('takes the tag whose recorded name is the Japanese name', () => {
     const byNative = [tag('frieren', 'フリーレン')];
-    expect(matchCharacterTag(byNative, [], { full: 'Frieren', native: 'フリーレン' })).toBe('frieren');
+    expect(matchCharacterTag(byNative, [], { full: 'Frieren', native: 'フリーレン' })?.name).toBe('frieren');
   });
 
   it('falls back to the English name, in any word order, ignoring the series qualifier', () => {
-    expect(matchCharacterTag([], [tag('kamado_nezuko')], { full: 'Nezuko Kamado', native: null })).toBe('kamado_nezuko');
-    expect(matchCharacterTag([], [tag('fern_(sousou_no_frieren)')], { full: 'Fern', native: null })).toBe(
+    expect(matchCharacterTag([], [tag('kamado_nezuko')], { full: 'Nezuko Kamado', native: null })?.name).toBe('kamado_nezuko');
+    expect(matchCharacterTag([], [tag('fern_(sousou_no_frieren)')], { full: 'Fern', native: null })?.name).toBe(
       'fern_(sousou_no_frieren)',
     );
   });

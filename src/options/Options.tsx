@@ -20,7 +20,8 @@ import type { MediaKind, Settings, Upload } from '../lib/types';
 import { DEFAULT_EXCLUDED_TAGS } from '../lib/curation';
 import { getToken, myListAnime } from '../lib/anilist';
 import { searchCharacters, tagLabel, type CharacterTag } from '../lib/danbooru';
-import type { ListAnime } from '../lib/list-chars';
+import { isPicked, type ListAnime } from '../lib/list-chars';
+import { ListCharacters, useCharPicks } from '../widgets/ListCharacters';
 import { detectLocation, geocode, type Place } from '../lib/weather';
 import { THEMES } from '../themes';
 import { t, tRich } from '../i18n';
@@ -177,6 +178,9 @@ function ListChars({ src, setSrc }: { src: Settings['sources']; setSrc: (patch: 
   // undefined while loading, null when not logged in to AniList
   const [anime, setAnime] = useState<ListAnime[] | null>();
   const [err, setErr] = useState<string>();
+  // the show whose characters are open
+  const [open, setOpen] = useState<number>();
+  const picks = useCharPicks();
 
   const load = async (force = false) => {
     setErr(undefined);
@@ -249,12 +253,29 @@ function ListChars({ src, setSrc }: { src: Settings['sources']; setSrc: (patch: 
               <ul class="list-anime">
                 {shown.map((a) => (
                   <li key={a.id}>
-                    <label>
-                      <input type="checkbox" checked={!excluded.has(a.id)} onChange={() => toggle(a.id)} />
-                      {a.cover && <img src={a.cover} alt="" loading="lazy" />}
-                      <span>{a.title.native || a.title.romaji}</span>
-                      <small>{t('options.listChars.chars', { n: a.characters.length })}</small>
-                    </label>
+                    <div class="list-anime-row">
+                      <label>
+                        <input type="checkbox" checked={!excluded.has(a.id)} onChange={() => toggle(a.id)} />
+                        {a.cover && <img src={a.cover} alt="" loading="lazy" />}
+                        <span>{a.title.native || a.title.romaji}</span>
+                      </label>
+                      <button
+                        type="button"
+                        class="opt-link"
+                        aria-expanded={open === a.id}
+                        onClick={() => setOpen(open === a.id ? undefined : a.id)}
+                      >
+                        {t('options.listChars.chars', {
+                          n: a.characters.filter((c) => isPicked(c, picks)).length,
+                          total: a.characters.length,
+                        })}
+                      </button>
+                    </div>
+                    {open === a.id && (
+                      <div class="list-anime-cast">
+                        <ListCharacters anime={a} picks={picks} disabled={excluded.has(a.id) ? t('widgets.listChars.showOff') : undefined} />
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>

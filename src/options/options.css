@@ -115,20 +115,24 @@ input.num { min-width: 0; width: 96px; text-align: right; }
   max-height: calc(var(--row) * 8 + 8px);
   overflow-y: auto;
 }
-.list-anime label {
+.list-anime-row { display: flex; align-items: center; height: var(--row); padding-right: 12px; }
+.list-anime-row:hover { background: var(--line); }
+.list-anime-row label {
   display: flex;
+  flex: 1;
   align-items: center;
   gap: 10px;
-  height: var(--row);
+  height: 100%;
   min-width: 0;
   padding: 0 12px;
   cursor: pointer;
   font-size: 14px;
 }
-.list-anime label:hover { background: var(--line); }
-.list-anime img { width: 24px; height: 34px; object-fit: cover; flex: none; background: var(--line); }
-.list-anime span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.list-anime small { margin-left: auto; color: var(--muted); font-size: 12px; flex: none; }
+.list-anime-row img { width: 24px; height: 34px; object-fit: cover; flex: none; background: var(--line); }
+.list-anime-row span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list-anime-row .opt-link { flex: none; font-variant-numeric: tabular-nums; }
+/* the open show's characters, under its row */
+.list-anime-cast { padding: 8px 12px 12px; border-bottom: 1px solid var(--line); }
 .char-picker { display: grid; gap: 8px; position: relative; }
 .char-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .char-chips li {
