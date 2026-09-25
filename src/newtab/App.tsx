@@ -14,6 +14,7 @@ import { countdownActive, formatRemaining, PHASE_LABEL, remainingMs } from '../l
 import { LinksPanel, LinkStrip } from '../widgets/Links';
 import { Search } from '../widgets/Search';
 import { NotesPanel, TodoPanel } from '../widgets/Todo';
+import { CLOCK_SCALE } from '../themes';
 import { Clock, Dateline, VerticalDate } from './Clock';
 import { useMedia, useNow, usePageVisible, usePowerSave, useScene, useSettings, useViewport } from './hooks';
 import { autoParticle, Background, Character, Particles } from './layers';
@@ -95,7 +96,7 @@ export function App() {
   const reach = layout.char && t.side === 'left' ? t.inner - layout.char.left : 0;
   const clockShift = tail && reach > 0 ? reach + 12 * (animate ? settings.parallax : 0) + 8 : 0;
   // HH:MM is ~2.35em wide; small seconds add ~0.45em
-  const clockSize = Math.max(96, Math.min((colW - clockShift) / (settings.clockSeconds && !countdownActive(focus) ? 2.8 : 2.35), vp.h * (t.side === 'center' ? 0.34 : 0.3), t.side === 'center' ? 440 : 380));
+  const clockSize = (CLOCK_SCALE[settings.theme] ?? 1) * Math.max(96, Math.min((colW - clockShift) / (settings.clockSeconds && !countdownActive(focus) ? 2.8 : 2.35), vp.h * (t.side === 'center' ? 0.34 : 0.3), t.side === 'center' ? 440 : 380));
 
   const particleKind = settings.particles === 'auto' ? (weatherParticle(weather?.mood) ?? autoParticle()) : settings.particles;
   const showParticles = particleKind !== 'off' && !lowPower && !reducedMotion;
