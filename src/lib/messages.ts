@@ -2,7 +2,7 @@ import type { Settings } from './types';
 
 /** newtab/options → service worker */
 export type ToBackground =
-  | { to: 'bg'; type: 'refill'; lowPower?: boolean }
+  | { to: 'bg'; type: 'refill'; lowPower?: boolean; force?: boolean }
   | { to: 'bg'; type: 'offscreen-idle' };
 
 /** service worker → offscreen document */

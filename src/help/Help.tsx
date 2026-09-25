@@ -37,6 +37,7 @@ const ITEMS: Record<SectionId, Item[]> = {
   power: [
     ['options.power.powerSave', 'help.power.powerSave'],
     ['options.power.idleOnly', 'help.power.idleOnly'],
+    ['options.power.cache', 'help.power.cache'],
   ],
   uploads: [
     [null, 'help.uploads.formats'],

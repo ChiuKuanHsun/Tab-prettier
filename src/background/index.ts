@@ -1,5 +1,5 @@
 import { t } from '../i18n';
-import { queueCount } from '../lib/db';
+import { hasAnyScene, queueCount } from '../lib/db';
 import { FOCUS_ALARM, getFocus, getFocusPrefs, PHASE_LABEL, setFocus, startFocus, type FocusState } from '../lib/focus';
 import { queueTarget, type ToBackground, type ToOffscreen } from '../lib/messages';
 import { getBlacklist, getSettings } from '../lib/settings';
@@ -24,8 +24,11 @@ async function ensureOffscreen() {
   await creating;
 }
 
-async function refill(opts: { fromIdle?: boolean; lowPower?: boolean } = {}) {
+async function refill(opts: { fromIdle?: boolean; lowPower?: boolean; force?: boolean } = {}) {
   const settings = await getSettings();
+  // Cache-only power saving makes nothing new, unless there is nothing at all to show yet or
+  // the user asked for it (regenerate in the settings).
+  if (settings.powerSave === 'cache' && !opts.force && (await hasAnyScene())) return;
   const target = queueTarget(settings);
   if ((await queueCount()) >= target) return;
   if ((settings.processOnlyWhenIdle || opts.lowPower) && !opts.fromIdle) {
@@ -115,7 +118,7 @@ chrome.runtime.onMessage.addListener((msg: ToBackground, _sender, sendResponse) 
   if (msg?.to !== 'bg') return;
   (async () => {
     try {
-      if (msg.type === 'refill') await refill({ lowPower: msg.lowPower });
+      if (msg.type === 'refill') await refill({ lowPower: msg.lowPower, force: msg.force });
       if (msg.type === 'offscreen-idle' && (await hasOffscreen())) await chrome.offscreen.closeDocument();
     } catch (e) {
       console.warn('[bg]', msg.type, e);

@@ -130,7 +130,8 @@ export interface Settings {
   breathing: boolean;
   particles: ParticleKind;
   enterAnimation: boolean;
-  powerSave: 'auto' | 'on' | 'off';
+  /** 'cache' also stops making new scenes: stored ones take turns (see pickScene). */
+  powerSave: 'auto' | 'on' | 'cache' | 'off';
   processOnlyWhenIdle: boolean;
   pinLinks: boolean;
   searchEngine: string;

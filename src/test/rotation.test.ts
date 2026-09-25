@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { queueTarget } from '../lib/messages';
-import { isDue } from '../lib/scene-store';
-import type { RotationRule } from '../lib/types';
+import { isDue, pickCached } from '../lib/scene-store';
+import type { RotationRule, Scene } from '../lib/types';
 
 const rule = (r: Partial<RotationRule>): RotationRule => ({ rotation: 'tab', rotationMinutes: 30, rotationTabs: 3, ...r });
 const MIN = 60_000;
@@ -35,5 +35,33 @@ describe('rotation', () => {
     expect(queueTarget(rule({ rotation: 'tab' }))).toBe(5);
     expect(queueTarget(rule({ rotation: 'minutes', rotationMinutes: 5 }))).toBe(3);
     expect(queueTarget(rule({ rotation: 'tabs', rotationTabs: 10 }))).toBe(2);
+  });
+});
+
+describe('pickCached', () => {
+  const scene = (id: string, shownAt: number, extra: Partial<Scene> = {}) =>
+    ({ id, shownAt, bg: { credit: { id: `bg:${id}` } }, ...extra }) as unknown as Scene & { shownAt: number };
+  const none = new Set<string>();
+
+  it('never picks the scene on screen', () => {
+    expect(pickCached([scene('a', 1), scene('b', 2)], { excludeId: 'a', blacklist: none }, 0)?.id).toBe('b');
+    expect(pickCached([scene('a', 1)], { excludeId: 'a', blacklist: none })).toBeUndefined();
+  });
+
+  it('draws from the least recently shown half', () => {
+    const pool = [scene('new', 40), scene('old', 10), scene('queued', 0), scene('mid', 30)];
+    const picks = [0, 0.49, 0.99].map((r) => pickCached(pool, { blacklist: none }, r)?.id);
+    expect(picks).toEqual(['queued', 'queued', 'old']);
+  });
+
+  it('skips scenes blocked since they were made, by background or character', () => {
+    const pool = [scene('a', 1), scene('b', 2, { char: { credit: { id: 'c:1' } } as Scene['char'] }), scene('c', 3)];
+    expect(pickCached(pool, { blacklist: new Set(['bg:a', 'c:1']) }, 0)?.id).toBe('c');
+  });
+
+  it('prefers the time of day, but falls back to any scene', () => {
+    const pool = [scene('day', 1, { bucket: 'day' }), scene('night', 2, { bucket: 'night' })];
+    expect(pickCached(pool, { bucket: 'night', blacklist: none }, 0)?.id).toBe('night');
+    expect(pickCached([scene('day', 1, { bucket: 'day' })], { bucket: 'night', blacklist: none })?.id).toBe('day');
   });
 });

@@ -325,7 +325,8 @@ export function Options() {
 
   const regenerate = async () => {
     await (await db()).clear('queue');
-    await send({ to: 'bg', type: 'refill' });
+    // an explicit request: runs even in the cache-only power mode
+    await send({ to: 'bg', type: 'refill', force: true });
     setQueue(0);
     flash(t('options.regenerating'));
   };
@@ -593,9 +594,11 @@ export function Options() {
           <select value={s.powerSave} onChange={(e) => set({ powerSave: (e.target as HTMLSelectElement).value as Settings['powerSave'] })}>
             <option value="auto">{t('options.power.auto')}</option>
             <option value="on">{t('options.power.on')}</option>
+            <option value="cache">{t('options.power.cache')}</option>
             <option value="off">{t('common.off')}</option>
           </select>
         </Field>
+        {s.powerSave === 'cache' && <small class="opt-muted">{t('options.power.cacheNote')}</small>}
         <Field label={t('options.power.idleOnly')}>
           <input type="checkbox" checked={s.processOnlyWhenIdle} onChange={() => set({ processOnlyWhenIdle: !s.processOnlyWhenIdle })} />
         </Field>

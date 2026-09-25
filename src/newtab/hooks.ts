@@ -53,7 +53,7 @@ export function usePowerSave(mode: Settings['powerSave'] | undefined) {
     });
     return () => bm?.removeEventListener('chargingchange', on);
   }, [mode]);
-  return mode === 'on' || (mode === 'auto' && onBattery);
+  return mode === 'on' || mode === 'cache' || (mode === 'auto' && onBattery);
 }
 
 export function usePageVisible() {
@@ -76,16 +76,17 @@ export function useScene(settings: Settings | undefined, lowPower: boolean) {
   const rule = settings && { rotation: settings.rotation, rotationMinutes: settings.rotationMinutes, rotationTabs: settings.rotationTabs };
   const favWeight = settings?.favoritesWeight ?? 0;
   const bucket = settings?.sources.timeAware ? timeBucket() : undefined;
+  const cacheOnly = settings?.powerSave === 'cache';
 
   useEffect(() => {
     if (!rule) return;
     let alive = true;
-    void pickScene(rule, favWeight, false, bucket).then((s) => alive && setScene(s ?? null));
+    void pickScene(rule, { favWeight, bucket, cacheOnly }).then((s) => alive && setScene(s ?? null));
     void send({ to: 'bg', type: 'refill', lowPower });
     const onMsg = (m: Broadcast) => {
       if (m?.type !== 'queue-updated') return;
       setScene((cur) => {
-        if (cur === null) void pickScene(rule, 0, true, bucket).then((s) => s && alive && setScene(s));
+        if (cur === null) void pickScene(rule, { favWeight: 0, force: true, bucket }).then((s) => s && alive && setScene(s));
         return cur;
       });
     };
@@ -99,7 +100,7 @@ export function useScene(settings: Settings | undefined, lowPower: boolean) {
 
   const next = async () => {
     if (!rule) return false;
-    const s = await pickScene(rule, favWeight, true, bucket);
+    const s = await pickScene(rule, { favWeight, force: true, bucket, cacheOnly });
     void send({ to: 'bg', type: 'refill', lowPower });
     if (s && s.id !== scene?.id) {
       setScene(s);
