@@ -50,9 +50,30 @@ export async function pickScene(
   return cur?.scene;
 }
 
-export async function addFavorite(scene: Scene) {
+/** Bytes a favourite occupies: it keeps its own copies of the background and cut-out. */
+export const favoriteBytes = (f: Scene) => f.bg.blob.size + (f.char?.blob.size ?? 0);
+
+/**
+ * Saves a favourite; with a `limit`, drops the oldest favourites beyond it.
+ * Returns how many were dropped.
+ */
+export async function addFavorite(scene: Scene, limit = 0): Promise<number> {
+  const d = await db();
   const fav: FavoriteScene = { ...scene, favAt: Date.now() };
-  await (await db()).put('favorites', fav);
+  await d.put('favorites', fav);
+  if (limit <= 0) return 0;
+  const all = await d.getAll('favorites');
+  const excess = all.length - limit;
+  if (excess <= 0) return 0;
+  const oldest = all.sort((a, b) => a.favAt - b.favAt).slice(0, excess);
+  const tx = d.transaction('favorites', 'readwrite');
+  await Promise.all([...oldest.map((f) => tx.store.delete(f.id)), tx.done]);
+  return excess;
+}
+
+export async function favoritesUsage() {
+  const all = await (await db()).getAll('favorites');
+  return { count: all.length, bytes: all.reduce((n, f) => n + favoriteBytes(f), 0) };
 }
 
 export async function removeFavorite(id: string) {

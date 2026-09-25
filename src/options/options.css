@@ -157,6 +157,9 @@ textarea {
 .opt-link:hover { text-decoration: underline; }
 
 .opt-muted { color: var(--muted); font-size: 13px; display: flex; gap: 12px; }
+.opt-usage { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; margin: 0; font-size: 14px; }
+.opt-usage strong { font-family: var(--serif); font-size: 19px; font-weight: 400; font-variant-numeric: lining-nums; }
+.opt-warn { color: var(--accent); font-size: 13px; }
 
 .thumb-grid {
   list-style: none;

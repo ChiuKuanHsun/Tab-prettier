@@ -83,6 +83,8 @@ export interface Settings {
   rotationTabs: number;
   /** 0..1 chance that a rotation shows a random favourite instead of a new scene. */
   favoritesWeight: number;
+  /** Most favourites to keep; adding beyond it drops the oldest. 0 = no limit. */
+  favoritesLimit: number;
   sources: {
     wallhaven: boolean;
     /** Follow the time of day (day / evening / night backgrounds); otherwise use wallhavenQuery. */
@@ -122,6 +124,7 @@ export const DEFAULT_SETTINGS: Settings = {
   rotationMinutes: 30,
   rotationTabs: 3,
   favoritesWeight: 0.2,
+  favoritesLimit: 200,
   sources: {
     wallhaven: true,
     timeAware: true,

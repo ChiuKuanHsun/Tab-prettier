@@ -158,7 +158,7 @@ export function App() {
           items={dockItems}
           side={t.side === 'right' ? 'right' : 'left'}
           settingsUrl={chrome.runtime.getURL('options.html')}
-          extra={scene && <FavoriteButton scene={scene} />}
+          extra={scene && <FavoriteButton scene={scene} limit={settings.favoritesLimit} />}
         />
       </div>
     </main>

@@ -542,6 +542,30 @@ textarea:focus { border-color: var(--accent); }
 .dock-icon:hover,
 .dock-icon:focus-visible { color: var(--ink); background: color-mix(in oklab, var(--surface) 70%, transparent); }
 
+.fav-wrap { position: relative; display: grid; align-self: center; }
+.fav-note {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  translate: -50% 0;
+  width: max-content;
+  max-width: 260px;
+  padding: 6px 12px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid color-mix(in oklab, var(--ink) 14%, transparent);
+  text-shadow: none;
+  transition: opacity 0.2s, translate 0.2s var(--ease-out);
+
+  @starting-style {
+    opacity: 0;
+    translate: -50% 6px;
+  }
+}
+.dock-right .fav-note { left: auto; right: -8px; translate: 0 0; }
+
 .fav-btn svg { transition: fill 0.2s, transform 0.25s var(--ease-out); }
 .fav-btn:hover svg { transform: scale(1.12); }
 .fav-btn.is-on { color: var(--accent); }
@@ -618,6 +642,8 @@ textarea:focus { border-color: var(--accent); }
 }
 
 /* Anime */
+/* keeps the panel from jumping in height when switching between the anime tabs */
+.anime { min-height: min(46vh, 440px); }
 .seg { display: flex; gap: 18px; margin-bottom: 14px; }
 .seg button {
   background: none;
@@ -652,7 +678,33 @@ textarea:focus { border-color: var(--accent); }
   grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
   gap: 16px 12px;
 }
+.cover-item { position: relative; min-width: 0; }
 .cover { display: grid; gap: 6px; text-decoration: none; }
+.cover-act {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  min-width: 34px;
+  height: 26px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 13px;
+  font-family: var(--serif-display);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, background-color 0.2s, color 0.2s;
+}
+.cover-item:hover .cover-act,
+.cover-act:focus-visible,
+.cover-act.is-failed { opacity: 1; }
+.cover-act:hover:not(:disabled) { background: var(--accent); color: var(--surface); }
+.cover-act:disabled { cursor: default; }
+.cover-act.is-failed { outline: 1.5px solid #d9534f; }
 .cover img {
   width: 100%;
   aspect-ratio: 3 / 4.2;

@@ -1,6 +1,7 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { db, queueCount, type FavoriteScene } from '../lib/db';
+import { favoriteBytes } from '../lib/scene-store';
 import { send } from '../lib/messages';
 import {
   getBlacklist,
@@ -54,6 +55,8 @@ function Range(props: { value: number; min: number; max: number; step: number; o
   );
 }
 
+const mb = (bytes: number) => (bytes / 1_048_576).toFixed(bytes < 10_485_760 ? 1 : 0);
+
 const kindOf = (f: File): MediaKind => (f.type.startsWith('video/') ? 'video' : f.type === 'image/gif' ? 'gif' : 'image');
 
 function Thumb({ blob, kind }: { blob: Blob; kind: MediaKind }) {
@@ -81,6 +84,8 @@ export function Options() {
   const [blacklist, setBlacklist] = useState<string[]>([]);
   const [queue, setQueue] = useState(0);
   const [toast, setToast] = useState<string>();
+  const [storageUsed, setStorageUsed] = useState<number>();
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const reload = async () => {
     const d = await db();
@@ -88,6 +93,7 @@ export function Options() {
     setFavs((await d.getAll('favorites')).sort((a, b) => b.favAt - a.favAt));
     setBlacklist(await getBlacklist());
     setQueue(await queueCount());
+    setStorageUsed((await navigator.storage.estimate().catch(() => undefined))?.usage);
   };
 
   useEffect(() => {
@@ -377,12 +383,55 @@ export function Options() {
         <Field label="收藏再出現的機率" hint="每次換圖時抽中收藏的機率">
           <Range value={s.favoritesWeight} min={0} max={1} step={0.05} onChange={(v) => set({ favoritesWeight: v })} fmt={(v) => `${Math.round(v * 100)}%`} />
         </Field>
+        <Field label="收藏上限" hint="超過時自動移除最舊的收藏;填 0 代表不限制">
+          <input
+            type="number"
+            class="num"
+            min={0}
+            max={5000}
+            value={s.favoritesLimit}
+            onChange={(e) => set({ favoritesLimit: Math.min(5000, Math.max(0, Math.round(Number((e.target as HTMLInputElement).value) || 0))) })}
+          />
+          <span class="unit">幅</span>
+        </Field>
+        <p class="opt-usage">
+          <span>
+            收藏 <strong>{favs.length}</strong> 幅,約 <strong>{mb(favs.reduce((n, f) => n + favoriteBytes(f), 0))}</strong> MB
+          </span>
+          {storageUsed !== undefined && <span class="opt-muted">擴充功能資料總共約 {mb(storageUsed)} MB(含收藏、待顯示的畫面與上傳檔案)</span>}
+          {s.favoritesLimit > 0 && favs.length > s.favoritesLimit && (
+            <span class="opt-warn">
+              目前超過上限 {favs.length - s.favoritesLimit} 幅,下次收藏時會移除最舊的。
+            </span>
+          )}
+          {favs.length > 0 && (
+            <button
+              type="button"
+              class="opt-link"
+              onClick={async () => {
+                if (!confirmClear) {
+                  setConfirmClear(true);
+                  setTimeout(() => setConfirmClear(false), 4000);
+                  return;
+                }
+                await (await db()).clear('favorites');
+                setConfirmClear(false);
+                await reload();
+                flash('已清空所有收藏');
+              }}
+            >
+              {confirmClear ? '再按一次確認清空' : '清空全部收藏'}
+            </button>
+          )}
+        </p>
         {!favs.length && <p class="opt-muted">還沒有收藏。</p>}
         <ul class="thumb-grid">
           {favs.map((f) => (
             <li key={f.id}>
               <FavoriteThumb fav={f} />
-              <span>{f.char?.credit.artist ?? f.bg.credit.artist ?? f.bg.credit.id}</span>
+              <span>
+                {f.char?.credit.artist ?? f.bg.credit.artist ?? f.bg.credit.id} · {mb(favoriteBytes(f))} MB
+              </span>
               <span class="row">
                 <button
                   type="button"

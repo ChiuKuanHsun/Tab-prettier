@@ -62,6 +62,10 @@ export function Dock({
   }, [items, open]);
 
   const active = items.find((i) => i.id === open);
+  const pin = () => {
+    clearTimeout(timer.current);
+    setPinned(true);
+  };
 
   return (
     <div
@@ -72,7 +76,15 @@ export function Dock({
       data-enter="rise"
     >
       {active && (
-        <section class="panel" aria-label={active.label} key={active.id}>
+        <section
+          class="panel"
+          aria-label={active.label}
+          key={active.id}
+          // Once the user interacts inside a hover-opened panel, keep it open: its content may
+          // resize (e.g. switching tabs) and slide out from under a still pointer.
+          onPointerDown={pin}
+          onFocusIn={pin}
+        >
           <header class="panel-head">
             <h2>{active.label}</h2>
           </header>

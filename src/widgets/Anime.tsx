@@ -1,10 +1,13 @@
+import type { ComponentChildren } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import {
+  airedEpisodes,
   displayTitle,
   getToken,
   login,
   logout,
   myWatching,
+  saveProgress,
   seasonAnime,
   todayAiring,
   type Airing,
@@ -61,13 +64,47 @@ function Today() {
   );
 }
 
-function Cover({ m, sub }: { m: MediaLite; sub?: string }) {
+function Cover({ m, sub, action }: { m: MediaLite; sub?: string; action?: ComponentChildren }) {
   return (
-    <a class="cover" href={m.siteUrl} style={{ '--cover-color': m.coverImage.color ?? 'transparent' }}>
-      <img src={m.coverImage.large ?? m.coverImage.medium} alt="" loading="lazy" />
-      <span class="cover-title">{displayTitle(m.title)}</span>
-      {sub && <span class="cover-sub">{sub}</span>}
-    </a>
+    <div class="cover-item">
+      <a class="cover" href={m.siteUrl} style={{ '--cover-color': m.coverImage.color ?? 'transparent' }}>
+        <img src={m.coverImage.large ?? m.coverImage.medium} alt="" loading="lazy" />
+        <span class="cover-title">{displayTitle(m.title)}</span>
+        {sub && <span class="cover-sub">{sub}</span>}
+      </a>
+      {action}
+    </div>
+  );
+}
+
+/** "+1 集" on a watch-list cover; disabled once caught up with what has aired. */
+function PlusOne({ token, entry, onSaved }: { token: string; entry: ListEntry; onSaved: (e: ListEntry) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const aired = airedEpisodes(entry.media);
+  const caughtUp = aired !== undefined && entry.progress >= aired;
+  const title = displayTitle(entry.media.title);
+  return (
+    <button
+      type="button"
+      class={`cover-act ${failed ? 'is-failed' : ''}`}
+      disabled={busy || caughtUp}
+      aria-label={caughtUp ? `${title} 已追上最新一集` : `${title} 看完第 ${entry.progress + 1} 集`}
+      title={failed ? '更新失敗,再試一次' : caughtUp ? '已追上最新一集' : `標記看完第 ${entry.progress + 1} 集`}
+      onClick={async () => {
+        setBusy(true);
+        setFailed(false);
+        try {
+          onSaved(await saveProgress(token, entry, entry.progress + 1));
+        } catch {
+          setFailed(true);
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      {caughtUp ? '✓' : busy ? '…' : '+1'}
+    </button>
   );
 }
 
@@ -90,10 +127,13 @@ function Mine({ clientId }: { clientId: string }) {
   useEffect(() => {
     void getToken().then((t) => setToken(t ?? null));
   }, []);
+  const [reload, setReload] = useState(0);
   const list = useAsync<{ name: string; entries: ListEntry[] } | null>(
-    async () => (token ? myWatching(token) : null),
-    [token],
+    async () => (token ? myWatching(token, reload > 0) : null),
+    [token, reload],
   );
+  const [entries, setEntries] = useState<ListEntry[]>([]);
+  useEffect(() => setEntries(list.data?.entries ?? []), [list.data]);
 
   if (token === undefined) return null;
   if (!token) {
@@ -124,10 +164,14 @@ function Mine({ clientId }: { clientId: string }) {
   }
   if (list.loading) return <p class="panel-muted">載入中…</p>;
   if (list.error) return <p class="panel-muted">讀取失敗:{list.error}</p>;
+  const name = list.data?.name;
   return (
     <>
       <div class="panel-actions">
-        <span class="panel-muted">{list.data?.name}</span>
+        <span class="panel-muted">{name}</span>
+        <button type="button" class="text-btn" onClick={() => setReload((n) => n + 1)}>
+          重新整理
+        </button>
         <button
           type="button"
           class="text-btn"
@@ -139,14 +183,39 @@ function Mine({ clientId }: { clientId: string }) {
           登出
         </button>
       </div>
+      {!entries.length && (
+        <p class="panel-muted">
+          AniList 上還沒有「Watching(觀看中)」的作品。到{' '}
+          <a href={name ? `https://anilist.co/user/${encodeURIComponent(name)}/animelist` : 'https://anilist.co/search/anime'}>AniList</a>{' '}
+          把正在看的番加入清單、狀態選 Watching,再回來按「重新整理」。
+        </p>
+      )}
       <div class="cover-grid">
-        {list.data?.entries.map((e) => {
+        {entries.map((e) => {
           const next = e.media.nextAiringEpisode;
-          const behind = next ? next.episode - 1 - e.progress : (e.media.episodes ?? e.progress) - e.progress;
+          const behind = (airedEpisodes(e.media) ?? e.progress) - e.progress;
           const sub = [`看到 ${e.progress}`, behind > 0 ? `落後 ${behind} 集` : null, next ? `EP${next.episode} ${untilText(next.airingAt)}` : null]
             .filter(Boolean)
             .join(' · ');
-          return <Cover key={e.media.id} m={e.media} sub={sub} />;
+          return (
+            <Cover
+              key={e.id}
+              m={e.media}
+              sub={sub}
+              action={
+                <PlusOne
+                  token={token}
+                  entry={e}
+                  onSaved={(saved) =>
+                    setEntries((cur) => {
+                      const finished = !saved.media.nextAiringEpisode && saved.media.episodes != null && saved.progress >= saved.media.episodes;
+                      return finished ? cur.filter((x) => x.id !== saved.id) : cur.map((x) => (x.id === saved.id ? saved : x));
+                    })
+                  }
+                />
+              }
+            />
+          );
         })}
       </div>
     </>
