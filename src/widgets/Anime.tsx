@@ -7,6 +7,8 @@ import {
   getToken,
   login,
   logout,
+  myCompleted,
+  myListAnime,
   myWatching,
   saveProgress,
   seasonAnime,
@@ -17,6 +19,7 @@ import {
   type MediaLite,
 } from '../lib/anilist';
 import { t, tRich } from '../i18n';
+import type { Settings } from '../lib/types';
 
 type Tab = 'today' | 'season' | 'mine' | 'birthday';
 
@@ -161,16 +164,77 @@ function Birthdays() {
   );
 }
 
-function Mine({ clientId }: { clientId: string }) {
+type Sources = Settings['sources'];
+type SetSources = (patch: Partial<Sources>) => void;
+
+/** Why a show's star can't be toggled under the current settings, if it can't. */
+function pickBlocked(src: Sources, status: ListStatus): string | undefined {
+  if (!src.danbooru) return t('widgets.anime.pickNeedsDanbooru');
+  if (!src.listChars) return t('widgets.anime.pickNeedsListChars');
+  if (status === 'CURRENT' ? !src.listWatching : !src.listCompleted) {
+    return t('widgets.anime.pickListOff', {
+      list: t(status === 'CURRENT' ? 'widgets.anime.showWatching' : 'widgets.anime.showCompleted'),
+    });
+  }
+  return undefined;
+}
+
+/**
+ * Whether a show is used for character scenes: a star on its cover, the same choice as the
+ * settings' show list. The settings decide whether it can be toggled at all.
+ */
+function PickToggle({ m, status, src, onSources }: { m: MediaLite; status: ListStatus; src: Sources; onSources: SetSources }) {
+  const on = !src.listExcluded.includes(m.id);
+  const blocked = pickBlocked(src, status);
+  const label = blocked ?? t(on ? 'widgets.anime.pickOn' : 'widgets.anime.pickOff', { title: displayTitle(m.title) });
+  return (
+    <button
+      type="button"
+      class={`cover-pick ${on && !blocked ? 'is-on' : ''}`}
+      aria-pressed={on}
+      aria-label={label}
+      title={label}
+      disabled={!!blocked}
+      onClick={() => onSources({ listExcluded: on ? [...src.listExcluded, m.id] : src.listExcluded.filter((x) => x !== m.id) })}
+    >
+      {on ? '★' : '☆'}
+    </button>
+  );
+}
+
+type ListStatus = 'CURRENT' | 'COMPLETED';
+
+const VIEW_KEY = 'tp:mine-view';
+function savedView(): ListStatus {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'COMPLETED' ? 'COMPLETED' : 'CURRENT';
+  } catch {
+    return 'CURRENT';
+  }
+}
+
+function Mine({ clientId, src, onSources }: { clientId: string; src: Sources; onSources: SetSources }) {
   const [token, setToken] = useState<string | null>();
   const [err, setErr] = useState<string>();
+  const [view, setView] = useState<ListStatus>(savedView);
   useEffect(() => {
     void getToken().then((t) => setToken(t ?? null));
   }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem(VIEW_KEY, view);
+    } catch {
+      /* remembering the view is only a convenience */
+    }
+  }, [view]);
   const [reload, setReload] = useState(0);
   const list = useAsync<{ name: string; entries: ListEntry[] } | null>(
     async () => (token ? myWatching(token, reload > 0) : null),
     [token, reload],
+  );
+  const done = useAsync<ListEntry[] | null>(
+    async () => (token && view === 'COMPLETED' ? myCompleted(token, reload > 0) : null),
+    [token, reload, view],
   );
   const [entries, setEntries] = useState<ListEntry[]>([]);
   useEffect(() => setEntries(list.data?.entries ?? []), [list.data]);
@@ -207,11 +271,31 @@ function Mine({ clientId }: { clientId: string }) {
   if (list.loading) return <p class="panel-muted">{t('common.loading')}</p>;
   if (list.error) return <p class="panel-muted">{t('common.loadFailed', { error: list.error })}</p>;
   const name = list.data?.name;
+  const views: [ListStatus, string][] = [
+    ['CURRENT', t('widgets.anime.showWatching')],
+    ['COMPLETED', t('widgets.anime.showCompleted')],
+  ];
+
   return (
     <>
       <div class="panel-actions">
+        <div class="seg seg-sub" role="tablist">
+          {views.map(([id, label]) => (
+            <button key={id} type="button" role="tab" aria-selected={view === id} onClick={() => setView(id)}>
+              {label}
+            </button>
+          ))}
+        </div>
         <span class="panel-muted">{name}</span>
-        <button type="button" class="text-btn" onClick={() => setReload((n) => n + 1)}>
+        <button
+          type="button"
+          class="text-btn"
+          onClick={() => {
+            setReload((n) => n + 1);
+            // the shows behind character scenes follow the lists too
+            if (src.danbooru && src.listChars) void myListAnime(token, true).catch(() => undefined);
+          }}
+        >
           {t('widgets.anime.refresh')}
         </button>
         <button
@@ -225,50 +309,79 @@ function Mine({ clientId }: { clientId: string }) {
           {t('widgets.anime.logout')}
         </button>
       </div>
-      {!entries.length && (
-        <p class="panel-muted">
-          {tRich('widgets.anime.noWatching', {
-            link: <a href={name ? `https://anilist.co/user/${encodeURIComponent(name)}/animelist` : 'https://anilist.co/search/anime'}>AniList</a>,
-          })}
-        </p>
-      )}
-      <div class="cover-grid">
-        {entries.map((e) => {
-          const next = e.media.nextAiringEpisode;
-          const behind = (airedEpisodes(e.media) ?? e.progress) - e.progress;
-          const sub = [
-            t('widgets.anime.progress', { n: e.progress }),
-            behind > 0 ? t('widgets.anime.behind', { n: behind }) : null,
-            next ? `EP${next.episode} ${untilText(next.airingAt)}` : null,
-          ]
-            .filter(Boolean)
-            .join(' · ');
-          return (
-            <Cover
-              key={e.id}
-              m={e.media}
-              sub={sub}
-              action={
-                <PlusOne
-                  token={token}
-                  entry={e}
-                  onSaved={(saved) =>
-                    setEntries((cur) => {
-                      const finished = !saved.media.nextAiringEpisode && saved.media.episodes != null && saved.progress >= saved.media.episodes;
-                      return finished ? cur.filter((x) => x.id !== saved.id) : cur.map((x) => (x.id === saved.id ? saved : x));
-                    })
+      {view === 'CURRENT' && (
+        <>
+          {!entries.length && (
+            <p class="panel-muted">
+              {tRich('widgets.anime.noWatching', {
+                link: (
+                  <a href={name ? `https://anilist.co/user/${encodeURIComponent(name)}/animelist` : 'https://anilist.co/search/anime'}>
+                    AniList
+                  </a>
+                ),
+              })}
+            </p>
+          )}
+          <div class="cover-grid">
+            {entries.map((e) => {
+              const next = e.media.nextAiringEpisode;
+              const behind = (airedEpisodes(e.media) ?? e.progress) - e.progress;
+              const sub = [
+                t('widgets.anime.progress', { n: e.progress }),
+                behind > 0 ? t('widgets.anime.behind', { n: behind }) : null,
+                next ? `EP${next.episode} ${untilText(next.airingAt)}` : null,
+              ]
+                .filter(Boolean)
+                .join(' · ');
+              return (
+                <Cover
+                  key={e.id}
+                  m={e.media}
+                  sub={sub}
+                  action={
+                    <>
+                      <PickToggle m={e.media} status="CURRENT" src={src} onSources={onSources} />
+                      <PlusOne
+                        token={token}
+                        entry={e}
+                        onSaved={(saved) =>
+                          setEntries((cur) => {
+                            const finished =
+                              !saved.media.nextAiringEpisode && saved.media.episodes != null && saved.progress >= saved.media.episodes;
+                            return finished ? cur.filter((x) => x.id !== saved.id) : cur.map((x) => (x.id === saved.id ? saved : x));
+                          })
+                        }
+                      />
+                    </>
                   }
                 />
-              }
-            />
-          );
-        })}
-      </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+      {view === 'COMPLETED' && (
+        <>
+          {done.loading && <p class="panel-muted">{t('common.loading')}</p>}
+          {done.error && <p class="panel-muted">{t('common.loadFailed', { error: done.error })}</p>}
+          {done.data && !done.data.length && <p class="panel-muted">{t('widgets.anime.noCompleted')}</p>}
+          <div class="cover-grid">
+            {done.data?.map((e) => (
+              <Cover
+                key={e.id}
+                m={e.media}
+                sub={e.media.episodes ? t('widgets.anime.episodesTotal', { n: e.media.episodes }) : undefined}
+                action={<PickToggle m={e.media} status="COMPLETED" src={src} onSources={onSources} />}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </>
   );
 }
 
-export function AnimePanel({ clientId }: { clientId: string }) {
+export function AnimePanel({ clientId, src, onSources }: { clientId: string; src: Sources; onSources: SetSources }) {
   const [tab, setTab] = useState<Tab>('today');
   const tabs: [Tab, string][] = [
     ['today', t('widgets.anime.tabs.today')],
@@ -288,7 +401,7 @@ export function AnimePanel({ clientId }: { clientId: string }) {
       <div role="tabpanel">
         {tab === 'today' && <Today />}
         {tab === 'season' && <Season />}
-        {tab === 'mine' && <Mine clientId={clientId} />}
+        {tab === 'mine' && <Mine clientId={clientId} src={src} onSources={onSources} />}
         {tab === 'birthday' && <Birthdays />}
       </div>
     </div>

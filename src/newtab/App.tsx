@@ -141,7 +141,17 @@ export function App() {
     { id: 'todo', label: msg('newtab.dock.todo'), render: () => <TodoPanel /> },
     { id: 'notes', label: msg('newtab.dock.notes'), render: () => <NotesPanel /> },
     { id: 'focus', label: msg('newtab.dock.focus'), render: () => <FocusPanel state={focus} now={now} /> },
-    { id: 'anime', label: msg('newtab.dock.anime'), render: () => <AnimePanel clientId={settings.anilistClientId} /> },
+    {
+      id: 'anime',
+      label: msg('newtab.dock.anime'),
+      render: () => (
+        <AnimePanel
+          clientId={settings.anilistClientId}
+          src={settings.sources}
+          onSources={(patch) => void saveSettings({ ...settings, sources: { ...settings.sources, ...patch } })}
+        />
+      ),
+    },
     ...(scene ? [{ id: 'credit', label: msg('newtab.dock.credit'), render: () => <CreditPanel scene={scene} onNext={next} /> }] : []),
   ];
 
