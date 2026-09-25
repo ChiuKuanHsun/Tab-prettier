@@ -1,0 +1,39 @@
+import { useEffect, useState } from 'preact/hooks';
+import { addFavorite, isFavorite, removeFavorite } from '../lib/scene-store';
+import type { Scene } from '../lib/types';
+
+/** Heart toggle for the scene on screen; favourites come back at random in later rotations. */
+export function FavoriteButton({ scene }: { scene: Scene }) {
+  const [fav, setFav] = useState(false);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    void isFavorite(scene.id).then(setFav);
+  }, [scene.id]);
+
+  const toggle = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      if (fav) await removeFavorite(scene.id);
+      else await addFavorite(scene);
+      setFav(!fav);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      class={`dock-icon fav-btn ${fav ? 'is-on' : ''}`}
+      aria-pressed={fav}
+      aria-label={fav ? '取消收藏這幅' : '收藏這幅'}
+      title={fav ? '已收藏,之後會隨機再出現(再按一次取消)' : '收藏這幅,之後會隨機再出現'}
+      onClick={toggle}
+    >
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+      </svg>
+    </button>
+  );
+}

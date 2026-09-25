@@ -1,0 +1,93 @@
+{
+  "manifest_version": 3,
+  "name": "Tab Prettier — 日系雜誌極簡",
+  "version": "1.0.0",
+  "description": "Tab Prettier 的配套分頁列主題(固定配色)。",
+  "theme": {
+    "colors": {
+      "frame": [
+        22,
+        20,
+        26
+      ],
+      "frame_inactive": [
+        29,
+        27,
+        33
+      ],
+      "frame_incognito": [
+        16,
+        16,
+        19
+      ],
+      "frame_incognito_inactive": [
+        22,
+        22,
+        26
+      ],
+      "toolbar": [
+        34,
+        31,
+        39
+      ],
+      "tab_text": [
+        244,
+        239,
+        231
+      ],
+      "tab_background_text": [
+        157,
+        150,
+        163
+      ],
+      "tab_background_text_inactive": [
+        125,
+        119,
+        131
+      ],
+      "toolbar_text": [
+        236,
+        230,
+        220
+      ],
+      "toolbar_button_icon": [
+        201,
+        162,
+        122
+      ],
+      "bookmark_text": [
+        216,
+        209,
+        199
+      ],
+      "omnibox_background": [
+        22,
+        20,
+        26
+      ],
+      "omnibox_text": [
+        244,
+        239,
+        231
+      ],
+      "ntp_background": [
+        14,
+        13,
+        16
+      ],
+      "ntp_text": [
+        244,
+        239,
+        231
+      ],
+      "button_background": [
+        34,
+        31,
+        39
+      ]
+    },
+    "properties": {
+      "ntp_background_alignment": "bottom"
+    }
+  }
+}

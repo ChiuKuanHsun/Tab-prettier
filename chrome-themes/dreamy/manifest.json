@@ -1,0 +1,96 @@
+{
+  "manifest_version": 3,
+  "name": "Tab Prettier — 夢幻柔光",
+  "version": "1.0.0",
+  "description": "Tab Prettier 的配套分頁列主題(固定配色)。",
+  "theme": {
+    "images": {
+      "theme_frame": "images/frame.png"
+    },
+    "colors": {
+      "frame": [
+        234,
+        220,
+        238
+      ],
+      "frame_inactive": [
+        241,
+        232,
+        243
+      ],
+      "frame_incognito": [
+        75,
+        63,
+        88
+      ],
+      "frame_incognito_inactive": [
+        88,
+        75,
+        102
+      ],
+      "toolbar": [
+        251,
+        246,
+        251
+      ],
+      "tab_text": [
+        74,
+        59,
+        82
+      ],
+      "tab_background_text": [
+        125,
+        106,
+        136
+      ],
+      "tab_background_text_inactive": [
+        154,
+        137,
+        163
+      ],
+      "toolbar_text": [
+        74,
+        59,
+        82
+      ],
+      "toolbar_button_icon": [
+        199,
+        125,
+        171
+      ],
+      "bookmark_text": [
+        93,
+        76,
+        102
+      ],
+      "omnibox_background": [
+        241,
+        230,
+        242
+      ],
+      "omnibox_text": [
+        62,
+        49,
+        70
+      ],
+      "ntp_background": [
+        246,
+        238,
+        246
+      ],
+      "ntp_text": [
+        74,
+        59,
+        82
+      ],
+      "button_background": [
+        251,
+        246,
+        251
+      ]
+    },
+    "properties": {
+      "ntp_background_alignment": "bottom"
+    }
+  }
+}

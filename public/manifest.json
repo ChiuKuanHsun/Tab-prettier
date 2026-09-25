@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Tab Prettier — 動漫景深新分頁",
+  "short_name": "Tab Prettier",
+  "version": "0.1.0",
+  "description": "每次開新分頁都是一幅新的動漫合成畫:場景 × 角色、景深分層、時鐘、搜尋、連結、待辦與番劇資訊。",
+  "chrome_url_overrides": { "newtab": "newtab.html" },
+  "options_page": "options.html",
+  "background": { "service_worker": "background.js", "type": "module" },
+  "permissions": ["storage", "unlimitedStorage", "alarms", "offscreen", "identity", "favicon", "search", "idle"],
+  "host_permissions": [
+    "https://wallhaven.cc/*",
+    "https://w.wallhaven.cc/*",
+    "https://api.nekosia.cat/*",
+    "https://cdn.nekosia.cat/*",
+    "https://api.waifu.im/*",
+    "https://cdn.waifu.im/*",
+    "https://graphql.anilist.co/*",
+    "https://anilist.co/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  }
+}

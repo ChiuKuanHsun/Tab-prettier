@@ -1,0 +1,166 @@
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { computeLayout } from '../lib/compose';
+import { saveSettings } from '../lib/settings';
+import type { SceneTheme } from '../lib/types';
+import { AnimePanel } from '../widgets/Anime';
+import { CreditPanel } from '../widgets/Credit';
+import { Dock, type DockItem } from '../widgets/Dock';
+import { FavoriteButton } from '../widgets/Favorite';
+import { LinksPanel, LinkStrip } from '../widgets/Links';
+import { Search } from '../widgets/Search';
+import { NotesPanel, TodoPanel } from '../widgets/Todo';
+import { Clock, Dateline, VerticalDate } from './Clock';
+import { useMedia, useNow, usePageVisible, usePowerSave, useScene, useSettings, useViewport } from './hooks';
+import { autoParticle, Background, Character, Particles } from './layers';
+import { playEnter, startParallax } from './motion';
+
+const FALLBACK_THEME: SceneTheme = {
+  accent: '#c9a27a',
+  ink: '#f4efe7',
+  inkSoft: 'rgba(244, 239, 231, 0.7)',
+  surface: 'rgba(22, 20, 24, 0.8)',
+  glow: 'rgba(201, 162, 122, 0.5)',
+  haze: 'rgba(60, 50, 70, 0.35)',
+  scrim: false,
+};
+
+async function decoded(urls: (string | undefined)[]) {
+  await Promise.all(
+    urls.filter(Boolean).map(async (src) => {
+      const img = new Image();
+      img.src = src!;
+      await img.decode().catch(() => {});
+    }),
+  );
+}
+
+export function App() {
+  const settings = useSettings();
+  const lowPower = usePowerSave(settings?.powerSave);
+  const reducedMotion = useMedia('(prefers-reduced-motion: reduce)');
+  const visible = usePageVisible();
+  const vp = useViewport();
+  const now = useNow();
+  const { scene, urls, next } = useScene(settings, lowPower);
+  const stage = useRef<HTMLElement>(null);
+  const [ready, setReady] = useState(false);
+
+  const animate = !!settings && !reducedMotion;
+
+  useEffect(() => {
+    if (!stage.current || !animate || !settings?.parallax) return;
+    return startParallax(stage.current);
+  }, [animate, settings?.parallax]);
+
+  // Reveal only once the layers are decoded, then run the entrance.
+  useLayoutEffect(() => {
+    if (scene === undefined) return;
+    let alive = true;
+    setReady(false);
+    const isVideo = scene?.bg.kind === 'video';
+    void decoded([isVideo ? undefined : urls?.bg, urls?.char]).then(() => {
+      if (!alive) return;
+      setReady(true);
+      if (stage.current && animate && settings?.enterAnimation) playEnter(stage.current);
+    });
+    return () => {
+      alive = false;
+    };
+    // run per scene
+  }, [urls, scene === undefined]);
+
+  if (!settings || scene === undefined) return <main class="stage" />;
+
+  const theme = scene?.theme ?? FALLBACK_THEME;
+  const side = scene?.layout.charSide ?? 'right';
+  const layout = computeLayout(vp, side, scene?.char);
+  const t = layout.text;
+  const colLeft = t.side === 'left' ? t.outer : t.inner;
+  const colW = Math.abs(t.inner - t.outer);
+  const clockSize = Math.max(96, Math.min(colW / 2.35, vp.h * 0.3, 380));
+
+  const particleKind = settings.particles === 'auto' ? autoParticle() : settings.particles;
+  const showParticles = particleKind !== 'off' && !lowPower && !reducedMotion;
+
+  const style = {
+    '--accent': theme.accent,
+    '--ink': theme.ink,
+    '--ink-soft': theme.inkSoft,
+    '--surface': theme.surface,
+    '--glow': theme.glow,
+    '--haze': theme.haze,
+    '--ink-low': theme.low?.ink ?? theme.ink,
+    '--ink-soft-low': theme.low?.inkSoft ?? theme.inkSoft,
+    '--surface-low': theme.low?.surface ?? theme.surface,
+    '--accent-low': theme.low?.accent ?? theme.accent,
+    '--bg-blur': `${settings.bgBlur}px`,
+    '--bg-dim': settings.bgDim,
+    '--pk': animate ? settings.parallax : 0,
+    '--col-left': `${colLeft}px`,
+    '--col-w': `${colW}px`,
+    '--col-top': `${t.top}px`,
+    '--clock-size': `${clockSize}px`,
+    '--outer': `${Math.max(32, vp.w * 0.05)}px`,
+  };
+
+  const dockItems: DockItem[] = [
+    { id: 'links', label: '連結', render: () => <LinksPanel /> },
+    { id: 'todo', label: '待辦', render: () => <TodoPanel /> },
+    { id: 'notes', label: '便條', render: () => <NotesPanel /> },
+    { id: 'anime', label: '番劇', render: () => <AnimePanel clientId={settings.anilistClientId} /> },
+    ...(scene ? [{ id: 'credit', label: '出處', render: () => <CreditPanel scene={scene} onNext={next} /> }] : []),
+  ];
+
+  const classes = [
+    'stage',
+    ready && 'is-ready',
+    `text-${t.side}`,
+    settings.breathing && animate && !lowPower && 'is-breathing',
+    !scene && 'is-empty',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  return (
+    <main ref={stage} class={classes} data-theme={settings.theme} style={style}>
+      {scene && urls ? (
+        <Background scene={scene} url={urls.bg} playing={visible && !lowPower} />
+      ) : (
+        <div class="layer layer-bg bg-placeholder" />
+      )}
+
+      <div class="layer layer-text" aria-hidden="true">
+        <div class="col col-clock" data-enter="rise">
+          <Clock now={now} h24={settings.clock24h} size={clockSize} />
+        </div>
+      </div>
+
+      {scene?.char && urls?.char && layout.char && <Character scene={scene} url={urls.char} box={layout.char} />}
+
+      <div class="layer layer-fog" />
+      {showParticles && <Particles kind={particleKind} accent={theme.accent} running={visible} />}
+
+      <div class="layer layer-ui">
+        <div class="vdate-wrap" data-enter="fade">
+          <VerticalDate now={now} />
+        </div>
+        <div class="col col-ui" style={{ top: `${t.top + clockSize * 0.92}px` }}>
+          <div data-enter="rise">
+            <Dateline now={now} />
+          </div>
+          <div data-enter="rise">
+            <Search engine={settings.searchEngine} onEngine={(e) => void saveSettings({ ...settings, searchEngine: e })} />
+          </div>
+          {settings.pinLinks && <LinkStrip />}
+          {!scene && <p class="preparing">正在準備第一幅畫…首次需要下載與處理圖片,約數十秒。</p>}
+        </div>
+        <Dock
+          items={dockItems}
+          side={t.side}
+          settingsUrl={chrome.runtime.getURL('options.html')}
+          extra={scene && <FavoriteButton scene={scene} />}
+        />
+      </div>
+    </main>
+  );
+}

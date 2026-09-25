@@ -1,0 +1,96 @@
+{
+  "manifest_version": 3,
+  "name": "Tab Prettier — 賽博霓虹",
+  "version": "1.0.0",
+  "description": "Tab Prettier 的配套分頁列主題(固定配色)。",
+  "theme": {
+    "images": {
+      "theme_frame": "images/frame.png"
+    },
+    "colors": {
+      "frame": [
+        7,
+        9,
+        15
+      ],
+      "frame_inactive": [
+        12,
+        15,
+        23
+      ],
+      "frame_incognito": [
+        7,
+        9,
+        15
+      ],
+      "frame_incognito_inactive": [
+        12,
+        15,
+        23
+      ],
+      "toolbar": [
+        15,
+        20,
+        32
+      ],
+      "tab_text": [
+        55,
+        226,
+        213
+      ],
+      "tab_background_text": [
+        95,
+        122,
+        138
+      ],
+      "tab_background_text_inactive": [
+        74,
+        95,
+        108
+      ],
+      "toolbar_text": [
+        207,
+        233,
+        240
+      ],
+      "toolbar_button_icon": [
+        55,
+        226,
+        213
+      ],
+      "bookmark_text": [
+        127,
+        218,
+        210
+      ],
+      "omnibox_background": [
+        7,
+        10,
+        18
+      ],
+      "omnibox_text": [
+        191,
+        247,
+        241
+      ],
+      "ntp_background": [
+        5,
+        7,
+        12
+      ],
+      "ntp_text": [
+        55,
+        226,
+        213
+      ],
+      "button_background": [
+        15,
+        20,
+        32
+      ]
+    },
+    "properties": {
+      "ntp_background_alignment": "bottom"
+    }
+  }
+}
