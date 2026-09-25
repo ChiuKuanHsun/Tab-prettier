@@ -10,8 +10,10 @@ import {
   remainingMs,
   resumeFocus,
   setFocusPrefs,
+  BREAK_PRESETS,
   startFocus,
   stopFocus,
+  WORK_PRESETS,
   type FocusPrefs,
   type FocusState,
 } from '../lib/focus';
@@ -25,11 +27,39 @@ export function useFocus(): FocusState {
   return s;
 }
 
-const WORK_PRESETS = [25, 50];
-const BREAK_PRESETS = [5, 10];
 const clampMin = (v: number) => Math.min(240, Math.max(1, Math.round(v) || 1));
 
-function Minutes({ label, presets, value, onChange }: { label: string; presets: number[]; value: number; onChange: (v: number) => void }) {
+/**
+ * Preset chips plus a saved custom duration. The custom field keeps its own draft while typing
+ * (the panel re-renders every second when the clock shows seconds, which would otherwise reset
+ * a controlled input) and commits on Enter or blur.
+ */
+function Minutes({
+  label,
+  presets,
+  value,
+  custom,
+  onChange,
+}: {
+  label: string;
+  presets: number[];
+  value: number;
+  custom: number | undefined;
+  onChange: (v: number, custom?: number) => void;
+}) {
+  const [draft, setDraft] = useState(custom ? String(custom) : '');
+  useEffect(() => setDraft(custom ? String(custom) : ''), [custom]);
+  const commit = () => {
+    const n = Number(draft);
+    if (!draft.trim() || !Number.isFinite(n) || n <= 0) {
+      setDraft(custom ? String(custom) : '');
+      return;
+    }
+    const v = clampMin(n);
+    setDraft(String(v));
+    onChange(v, v);
+  };
+  const customOn = custom !== undefined && value === custom && !presets.includes(value);
   return (
     <div class="focus-row">
       <span class="panel-kicker">{label}</span>
@@ -39,17 +69,32 @@ function Minutes({ label, presets, value, onChange }: { label: string; presets: 
             {p} 分
           </button>
         ))}
-        <label class="chip chip-input">
+        <span class={`chip chip-input ${customOn ? 'is-on' : ''}`} role="radio" aria-checked={customOn}>
           <input
-            type="number"
-            min={1}
-            max={240}
-            value={presets.includes(value) ? '' : value}
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={3}
+            value={draft}
             placeholder="自訂"
-            aria-label={`${label}自訂分鐘`}
-            onChange={(e) => onChange(clampMin(Number((e.target as HTMLInputElement).value)))}
+            aria-label={`${label}自訂分鐘(1–240)`}
+            onInput={(e) => setDraft((e.target as HTMLInputElement).value.replace(/[^0-9]/g, ''))}
+            onFocus={(e) => (e.target as HTMLInputElement).select()}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                (e.target as HTMLInputElement).blur();
+              }
+            }}
           />
-        </label>
+          <span
+            class="chip-unit"
+            onClick={() => custom !== undefined && onChange(custom)}
+          >
+            分
+          </span>
+        </span>
       </div>
     </div>
   );
@@ -99,8 +144,20 @@ export function FocusPanel({ state, now }: { state: FocusState; now: Date }) {
       {state.status === 'done' && (
         <p class="focus-done">上一輪{PHASE_LABEL[state.phase]}已完成 ✓</p>
       )}
-      <Minutes label="專注" presets={WORK_PRESETS} value={prefs.work} onChange={(v) => update({ ...prefs, work: v })} />
-      <Minutes label="休息" presets={BREAK_PRESETS} value={prefs.break} onChange={(v) => update({ ...prefs, break: v })} />
+      <Minutes
+        label="專注"
+        presets={WORK_PRESETS}
+        value={prefs.work}
+        custom={prefs.workCustom}
+        onChange={(v, custom) => update({ ...prefs, work: v, workCustom: custom ?? prefs.workCustom })}
+      />
+      <Minutes
+        label="休息"
+        presets={BREAK_PRESETS}
+        value={prefs.break}
+        custom={prefs.breakCustom}
+        onChange={(v, custom) => update({ ...prefs, break: v, breakCustom: custom ?? prefs.breakCustom })}
+      />
       <p class="panel-muted">開始後大時鐘會變成倒數;時間到時會跳出系統通知,關掉分頁也會提醒。</p>
       <div class="panel-actions">
         <button type="button" class="text-btn" onClick={() => startFocus('break', prefs.break)}>

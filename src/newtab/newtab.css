@@ -696,8 +696,11 @@ textarea:focus { border-color: var(--accent); }
   cursor: pointer;
 }
 .chip[aria-checked='true'] { border-color: var(--accent); color: var(--accent); }
-.chip-input { padding: 0 10px; display: inline-flex; align-items: center; }
-.chip-input input { width: 52px; border: 0; padding: 5px 0; font-size: 13px; text-align: center; }
+.chip-input { padding: 0 12px 0 8px; display: inline-flex; align-items: center; gap: 2px; }
+.chip-input.is-on { border-color: var(--accent); color: var(--accent); }
+.chip-input input { width: 40px; border: 0; padding: 5px 0; font-size: 13px; text-align: center; color: inherit; }
+.chip-input input::placeholder { color: var(--ink-soft); }
+.chip-unit { font-size: 13px; cursor: pointer; }
 .focus-start {
   padding: 8px 18px;
   border: 0;

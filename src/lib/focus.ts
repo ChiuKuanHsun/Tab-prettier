@@ -65,10 +65,19 @@ export function formatRemaining(ms: number) {
   return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
 }
 
-export interface FocusPrefs { work: number; break: number }
+export const WORK_PRESETS = [25, 50];
+export const BREAK_PRESETS = [5, 10];
+
+/** Chosen durations, plus the user's own custom duration for each (kept even when a preset is picked). */
+export interface FocusPrefs { work: number; break: number; workCustom?: number; breakCustom?: number }
+
 export async function getFocusPrefs(): Promise<FocusPrefs> {
   const { focusPrefs } = await chrome.storage.local.get('focusPrefs');
-  return { work: 25, break: 5, ...(focusPrefs as Partial<FocusPrefs> | undefined) };
+  const p: FocusPrefs = { work: 25, break: 5, ...(focusPrefs as Partial<FocusPrefs> | undefined) };
+  // earlier versions only stored the chosen value; a non-preset one was a custom duration
+  p.workCustom ??= WORK_PRESETS.includes(p.work) ? undefined : p.work;
+  p.breakCustom ??= BREAK_PRESETS.includes(p.break) ? undefined : p.break;
+  return p;
 }
 export const setFocusPrefs = (p: FocusPrefs) => chrome.storage.local.set({ focusPrefs: p });
 
