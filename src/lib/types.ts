@@ -7,7 +7,7 @@ export interface WeatherLocation { name: string; latitude: number; longitude: nu
 export interface Credit {
   /** Source-scoped id, e.g. "wallhaven:nelqxr", used for blacklisting. */
   id: string;
-  source: 'wallhaven' | 'nekosia' | 'waifuim' | 'upload';
+  source: 'wallhaven' | 'nekosia' | 'waifuim' | 'danbooru' | 'upload';
   artist?: string;
   artistUrl?: string;
   pageUrl?: string;
@@ -105,6 +105,13 @@ export interface Settings {
     nekosia: boolean;
     nekosiaCategory: string;
     waifuim: boolean;
+    danbooru: boolean;
+    /** Also use Danbooru pictures of two characters (never three or more). */
+    allowDuo: boolean;
+    /** Danbooru character tags the user likes, e.g. "fern_(sousou_no_frieren)". */
+    favoriteChars: string[];
+    /** 0..1 share of scenes whose character is one of favoriteChars (needs Danbooru). */
+    favoriteCharsWeight: number;
     uploadsWeight: number; // 0..1 chance to use an upload when one fits
     /** Character images carrying any of these tags are skipped. */
     excludeTags: string;
@@ -151,6 +158,10 @@ export const DEFAULT_SETTINGS: Settings = {
     nekosia: true,
     nekosiaCategory: 'random',
     waifuim: true,
+    danbooru: true,
+    allowDuo: true,
+    favoriteChars: [],
+    favoriteCharsWeight: 0.3,
     uploadsWeight: 0.5,
     excludeTags: DEFAULT_EXCLUDED_TAGS,
     preferTags: '',

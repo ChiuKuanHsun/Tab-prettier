@@ -95,6 +95,32 @@ input.num { min-width: 0; width: 96px; text-align: right; }
 .weather-search { display: flex; gap: 10px; }
 .weather-search input { flex: 1; }
 .weather-results { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.char-picker { display: grid; gap: 8px; position: relative; }
+.char-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.char-chips li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px 3px 12px;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 13px;
+}
+.char-chips button { background: none; border: 0; padding: 0 6px; color: inherit; cursor: pointer; font-size: 15px; line-height: 1; }
+.char-chips button:hover { color: var(--fg); }
+.char-results {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  border: 1px solid var(--line);
+  background: var(--card);
+  max-height: 280px;
+  overflow-y: auto;
+}
+.char-results li { display: flex; align-items: baseline; gap: 10px; padding: 6px 12px; cursor: pointer; font-size: 14px; }
+.char-results li[aria-selected='true'] { background: var(--line); }
+.char-results small { color: var(--muted); font-size: 12px; }
+.char-results .char-count { margin-left: auto; font-variant-numeric: tabular-nums; }
 .focus-chips { display: flex; flex-wrap: wrap; gap: 8px 20px; }
 .radio { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
 .radio input { accent-color: var(--accent); }

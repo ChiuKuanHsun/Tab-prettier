@@ -36,6 +36,8 @@
     "https://cdn.nekosia.cat/*",
     "https://api.waifu.im/*",
     "https://cdn.waifu.im/*",
+    "https://danbooru.donmai.us/*",
+    "https://cdn.donmai.us/*",
     "https://graphql.anilist.co/*",
     "https://anilist.co/*",
     "https://suggestqueries.google.com/*",

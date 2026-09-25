@@ -10,6 +10,29 @@ export interface RefinedMask {
   reason?: string;
 }
 
+/**
+ * The image's own alpha as a 0..1 mask, when it is a cut-out already (transparent-background
+ * art or a transparent upload): a real share of fully transparent pixels, mostly along the
+ * border. Undefined for opaque images.
+ */
+export function alphaMask(rgba: Uint8ClampedArray, w: number, h: number): Float32Array | undefined {
+  const n = w * h;
+  let clear = 0;
+  for (let i = 0; i < n; i++) if (rgba[i * 4 + 3] < 16) clear++;
+  if (clear < n * 0.1) return undefined;
+  let border = 0, borderClear = 0;
+  const at = (x: number, y: number) => {
+    border++;
+    if (rgba[(y * w + x) * 4 + 3] < 16) borderClear++;
+  };
+  for (let x = 0; x < w; x++) at(x, 0), at(x, h - 1);
+  for (let y = 1; y < h - 1; y++) at(0, y), at(w - 1, y);
+  if (borderClear < border * 0.5) return undefined;
+  const out = new Float32Array(n);
+  for (let i = 0; i < n; i++) out[i] = rgba[i * 4 + 3] / 255;
+  return out;
+}
+
 /** Soft threshold: pushes the model's low-confidence fringe to 0 and its core to 255. */
 export function softThreshold(mask: Float32Array, lo = 0.12, hi = 0.88): Uint8ClampedArray {
   const out = new Uint8ClampedArray(mask.length);
@@ -112,6 +135,8 @@ export function refineMask(mask: Float32Array, w: number, h: number): RefinedMas
   else if (cut.top) reason = 'cut-top';
   else if (bbox.h < h * 0.4) reason = 'too-short';
   else if (cut.left && cut.right && !cut.bottom) reason = 'cut-sides';
+  // Two figures standing far apart, or one lying down: shrunk to fit, they'd read as tiny.
+  else if (bbox.w > bbox.h * 1.6) reason = 'too-wide';
   return { alpha, bbox, area, cut, ok: !reason, reason };
 }
 

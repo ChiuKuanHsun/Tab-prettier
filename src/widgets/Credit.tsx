@@ -6,6 +6,7 @@ const SOURCE_LABEL: Record<Credit['source'], string> = {
   wallhaven: 'Wallhaven',
   nekosia: 'Nekosia',
   waifuim: 'waifu.im',
+  danbooru: 'Danbooru',
   upload: '我的上傳',
 };
 

@@ -18,6 +18,7 @@ import {
 } from '../lib/settings';
 import type { MediaKind, Settings, Upload } from '../lib/types';
 import { DEFAULT_EXCLUDED_TAGS } from '../lib/curation';
+import { searchCharacters, tagLabel, type CharacterTag } from '../lib/danbooru';
 import { detectLocation, geocode, type Place } from '../lib/weather';
 import { THEMES } from '../themes';
 
@@ -53,6 +54,111 @@ function Range(props: { value: number; min: number; max: number; step: number; o
       <input type="range" min={props.min} max={props.max} step={props.step} value={props.value} onInput={(e) => props.onChange(Number((e.target as HTMLInputElement).value))} />
       <output>{props.fmt ? props.fmt(props.value) : props.value}</output>
     </>
+  );
+}
+
+/**
+ * Favourite characters as Danbooru character tags, picked from Danbooru's own autocomplete
+ * (English, romaji or Japanese names all resolve to the tag).
+ */
+function CharacterPicker({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+  const [q, setQ] = useState('');
+  const [results, setResults] = useState<CharacterTag[]>([]);
+  const [active, setActive] = useState(0);
+  const [err, setErr] = useState<string>();
+
+  useEffect(() => {
+    const term = q.trim();
+    // One kana/kanji is already specific; one latin letter isn't.
+    if (term.length < (/^[\x00-\x7f]*$/.test(term) ? 2 : 1)) {
+      setResults([]);
+      setErr(undefined);
+      return;
+    }
+    const ctl = new AbortController();
+    const t = setTimeout(() => {
+      searchCharacters(term, ctl.signal).then(
+        (r) => {
+          setResults(r.filter((c) => !value.includes(c.name)));
+          setActive(0);
+          setErr(r.length ? undefined : '找不到符合的角色,試試英文或日文名稱。');
+        },
+        () => !ctl.signal.aborted && setErr('無法連上 Danbooru,稍後再試。'),
+      );
+    }, 250);
+    return () => {
+      clearTimeout(t);
+      ctl.abort();
+    };
+  }, [q]);
+
+  const add = (name: string) => {
+    if (!value.includes(name)) onChange([...value, name]);
+    setQ('');
+    setResults([]);
+  };
+
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!results.length) return;
+      e.preventDefault();
+      setActive((i) => (i + (e.key === 'ArrowDown' ? 1 : results.length - 1)) % results.length);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (results[active]) add(results[active].name);
+    } else if (e.key === 'Escape') {
+      setResults([]);
+    }
+  };
+
+  return (
+    <div class="char-picker">
+      {value.length > 0 && (
+        <ul class="char-chips">
+          {value.map((name) => (
+            <li key={name}>
+              <span>{tagLabel(name)}</span>
+              <button type="button" aria-label={`移除 ${tagLabel(name)}`} onClick={() => onChange(value.filter((v) => v !== name))}>
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <input
+        class="wide"
+        value={q}
+        placeholder="輸入角色名稱(英文、羅馬拼音或日文),例如 frieren、初音"
+        role="combobox"
+        aria-expanded={results.length > 0}
+        aria-controls="char-results"
+        aria-activedescendant={results.length ? `char-opt-${active}` : undefined}
+        onInput={(e) => setQ((e.target as HTMLInputElement).value)}
+        onKeyDown={onKeyDown}
+      />
+      {err && <small class="opt-warn">{err}</small>}
+      {results.length > 0 && (
+        <ul id="char-results" class="char-results" role="listbox">
+          {results.map((c, i) => (
+            <li
+              key={c.name}
+              id={`char-opt-${i}`}
+              role="option"
+              aria-selected={i === active}
+              onMouseEnter={() => setActive(i)}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                add(c.name);
+              }}
+            >
+              <span>{tagLabel(c.name)}</span>
+              {c.alias && <small>{c.alias}</small>}
+              <small class="char-count">{c.postCount.toLocaleString()} 張</small>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -349,7 +455,7 @@ export function Options() {
         <WeatherPicker mode={s.weatherMode} value={s.weatherLocation} onChange={(patch) => set(patch)} />
       </Section>
 
-      <Section id="sources" title="圖源" note="背景取自 Wallhaven 的無人場景;角色取自 Nekosia / waifu.im 並自動去背。僅使用 SFW 內容。">
+      <Section id="sources" title="圖源" note="背景取自 Wallhaven 的無人場景;角色取自 Nekosia / waifu.im / Danbooru 並自動去背。僅使用 SFW 內容。">
         <Field label="Wallhaven 場景">
           <input type="checkbox" checked={s.sources.wallhaven} onChange={() => setSrc({ wallhaven: !s.sources.wallhaven })} />
         </Field>
@@ -375,6 +481,37 @@ export function Options() {
         <Field label="waifu.im 角色">
           <input type="checkbox" checked={s.sources.waifuim} onChange={() => setSrc({ waifuim: !s.sources.waifuim })} />
         </Field>
+        <Field label="Danbooru 角色" hint="只取全年齡分級的圖;透明背景的圖不必去背,邊緣更乾淨">
+          <input type="checkbox" checked={s.sources.danbooru} onChange={() => setSrc({ danbooru: !s.sources.danbooru })} />
+        </Field>
+        {s.sources.danbooru && (
+          <Field label="允許雙人圖" hint="約四分之一改用兩位角色的圖,喜歡的角色的合照也算在內;三人以上一律不用">
+            <input type="checkbox" checked={s.sources.allowDuo} onChange={() => setSrc({ allowDuo: !s.sources.allowDuo })} />
+          </Field>
+        )}
+        <div class="opt-field opt-field-block">
+          <span class="opt-label">
+            喜歡的角色
+            <small>
+              {s.sources.danbooru
+                ? '部分畫面會改用這些角色(比例見下方),其餘照常隨機。排除標籤同樣適用。'
+                : '需要開啟 Danbooru 角色才會生效。'}
+            </small>
+          </span>
+          <CharacterPicker value={s.sources.favoriteChars} onChange={(favoriteChars) => setSrc({ favoriteChars })} />
+        </div>
+        {s.sources.danbooru && s.sources.favoriteChars.length > 0 && (
+          <Field label="喜歡的角色出現比例" hint="每幅畫面以這個機率改用喜歡的角色">
+            <Range
+              value={s.sources.favoriteCharsWeight}
+              min={0.05}
+              max={1}
+              step={0.05}
+              onChange={(v) => setSrc({ favoriteCharsWeight: v })}
+              fmt={(v) => `${Math.round(v * 100)}%`}
+            />
+          </Field>
+        )}
         <Field label="使用自己上傳的比例" hint="有上傳檔案時才有作用">
           <Range value={s.sources.uploadsWeight} min={0} max={1} step={0.05} onChange={(v) => setSrc({ uploadsWeight: v })} fmt={(v) => `${Math.round(v * 100)}%`} />
         </Field>

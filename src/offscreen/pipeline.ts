@@ -18,10 +18,10 @@ import { uid } from '../lib/settings';
 import type { Credit, MediaKind, Scene, SceneChar, Settings, Upload } from '../lib/types';
 import { applyRimLight, labStats, lightDirection, toGray, transferColors, type LabStats } from './harmonize';
 import { canvas, fetchBlob, fit, pixels } from './image';
-import { fadeCutEdges, hasCharacter, refineMask, type RefinedMask } from './refine';
+import { alphaMask, fadeCutEdges, hasCharacter, refineMask, type RefinedMask } from './refine';
 import { estimateDepth } from './depth';
 import { segment } from './segment';
-import { nekosia, returnToPool, waifuim, wallhaven, type Candidate } from './sources';
+import { danbooru, danbooruResting, nekosia, returnToPool, waifuim, wallhaven, type Candidate } from './sources';
 
 const THUMB_W = 320, THUMB_H = 180;
 
@@ -139,12 +139,26 @@ async function buildBackground(s: Settings, blacklist: Set<string>, bucket: Time
   return bgGenerated();
 }
 
-async function nextCharCandidate(s: Settings, blacklist: Set<string>): Promise<Candidate | Upload | undefined> {
+const pickOne = <T>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
+
+/**
+ * Whether this scene features one of the user's favourite characters: a share of scenes set by
+ * favoriteCharsWeight, so favourites mix in with everything else rather than taking over.
+ */
+function sceneFavorites(s: Settings): string[] | undefined {
+  const favs = s.sources.danbooru ? s.sources.favoriteChars : [];
+  return favs.length && Math.random() < s.sources.favoriteCharsWeight ? favs : undefined;
+}
+
+async function nextCharCandidate(s: Settings, blacklist: Set<string>, favs?: string[]): Promise<Candidate | Upload | undefined> {
+  if (favs) return danbooru(s, blacklist, pickOne(favs));
   const ups = await uploadsByRole('char');
-  if (ups.length && Math.random() < s.sources.uploadsWeight) return ups[Math.floor(Math.random() * ups.length)];
-  const fns = [s.sources.nekosia && nekosia, s.sources.waifuim && waifuim].filter(Boolean) as (typeof nekosia)[];
+  if (ups.length && Math.random() < s.sources.uploadsWeight) return pickOne(ups);
+  const useDanbooru = s.sources.danbooru && !(await danbooruResting());
+  const fns = [s.sources.nekosia && nekosia, s.sources.waifuim && waifuim, useDanbooru && danbooru]
+    .filter(Boolean) as ((s: Settings, blacklist: Set<string>) => Promise<Candidate>)[];
   if (!fns.length) return ups[0];
-  return fns[Math.floor(Math.random() * fns.length)](s, blacklist);
+  return pickOne(fns)(s, blacklist);
 }
 
 interface Prepared {
@@ -165,8 +179,10 @@ async function prepareCharacter(cand: Candidate | Upload, blacklist: Set<string>
     const { c, ctx } = fit(bmp, 1400, 2000);
     const w = c.width, h = c.height;
     const t0 = performance.now();
-    const mask = refineMask(await segment(c, w, h), w, h);
-    log('segmented', credit.id, `${Math.round(performance.now() - t0)}ms`, mask.reason ?? 'ok', mask.area.toFixed(2));
+    // Art already on a transparent background is its own mask; only the rest needs the model.
+    const own = alphaMask(pixels(ctx).data, w, h);
+    const mask = refineMask(own ?? (await segment(c, w, h)), w, h);
+    log(own ? 'own alpha' : 'segmented', credit.id, `${Math.round(performance.now() - t0)}ms`, mask.reason ?? 'ok', mask.area.toFixed(2));
     if (!mask.ok) {
       if (!isUpload) blacklist.add(credit.id);
       return undefined;
@@ -217,9 +233,17 @@ async function buildCharacter(s: Settings, blacklist: Set<string>, bg: Bg, light
   const bgStats = labStats(bg.thumb.data);
   const prefer = parseTagList(s.sources.preferTags);
   const ready: Prepared[] = [];
+  let favs = (await danbooruResting()) ? undefined : sceneFavorites(s);
+  if (favs) log('favourite scene');
   for (let attempt = 0; attempt < 8 && ready.length < 3; attempt++) {
-    const cand = await nextCharCandidate(s, blacklist).catch((e) => log('no candidate', e));
-    if (!cand) break;
+    // Favourites that keep failing (few usable images, network) give way to the usual sources.
+    if (favs && attempt === 4 && !ready.length) favs = undefined;
+    const cand = await nextCharCandidate(s, blacklist, favs).catch((e) => log('no candidate', e));
+    if (!cand) {
+      if (!favs) break;
+      favs = undefined;
+      continue;
+    }
     const p = await prepareCharacter(cand, blacklist);
     if (!p) continue;
     ready.push(p);
@@ -279,7 +303,7 @@ export async function buildScene(s: Settings, blacklist: Set<string>): Promise<S
   const close = Math.abs(emptiness.left - emptiness.right) < 0.08;
   const charSide = close ? (Math.random() < 0.5 ? 'left' : 'right') : chooseCharSide(emptiness);
 
-  const wantsChar = s.sources.nekosia || s.sources.waifuim || (await uploadsByRole('char')).length > 0;
+  const wantsChar = s.sources.nekosia || s.sources.waifuim || s.sources.danbooru || (await uploadsByRole('char')).length > 0;
   const scenery = !wantsChar || (s.layoutVariety && bg.kind === 'image' && Math.random() < SCENERY_CHANCE);
   const char = scenery ? undefined : await buildCharacter(s, blacklist, bg, light);
   const variant: Variant = !char ? 'scenery' : s.layoutVariety ? pickCharVariant(char.cut.bottom) : 'standard';

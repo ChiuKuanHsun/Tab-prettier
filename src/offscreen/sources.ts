@@ -1,5 +1,16 @@
 import { BUCKET_QUERIES, isExcluded, parseTagList, WAIFUIM_ALWAYS_EXCLUDED, type TimeBucket } from '../lib/curation';
 import { WEATHER_QUERIES, type WeatherMood } from '../lib/weather';
+import {
+  DUO_QUERY,
+  DUO_SHARE,
+  figureCount,
+  GENERAL_QUERIES,
+  postCredit,
+  postsUrl,
+  usablePost,
+  type DanbooruPost,
+  type PostQuery,
+} from '../lib/danbooru';
 import { kvGet, kvSet } from '../lib/db';
 import type { Credit, Settings } from '../lib/types';
 import { fetchJson } from './image';
@@ -160,5 +171,42 @@ export function waifuim(s: Settings, blacklist: Set<string>) {
           tags: d.tags.map((t) => t.slug),
         },
       }));
+  });
+}
+
+/**
+ * After a query fails twice in a row (database timeouts, or Cloudflare's bot check when requests
+ * come too fast), Danbooru is skipped for a while so the other sources take over.
+ */
+const DANBOORU_REST_KEY = 'danbooru:restUntil';
+const DANBOORU_REST_MS = 10 * 60_000;
+export const danbooruResting = async () => ((await kvGet<number>(DANBOORU_REST_KEY)) ?? 0) > Date.now();
+
+/**
+ * Danbooru characters (general rating). With `character` set, only that character's images
+ * (each favourite has its own pool); otherwise well-liked single girls, sometimes
+ * transparent-background art that needs no segmentation, and some pairs when duos are allowed.
+ * Tag names never contain spaces, so a favourite is always a single tag.
+ */
+export async function danbooru(s: Settings, blacklist: Set<string>, character?: string) {
+  if (await danbooruResting()) throw new Error('danbooru: resting after repeated failures');
+  const general = !character;
+  const duo = s.sources.allowDuo;
+  const q = character ? { tags: character } : duo && Math.random() < DUO_SHARE ? DUO_QUERY : pick(GENERAL_QUERIES);
+  const key = general ? `pool:danbooru:${q.tags}` : `pool:danbooru:char:${q.tags}`;
+  const allowed = characterFilter(s, blacklist);
+  // a pool filled while duos were allowed may still hold some
+  const keep: Keep = (c) => allowed(c) && (duo || figureCount(c.credit.tags ?? []) === 1);
+  return fromPool(key, keep, async () => {
+    // Queries sometimes time out when the server is busy: retry once (early pages always
+    // answer; an id window is re-drawn), then leave Danbooru alone for a while.
+    const get = (q: PostQuery) => fetchJson<DanbooruPost[]>(postsUrl(q));
+    const posts = await get(q)
+      .catch(() => get(q.pages ? { ...q, pages: 5 } : q))
+      .catch(async (e) => {
+        await kvSet(DANBOORU_REST_KEY, Date.now() + DANBOORU_REST_MS);
+        throw e;
+      });
+    return posts.filter((p) => usablePost(p, general, duo)).map((p) => ({ url: p.file_url!, credit: postCredit(p) }));
   });
 }
