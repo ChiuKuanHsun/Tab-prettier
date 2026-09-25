@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
+import { t } from '../i18n';
 import { getLinks, onKeyChange, saveLinks, uid } from '../lib/settings';
 import type { LinkGroup } from '../lib/types';
 
@@ -28,7 +29,7 @@ export function LinkStrip() {
   const [groups] = useLinks();
   const links = groups.flatMap((g) => g.links).slice(0, 12);
   return (
-    <nav class="link-strip" aria-label="常用連結" data-enter="rise">
+    <nav class="link-strip" aria-label={t('widgets.links.strip')} data-enter="rise">
       {links.map((l) => (
         <a key={l.id} href={l.url} title={l.title}>
           <img src={favicon(l.url)} alt={l.title} width={20} height={20} />
@@ -80,11 +81,11 @@ export function LinksPanel() {
     <div class={`links ${editing ? 'is-editing' : ''}`}>
       <div class="panel-actions">
         <button type="button" class="text-btn" onClick={() => setEditing(!editing)}>
-          {editing ? '完成' : '編輯'}
+          {editing ? t('widgets.links.done') : t('widgets.links.edit')}
         </button>
         {editing && (
-          <button type="button" class="text-btn" onClick={() => update([...groups, { id: uid(), name: '新群組', links: [] }])}>
-            + 群組
+          <button type="button" class="text-btn" onClick={() => update([...groups, { id: uid(), name: t('widgets.links.newGroup'), links: [] }])}>
+            {t('widgets.links.addGroup')}
           </button>
         )}
       </div>
@@ -100,10 +101,10 @@ export function LinksPanel() {
               <input
                 class="inline-input"
                 value={g.name}
-                aria-label="群組名稱"
+                aria-label={t('widgets.links.groupName')}
                 onChange={(e) => edit((next) => (next[gi].name = (e.target as HTMLInputElement).value))}
               />
-              <button type="button" class="icon-btn" aria-label="刪除群組" onClick={() => update(groups.filter((_, i) => i !== gi))}>
+              <button type="button" class="icon-btn" aria-label={t('widgets.links.deleteGroup')} onClick={() => update(groups.filter((_, i) => i !== gi))}>
                 ×
               </button>
             </div>
@@ -130,7 +131,7 @@ export function LinksPanel() {
                   <button
                     type="button"
                     class="icon-btn"
-                    aria-label={`刪除 ${l.title}`}
+                    aria-label={t('common.deleteItem', { name: l.title })}
                     onClick={() => edit((next) => next[gi].links.splice(i, 1))}
                   >
                     ×
@@ -147,9 +148,9 @@ export function LinksPanel() {
                 addLink(gi, e.currentTarget);
               }}
             >
-              <input name="title" placeholder="名稱" aria-label="名稱" />
-              <input name="url" placeholder="網址" aria-label="網址" required />
-              <button type="submit" class="text-btn">加入</button>
+              <input name="title" placeholder={t('widgets.links.name')} aria-label={t('widgets.links.name')} />
+              <input name="url" placeholder={t('widgets.links.url')} aria-label={t('widgets.links.url')} required />
+              <button type="submit" class="text-btn">{t('common.add')}</button>
             </form>
           )}
         </section>

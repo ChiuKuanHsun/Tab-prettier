@@ -17,6 +17,7 @@ import {
   type FocusPrefs,
   type FocusState,
 } from '../lib/focus';
+import { t } from '../i18n';
 
 export function useFocus(): FocusState {
   const [s, setS] = useState<FocusState>({ status: 'idle' });
@@ -66,7 +67,7 @@ function Minutes({
       <div class="focus-chips" role="radiogroup" aria-label={label}>
         {presets.map((p) => (
           <button key={p} type="button" role="radio" aria-checked={value === p} class="chip" onClick={() => onChange(p)}>
-            {p} 分
+            {t('widgets.focus.presetMinutes', { n: p })}
           </button>
         ))}
         <span class={`chip chip-input ${customOn ? 'is-on' : ''}`} role="radio" aria-checked={customOn}>
@@ -76,8 +77,8 @@ function Minutes({
             pattern="[0-9]*"
             maxLength={3}
             value={draft}
-            placeholder="自訂"
-            aria-label={`${label}自訂分鐘(1–240)`}
+            placeholder={t('widgets.focus.custom')}
+            aria-label={t('widgets.focus.customLabel', { label })}
             onInput={(e) => setDraft((e.target as HTMLInputElement).value.replace(/[^0-9]/g, ''))}
             onFocus={(e) => (e.target as HTMLInputElement).select()}
             onBlur={commit}
@@ -92,7 +93,7 @@ function Minutes({
             class="chip-unit"
             onClick={() => custom !== undefined && onChange(custom)}
           >
-            分
+            {t('widgets.focus.unit')}
           </span>
         </span>
       </div>
@@ -118,7 +119,7 @@ export function FocusPanel({ state, now }: { state: FocusState; now: Date }) {
       <div class="focus">
         <p class="focus-phase">
           {PHASE_LABEL[state.phase]}
-          {state.status === 'paused' ? '(已暫停)' : end ? ` · ${end} 結束` : ''}
+          {state.status === 'paused' ? t('widgets.focus.paused') : end ? t('widgets.focus.endsAt', { time: end }) : ''}
         </p>
         <p class="focus-remaining" aria-live="off">
           {formatRemaining(left)}
@@ -128,12 +129,12 @@ export function FocusPanel({ state, now }: { state: FocusState; now: Date }) {
         </div>
         <div class="panel-actions">
           {state.status === 'running' ? (
-            <button type="button" class="text-btn" onClick={() => pauseFocus(state)}>暫停</button>
+            <button type="button" class="text-btn" onClick={() => pauseFocus(state)}>{t('widgets.focus.pause')}</button>
           ) : (
-            <button type="button" class="text-btn" onClick={() => resumeFocus(state)}>繼續</button>
+            <button type="button" class="text-btn" onClick={() => resumeFocus(state)}>{t('widgets.focus.resume')}</button>
           )}
-          <button type="button" class="text-btn" onClick={() => extendFocus(state, 5)}>+5 分鐘</button>
-          <button type="button" class="text-btn" onClick={() => stopFocus()}>結束</button>
+          <button type="button" class="text-btn" onClick={() => extendFocus(state, 5)}>{t('widgets.focus.extend')}</button>
+          <button type="button" class="text-btn" onClick={() => stopFocus()}>{t('widgets.focus.stop')}</button>
         </div>
       </div>
     );
@@ -142,29 +143,29 @@ export function FocusPanel({ state, now }: { state: FocusState; now: Date }) {
   return (
     <div class="focus">
       {state.status === 'done' && (
-        <p class="focus-done">上一輪{PHASE_LABEL[state.phase]}已完成 ✓</p>
+        <p class="focus-done">{t('widgets.focus.done', { phase: PHASE_LABEL[state.phase] })}</p>
       )}
       <Minutes
-        label="專注"
+        label={PHASE_LABEL.work}
         presets={WORK_PRESETS}
         value={prefs.work}
         custom={prefs.workCustom}
         onChange={(v, custom) => update({ ...prefs, work: v, workCustom: custom ?? prefs.workCustom })}
       />
       <Minutes
-        label="休息"
+        label={PHASE_LABEL.break}
         presets={BREAK_PRESETS}
         value={prefs.break}
         custom={prefs.breakCustom}
         onChange={(v, custom) => update({ ...prefs, break: v, breakCustom: custom ?? prefs.breakCustom })}
       />
-      <p class="panel-muted">開始後大時鐘會變成倒數;時間到時會跳出系統通知,關掉分頁也會提醒。</p>
+      <p class="panel-muted">{t('widgets.focus.hint')}</p>
       <div class="panel-actions">
         <button type="button" class="text-btn" onClick={() => startFocus('break', prefs.break)}>
-          休息 {prefs.break} 分鐘
+          {t('widgets.focus.startBreak', { n: prefs.break })}
         </button>
         <button type="button" class="focus-start" onClick={() => startFocus('work', prefs.work)}>
-          開始專注 {prefs.work} 分鐘
+          {t('widgets.focus.startWork', { n: prefs.work })}
         </button>
       </div>
     </div>

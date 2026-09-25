@@ -16,6 +16,7 @@ import {
   type ListEntry,
   type MediaLite,
 } from '../lib/anilist';
+import { t, tRich } from '../i18n';
 
 type Tab = 'today' | 'season' | 'mine' | 'birthday';
 
@@ -41,17 +42,17 @@ const hhmm = (sec: number) =>
 
 function untilText(sec: number) {
   const d = sec * 1000 - Date.now();
-  if (d <= 0) return '已播出';
+  if (d <= 0) return t('widgets.anime.aired');
   const h = Math.floor(d / 3_600_000);
-  if (h >= 24) return `${Math.floor(h / 24)} 天後`;
-  return h ? `${h} 小時後` : `${Math.ceil(d / 60_000)} 分鐘後`;
+  if (h >= 24) return t('widgets.anime.inDays', { n: Math.floor(h / 24) });
+  return h ? t('widgets.anime.inHours', { n: h }) : t('widgets.anime.inMinutes', { n: Math.ceil(d / 60_000) });
 }
 
 function Today() {
   const { data, error, loading } = useAsync<Airing[]>(todayAiring, []);
-  if (loading) return <p class="panel-muted">載入中…</p>;
-  if (error) return <p class="panel-muted">讀取失敗:{error}</p>;
-  if (!data?.length) return <p class="panel-muted">今天沒有播出的新番。</p>;
+  if (loading) return <p class="panel-muted">{t('common.loading')}</p>;
+  if (error) return <p class="panel-muted">{t('common.loadFailed', { error })}</p>;
+  if (!data?.length) return <p class="panel-muted">{t('widgets.anime.noAiring')}</p>;
   const now = Date.now() / 1000;
   return (
     <ol class="airing">
@@ -59,7 +60,7 @@ function Today() {
         <li key={`${a.media.id}-${a.episode}`} class={a.airingAt < now ? 'is-past' : ''}>
           <time>{hhmm(a.airingAt)}</time>
           <a href={a.media.siteUrl}>{displayTitle(a.media.title)}</a>
-          <span class="airing-ep">第 {a.episode} 集</span>
+          <span class="airing-ep">{t('widgets.anime.episode', { n: a.episode })}</span>
         </li>
       ))}
     </ol>
@@ -91,8 +92,16 @@ function PlusOne({ token, entry, onSaved }: { token: string; entry: ListEntry; o
       type="button"
       class={`cover-act ${failed ? 'is-failed' : ''}`}
       disabled={busy || caughtUp}
-      aria-label={caughtUp ? `${title} 已追上最新一集` : `${title} 看完第 ${entry.progress + 1} 集`}
-      title={failed ? '更新失敗,再試一次' : caughtUp ? '已追上最新一集' : `標記看完第 ${entry.progress + 1} 集`}
+      aria-label={
+        caughtUp ? t('widgets.anime.caughtUpLabel', { title }) : t('widgets.anime.watchedLabel', { title, n: entry.progress + 1 })
+      }
+      title={
+        failed
+          ? t('widgets.anime.saveFailed')
+          : caughtUp
+            ? t('widgets.anime.caughtUp')
+            : t('widgets.anime.markWatched', { n: entry.progress + 1 })
+      }
       onClick={async () => {
         setBusy(true);
         setFailed(false);
@@ -112,8 +121,8 @@ function PlusOne({ token, entry, onSaved }: { token: string; entry: ListEntry; o
 
 function Season() {
   const { data, error, loading } = useAsync<MediaLite[]>(seasonAnime, []);
-  if (loading) return <p class="panel-muted">載入中…</p>;
-  if (error) return <p class="panel-muted">讀取失敗:{error}</p>;
+  if (loading) return <p class="panel-muted">{t('common.loading')}</p>;
+  if (error) return <p class="panel-muted">{t('common.loadFailed', { error })}</p>;
   return (
     <div class="cover-grid">
       {data!.map((m) => (
@@ -125,15 +134,13 @@ function Season() {
 
 function Birthdays() {
   const { data, error, loading } = useAsync<BirthdayCharacter[]>(birthdays, []);
-  if (loading) return <p class="panel-muted">載入中…</p>;
-  if (error) return <p class="panel-muted">讀取失敗:{error}</p>;
-  if (!data?.length) return <p class="panel-muted">今天沒有登記生日的角色。</p>;
+  if (loading) return <p class="panel-muted">{t('common.loading')}</p>;
+  if (error) return <p class="panel-muted">{t('common.loadFailed', { error })}</p>;
+  if (!data?.length) return <p class="panel-muted">{t('widgets.anime.noBirthdays')}</p>;
   const today = new Date();
   return (
     <>
-      <p class="panel-muted">
-        {today.getMonth() + 1} 月 {today.getDate()} 日生日的角色 🎂
-      </p>
+      <p class="panel-muted">{t('widgets.anime.birthdaysOn', { month: today.getMonth() + 1, day: today.getDate() })}</p>
       <div class="cover-grid">
         {data.map((c) => {
           const work = c.media.nodes[0];
@@ -184,26 +191,28 @@ function Mine({ clientId }: { clientId: string }) {
               }
             }}
           >
-            連結 AniList 帳號
+            {t('widgets.anime.connect')}
           </button>
         ) : (
           <p>
-            要顯示追番清單,請先到 <a href={chrome.runtime.getURL('options.html#anilist')}>設定</a> 填入 AniList Client ID。
+            {tRich('widgets.anime.needClientId', {
+              link: <a href={chrome.runtime.getURL('options.html#anilist')}>{t('common.settings')}</a>,
+            })}
           </p>
         )}
         {err && <p>{err}</p>}
       </div>
     );
   }
-  if (list.loading) return <p class="panel-muted">載入中…</p>;
-  if (list.error) return <p class="panel-muted">讀取失敗:{list.error}</p>;
+  if (list.loading) return <p class="panel-muted">{t('common.loading')}</p>;
+  if (list.error) return <p class="panel-muted">{t('common.loadFailed', { error: list.error })}</p>;
   const name = list.data?.name;
   return (
     <>
       <div class="panel-actions">
         <span class="panel-muted">{name}</span>
         <button type="button" class="text-btn" onClick={() => setReload((n) => n + 1)}>
-          重新整理
+          {t('widgets.anime.refresh')}
         </button>
         <button
           type="button"
@@ -213,21 +222,25 @@ function Mine({ clientId }: { clientId: string }) {
             setToken(null);
           }}
         >
-          登出
+          {t('widgets.anime.logout')}
         </button>
       </div>
       {!entries.length && (
         <p class="panel-muted">
-          AniList 上還沒有「Watching(觀看中)」的作品。到{' '}
-          <a href={name ? `https://anilist.co/user/${encodeURIComponent(name)}/animelist` : 'https://anilist.co/search/anime'}>AniList</a>{' '}
-          把正在看的番加入清單、狀態選 Watching,再回來按「重新整理」。
+          {tRich('widgets.anime.noWatching', {
+            link: <a href={name ? `https://anilist.co/user/${encodeURIComponent(name)}/animelist` : 'https://anilist.co/search/anime'}>AniList</a>,
+          })}
         </p>
       )}
       <div class="cover-grid">
         {entries.map((e) => {
           const next = e.media.nextAiringEpisode;
           const behind = (airedEpisodes(e.media) ?? e.progress) - e.progress;
-          const sub = [`看到 ${e.progress}`, behind > 0 ? `落後 ${behind} 集` : null, next ? `EP${next.episode} ${untilText(next.airingAt)}` : null]
+          const sub = [
+            t('widgets.anime.progress', { n: e.progress }),
+            behind > 0 ? t('widgets.anime.behind', { n: behind }) : null,
+            next ? `EP${next.episode} ${untilText(next.airingAt)}` : null,
+          ]
             .filter(Boolean)
             .join(' · ');
           return (
@@ -258,10 +271,10 @@ function Mine({ clientId }: { clientId: string }) {
 export function AnimePanel({ clientId }: { clientId: string }) {
   const [tab, setTab] = useState<Tab>('today');
   const tabs: [Tab, string][] = [
-    ['today', '今日播出'],
-    ['season', '本季新番'],
-    ['mine', '追番清單'],
-    ['birthday', '今日壽星'],
+    ['today', t('widgets.anime.tabs.today')],
+    ['season', t('widgets.anime.tabs.season')],
+    ['mine', t('widgets.anime.tabs.mine')],
+    ['birthday', t('widgets.anime.tabs.birthday')],
   ];
   return (
     <div class="anime">

@@ -21,15 +21,20 @@ import { DEFAULT_EXCLUDED_TAGS } from '../lib/curation';
 import { searchCharacters, tagLabel, type CharacterTag } from '../lib/danbooru';
 import { detectLocation, geocode, type Place } from '../lib/weather';
 import { THEMES } from '../themes';
+import { t, tRich } from '../i18n';
+import { SECTION_IDS, type SectionId } from './sections';
 
 const NEKOSIA_CATEGORIES = ['random', 'catgirl', 'foxgirl', 'wolf-girl', 'animal-ears', 'maid', 'uniform', 'cute', 'young-girl', 'white-hair', 'blue-hair', 'kimono', 'vtuber'];
 
-function Section({ id, title, note, children }: { id: string; title: string; note?: string; children: ComponentChildren }) {
+function Section({ id, title, note, children }: { id: SectionId; title: string; note?: string; children: ComponentChildren }) {
   return (
     <section id={id} class="opt-section">
       <header>
         <h2>{title}</h2>
         {note && <p>{note}</p>}
+        <a class="opt-help" href={`help.html#${id}`} target="_blank">
+          {t('common.help')}
+        </a>
       </header>
       <div class="opt-fields">{children}</div>
     </section>
@@ -76,18 +81,18 @@ function CharacterPicker({ value, onChange }: { value: string[]; onChange: (v: s
       return;
     }
     const ctl = new AbortController();
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       searchCharacters(term, ctl.signal).then(
         (r) => {
           setResults(r.filter((c) => !value.includes(c.name)));
           setActive(0);
-          setErr(r.length ? undefined : '找不到符合的角色,試試英文或日文名稱。');
+          setErr(r.length ? undefined : t('options.chars.notFound'));
         },
-        () => !ctl.signal.aborted && setErr('無法連上 Danbooru,稍後再試。'),
+        () => !ctl.signal.aborted && setErr(t('options.chars.offline')),
       );
     }, 250);
     return () => {
-      clearTimeout(t);
+      clearTimeout(timer);
       ctl.abort();
     };
   }, [q]);
@@ -118,7 +123,7 @@ function CharacterPicker({ value, onChange }: { value: string[]; onChange: (v: s
           {value.map((name) => (
             <li key={name}>
               <span>{tagLabel(name)}</span>
-              <button type="button" aria-label={`移除 ${tagLabel(name)}`} onClick={() => onChange(value.filter((v) => v !== name))}>
+              <button type="button" aria-label={t('options.chars.remove', { name: tagLabel(name) })} onClick={() => onChange(value.filter((v) => v !== name))}>
                 ×
               </button>
             </li>
@@ -128,7 +133,7 @@ function CharacterPicker({ value, onChange }: { value: string[]; onChange: (v: s
       <input
         class="wide"
         value={q}
-        placeholder="輸入角色名稱(英文、羅馬拼音或日文),例如 frieren、初音"
+        placeholder={t('options.chars.placeholder')}
         role="combobox"
         aria-expanded={results.length > 0}
         aria-controls="char-results"
@@ -153,7 +158,7 @@ function CharacterPicker({ value, onChange }: { value: string[]; onChange: (v: s
             >
               <span>{tagLabel(c.name)}</span>
               {c.alias && <small>{c.alias}</small>}
-              <small class="char-count">{c.postCount.toLocaleString()} 張</small>
+              <small class="char-count">{t('options.chars.posts', { n: c.postCount.toLocaleString() })}</small>
             </li>
           ))}
         </ul>
@@ -182,7 +187,7 @@ function WeatherPicker({
     setDetected(undefined);
     detectLocation().then(
       (l) => setDetected(l.name),
-      () => setDetected('(偵測失敗)'),
+      () => setDetected(t('options.weather.detectFailed')),
     );
   }, [mode]);
 
@@ -193,25 +198,25 @@ function WeatherPicker({
     try {
       const r = await geocode(q);
       setResults(r);
-      if (!r.length) setErr('找不到這個地點,試試英文名稱(例如 Taipei)。');
+      if (!r.length) setErr(t('options.weather.notFound'));
     } catch (e) {
       setErr((e as Error).message);
     }
   };
 
   const modes: [Settings['weatherMode'], string][] = [
-    ['auto', '自動(依網路位置)'],
-    ['manual', '手動選城市'],
-    ['off', '關閉'],
+    ['auto', t('options.weather.auto')],
+    ['manual', t('options.weather.manual')],
+    ['off', t('common.off')],
   ];
 
   return (
     <div class="opt-field opt-field-block">
       <span class="opt-label">
-        天氣
-        <small>日期旁顯示天氣;下雨下雪時背景會換成雨景、雪景,粒子也會跟著變。</small>
+        {t('options.weather.label')}
+        <small>{t('options.weather.hint')}</small>
       </span>
-      <div class="focus-chips" role="radiogroup" aria-label="天氣位置">
+      <div class="focus-chips" role="radiogroup" aria-label={t('options.weather.location')}>
         {modes.map(([m, label]) => (
           <label key={m} class="radio">
             <input type="radio" name="weather-mode" checked={mode === m} onChange={() => onChange({ weatherMode: m, weatherLocation: value })} />
@@ -220,22 +225,20 @@ function WeatherPicker({
         ))}
       </div>
       {mode === 'auto' && (
-        <small class="opt-muted">
-          目前偵測:{detected ?? '偵測中…'}。依 IP 判斷,只到城市等級;用 VPN 或公司網路時可能不準,不準就改用手動。
-        </small>
+        <small class="opt-muted">{t('options.weather.detected', { place: detected ?? t('options.weather.detecting') })}</small>
       )}
       {mode === 'manual' && (
         <>
-          <small class="opt-muted">{value ? `目前:${value.name}` : '尚未選擇城市,暫時使用自動偵測。'}</small>
+          <small class="opt-muted">{value ? t('options.weather.current', { place: value.name }) : t('options.weather.none')}</small>
           <form class="weather-search" onSubmit={search}>
-            <input value={q} placeholder="城市名稱,英文較準確(例如 Taipei)" onInput={(e) => setQ((e.target as HTMLInputElement).value)} />
-            <button type="submit" class="opt-button">搜尋</button>
+            <input value={q} placeholder={t('options.weather.placeholder')} onInput={(e) => setQ((e.target as HTMLInputElement).value)} />
+            <button type="submit" class="opt-button">{t('common.search')}</button>
           </form>
           {err && <small class="opt-warn">{err}</small>}
           {results && results.length > 0 && (
             <ul class="weather-results">
               {results.map((r) => {
-                const name = [r.name, r.admin1, r.country].filter(Boolean).join(',');
+                const name = [r.name, r.admin1, r.country].filter(Boolean).join(t('common.listSep'));
                 return (
                   <li key={`${r.latitude},${r.longitude}`}>
                     <button
@@ -324,7 +327,7 @@ export function Options() {
     await (await db()).clear('queue');
     await send({ to: 'bg', type: 'refill' });
     setQueue(0);
-    flash('已清空,正在用新設定重新產生畫面…');
+    flash(t('options.regenerating'));
   };
 
   const addUploads = async (files: FileList | null, role: Upload['role']) => {
@@ -334,7 +337,7 @@ export function Options() {
       await d.put('uploads', { id: uid(), name: f.name, blob: f, kind: kindOf(f), role, addedAt: Date.now() });
     }
     await reload();
-    flash(`已加入 ${files.length} 個檔案`);
+    flash(t('options.added', { n: files.length }));
   };
 
   const exportData = async () => {
@@ -356,66 +359,57 @@ export function Options() {
       if (Array.isArray(data.blacklist)) await saveBlacklist(data.blacklist);
       setS(await getSettings());
       await reload();
-      flash('已匯入');
+      flash(t('options.imported'));
     } catch {
-      flash('檔案格式不正確');
+      flash(t('options.badFile'));
     }
   };
-
-  const redirectUrl = `https://${chrome.runtime.id}.chromiumapp.org/`;
 
   return (
     <div class="opt">
       <header class="opt-hero">
         <p class="opt-kicker">TAB PRETTIER</p>
-        <h1>設定</h1>
+        <h1>{t('options.heading')}</h1>
         <p class="opt-status">
-          佇列中已準備 <strong>{queue}</strong> 幅畫面
+          {tRich('options.queue', { n: <strong>{queue}</strong> })}
           <button type="button" class="opt-link" onClick={regenerate}>
-            清空並用新設定重新產生
+            {t('options.regenerate')}
           </button>
         </p>
       </header>
 
       <nav class="opt-nav">
-        {[
-          ['look', '外觀'],
-          ['sources', '圖源'],
-          ['blend', '融合'],
-          ['motion', '動態'],
-          ['power', '效能'],
-          ['uploads', '上傳'],
-          ['favorites', '收藏'],
-          ['anilist', 'AniList'],
-          ['backup', '備份'],
-        ].map(([id, l]) => (
+        {SECTION_IDS.map((id) => (
           <a key={id} href={`#${id}`}>
-            {l}
+            {t(`options.nav.${id}`)}
           </a>
         ))}
+        <a class="opt-nav-help" href="help.html" target="_blank">
+          {t('options.helpLink')}
+        </a>
       </nav>
 
-      <Section id="look" title="外觀" note="想讓 Chrome 分頁列也同風格,可另外安裝專案裡 chrome-themes/ 資料夾的主題包(固定配色,詳見 README)。">
-        <div class="theme-cards" role="radiogroup" aria-label="主題">
-          {THEMES.map((t) => (
-            <label key={t.id} class={`theme-card theme-card-${t.id}`}>
-              <input type="radio" name="theme" checked={s.theme === t.id} onChange={() => set({ theme: t.id })} />
+      <Section id="look" title={t('options.nav.look')}>
+        <div class="theme-cards" role="radiogroup" aria-label={t('options.look.theme')}>
+          {THEMES.map((th) => (
+            <label key={th.id} class={`theme-card theme-card-${th.id}`}>
+              <input type="radio" name="theme" checked={s.theme === th.id} onChange={() => set({ theme: th.id })} />
               <span class="theme-sample">14:32</span>
-              <strong>{t.label}</strong>
-              <small>{t.note}</small>
+              <strong>{th.label}</strong>
+              <small>{th.note}</small>
             </label>
           ))}
         </div>
-        <Field label="換圖頻率" hint="在開新分頁時判斷;頻率越低,背景處理越少、越省電">
+        <Field label={t('options.look.rotation')} hint={t('options.look.rotationHint')}>
           <select value={s.rotation} onChange={(e) => set({ rotation: (e.target as HTMLSelectElement).value as Settings['rotation'] })}>
-            <option value="tab">每次開新分頁</option>
-            <option value="minutes">每隔幾分鐘</option>
-            <option value="tabs">每開幾個分頁</option>
-            <option value="day">每天(過午夜後)</option>
+            <option value="tab">{t('options.look.rotationTab')}</option>
+            <option value="minutes">{t('options.look.rotationMinutes')}</option>
+            <option value="tabs">{t('options.look.rotationTabs')}</option>
+            <option value="day">{t('options.look.rotationDay')}</option>
           </select>
         </Field>
         {s.rotation === 'minutes' && (
-          <Field label="間隔分鐘" hint="距離這幅第一次出現超過這個時間,下一個新分頁就換">
+          <Field label={t('options.look.minutes')} hint={t('options.look.minutesHint')}>
             <input
               type="number"
               class="num"
@@ -424,11 +418,11 @@ export function Options() {
               value={s.rotationMinutes}
               onChange={(e) => set({ rotationMinutes: Math.min(1440, Math.max(1, Math.round(Number((e.target as HTMLInputElement).value) || 1))) })}
             />
-            <span class="unit">分鐘</span>
+            <span class="unit">{t('options.look.minutesUnit')}</span>
           </Field>
         )}
         {s.rotation === 'tabs' && (
-          <Field label="分頁數" hint="同一幅顯示這麼多次後換下一幅">
+          <Field label={t('options.look.tabs')} hint={t('options.look.tabsHint')}>
             <input
               type="number"
               class="num"
@@ -437,40 +431,40 @@ export function Options() {
               value={s.rotationTabs}
               onChange={(e) => set({ rotationTabs: Math.min(100, Math.max(1, Math.round(Number((e.target as HTMLInputElement).value) || 1))) })}
             />
-            <span class="unit">個分頁</span>
+            <span class="unit">{t('options.look.tabsUnit')}</span>
           </Field>
         )}
-        <Field label="24 小時制">
+        <Field label={t('options.look.clock24h')}>
           <input type="checkbox" checked={s.clock24h} onChange={() => set({ clock24h: !s.clock24h })} />
         </Field>
-        <Field label="顯示秒數" hint="以小字顯示在分鐘旁">
+        <Field label={t('options.look.seconds')} hint={t('options.look.secondsHint')}>
           <input type="checkbox" checked={s.clockSeconds} onChange={() => set({ clockSeconds: !s.clockSeconds })} />
         </Field>
-        <Field label="在搜尋列下方常駐連結" hint="預設收在「連結」面板裡">
+        <Field label={t('options.look.pinLinks')} hint={t('options.look.pinLinksHint')}>
           <input type="checkbox" checked={s.pinLinks} onChange={() => set({ pinLinks: !s.pinLinks })} />
         </Field>
-        <Field label="搜尋建議" hint="輸入時向 Google 取得建議字詞(和網址列的建議相同)">
+        <Field label={t('options.look.suggest')} hint={t('options.look.suggestHint')}>
           <input type="checkbox" checked={s.searchSuggest} onChange={() => set({ searchSuggest: !s.searchSuggest })} />
         </Field>
         <WeatherPicker mode={s.weatherMode} value={s.weatherLocation} onChange={(patch) => set(patch)} />
       </Section>
 
-      <Section id="sources" title="圖源" note="背景取自 Wallhaven 的無人場景;角色取自 Nekosia / waifu.im / Danbooru 並自動去背。僅使用 SFW 內容。">
-        <Field label="Wallhaven 場景">
+      <Section id="sources" title={t('options.nav.sources')} note={t('options.sources.note')}>
+        <Field label={t('options.sources.wallhaven')}>
           <input type="checkbox" checked={s.sources.wallhaven} onChange={() => setSrc({ wallhaven: !s.sources.wallhaven })} />
         </Field>
-        <Field label="依時段挑背景" hint="白天出藍天雲朵、傍晚出夕陽、夜晚出夜景">
+        <Field label={t('options.sources.timeAware')} hint={t('options.sources.timeAwareHint')}>
           <input type="checkbox" checked={s.sources.timeAware} onChange={() => setSrc({ timeAware: !s.sources.timeAware })} />
         </Field>
         {!s.sources.timeAware && (
-          <Field label="場景關鍵字" hint="以逗號分隔,每批隨機挑一組;-girl 代表排除">
+          <Field label={t('options.sources.query')} hint={t('options.sources.queryHint')}>
             <input class="wide" value={s.sources.wallhavenQuery} onChange={(e) => setSrc({ wallhavenQuery: (e.target as HTMLInputElement).value })} />
           </Field>
         )}
-        <Field label="Nekosia 角色">
+        <Field label={t('options.sources.nekosia')}>
           <input type="checkbox" checked={s.sources.nekosia} onChange={() => setSrc({ nekosia: !s.sources.nekosia })} />
         </Field>
-        <Field label="Nekosia 分類">
+        <Field label={t('options.sources.nekosiaCategory')}>
           <input list="nekosia-cats" value={s.sources.nekosiaCategory} onChange={(e) => setSrc({ nekosiaCategory: (e.target as HTMLInputElement).value })} />
           <datalist id="nekosia-cats">
             {NEKOSIA_CATEGORIES.map((c) => (
@@ -478,30 +472,26 @@ export function Options() {
             ))}
           </datalist>
         </Field>
-        <Field label="waifu.im 角色">
+        <Field label={t('options.sources.waifuim')}>
           <input type="checkbox" checked={s.sources.waifuim} onChange={() => setSrc({ waifuim: !s.sources.waifuim })} />
         </Field>
-        <Field label="Danbooru 角色" hint="只取全年齡分級的圖;透明背景的圖不必去背,邊緣更乾淨">
+        <Field label={t('options.sources.danbooru')} hint={t('options.sources.danbooruHint')}>
           <input type="checkbox" checked={s.sources.danbooru} onChange={() => setSrc({ danbooru: !s.sources.danbooru })} />
         </Field>
         {s.sources.danbooru && (
-          <Field label="允許雙人圖" hint="約四分之一改用兩位角色的圖,喜歡的角色的合照也算在內;三人以上一律不用">
+          <Field label={t('options.sources.duo')} hint={t('options.sources.duoHint')}>
             <input type="checkbox" checked={s.sources.allowDuo} onChange={() => setSrc({ allowDuo: !s.sources.allowDuo })} />
           </Field>
         )}
         <div class="opt-field opt-field-block">
           <span class="opt-label">
-            喜歡的角色
-            <small>
-              {s.sources.danbooru
-                ? '部分畫面會改用這些角色(比例見下方),其餘照常隨機。排除標籤同樣適用。'
-                : '需要開啟 Danbooru 角色才會生效。'}
-            </small>
+            {t('options.sources.favoriteChars')}
+            <small>{s.sources.danbooru ? t('options.sources.favoriteCharsHint') : t('options.sources.favoriteCharsOff')}</small>
           </span>
           <CharacterPicker value={s.sources.favoriteChars} onChange={(favoriteChars) => setSrc({ favoriteChars })} />
         </div>
         {s.sources.danbooru && s.sources.favoriteChars.length > 0 && (
-          <Field label="喜歡的角色出現比例" hint="每幅畫面以這個機率改用喜歡的角色">
+          <Field label={t('options.sources.favoriteCharsWeight')} hint={t('options.sources.favoriteCharsWeightHint')}>
             <Range
               value={s.sources.favoriteCharsWeight}
               min={0.05}
@@ -512,16 +502,16 @@ export function Options() {
             />
           </Field>
         )}
-        <Field label="使用自己上傳的比例" hint="有上傳檔案時才有作用">
+        <Field label={t('options.sources.uploadsWeight')} hint={t('options.sources.uploadsWeightHint')}>
           <Range value={s.sources.uploadsWeight} min={0} max={1} step={0.05} onChange={(v) => setSrc({ uploadsWeight: v })} fmt={(v) => `${Math.round(v * 100)}%`} />
         </Field>
         <div class="opt-field opt-field-block">
           <span class="opt-label">
-            排除標籤
+            {t('options.sources.exclude')}
             <small>
-              角色圖帶有任一標籤就跳過(以逗號分隔)。預設排除男性角色與暴露內容;waifu.im 另外固定排除成人標籤。
+              {t('options.sources.excludeHint')}
               <button type="button" class="opt-link" onClick={() => setSrc({ excludeTags: DEFAULT_EXCLUDED_TAGS })}>
-                恢復預設
+                {t('options.sources.excludeReset')}
               </button>
             </small>
           </span>
@@ -529,77 +519,96 @@ export function Options() {
         </div>
         <div class="opt-field opt-field-block">
           <span class="opt-label">
-            偏好標籤
-            <small>例如 white-hair, catgirl, maid。每幅會從 3 個候選角色中挑,帶這些標籤的較容易被選中。</small>
+            {t('options.sources.prefer')}
+            <small>{t('options.sources.preferHint')}</small>
           </span>
-          <input class="wide" value={s.sources.preferTags} placeholder="(可留空)" onChange={(e) => setSrc({ preferTags: (e.target as HTMLInputElement).value })} />
+          <input
+            class="wide"
+            value={s.sources.preferTags}
+            placeholder={t('options.sources.preferPlaceholder')}
+            onChange={(e) => setSrc({ preferTags: (e.target as HTMLInputElement).value })}
+          />
         </div>
       </Section>
 
-      <Section id="blend" title="融合" note="色調融合與輪廓光在產生畫面時烘焙,調整後按上方「重新產生」即可套用。模糊與暗化即時生效。">
-        <Field label="背景模糊">
+      <Section id="blend" title={t('options.nav.blend')} note={t('options.blend.note')}>
+        <Field label={t('options.blend.blur')}>
           <Range value={s.bgBlur} min={0} max={8} step={0.5} onChange={(v) => set({ bgBlur: v })} fmt={(v) => `${v}px`} />
         </Field>
-        <Field label="背景暗化">
+        <Field label={t('options.blend.dim')}>
           <Range value={s.bgDim} min={0} max={0.6} step={0.02} onChange={(v) => set({ bgDim: v })} fmt={(v) => `${Math.round(v * 100)}%`} />
         </Field>
-        <Field label="色調融合強度" hint="把角色的色溫拉近背景">
+        <Field label={t('options.blend.harmonize')} hint={t('options.blend.harmonizeHint')}>
           <Range value={s.harmonize} min={0} max={1} step={0.05} onChange={(v) => set({ harmonize: v })} fmt={(v) => `${Math.round(v * 100)}%`} />
         </Field>
-        <Field label="構圖變化" hint="偶爾出現特寫、遠景小人物,或只有風景、時鐘置中">
+        <Field label={t('options.blend.variety')} hint={t('options.blend.varietyHint')}>
           <input type="checkbox" checked={s.layoutVariety} onChange={() => set({ layoutVariety: !s.layoutVariety })} />
         </Field>
-        <Field label="輪廓光" hint="依背景光源方向打在角色邊緣">
+        <Field label={t('options.blend.rim')} hint={t('options.blend.rimHint')}>
           <Range value={s.rimLight} min={0} max={1} step={0.05} onChange={(v) => set({ rimLight: v })} fmt={(v) => `${Math.round(v * 100)}%`} />
         </Field>
       </Section>
 
-      <Section id="motion" title="動態" note="系統開啟「減少動態效果」時,所有動畫會自動停用。">
-        <Field label="滑鼠視差">
-          <Range value={s.parallax} min={0} max={2} step={0.1} onChange={(v) => set({ parallax: v })} fmt={(v) => (v ? `×${v.toFixed(1)}` : '關')} />
+      <Section id="motion" title={t('options.nav.motion')} note={t('options.motion.note')}>
+        <Field label={t('options.motion.parallax')}>
+          <Range
+            value={s.parallax}
+            min={0}
+            max={2}
+            step={0.1}
+            onChange={(v) => set({ parallax: v })}
+            fmt={(v) => (v ? `×${v.toFixed(1)}` : t('options.motion.rangeOff'))}
+          />
         </Field>
-        <Field label="背景景深運鏡" hint="依背景的深度圖做出立體視差與緩慢推鏡;新產生的畫面才有深度資料">
-          <Range value={s.depthMotion} min={0} max={2} step={0.1} onChange={(v) => set({ depthMotion: v })} fmt={(v) => (v ? `×${v.toFixed(1)}` : '關')} />
+        <Field label={t('options.motion.depth')} hint={t('options.motion.depthHint')}>
+          <Range
+            value={s.depthMotion}
+            min={0}
+            max={2}
+            step={0.1}
+            onChange={(v) => set({ depthMotion: v })}
+            fmt={(v) => (v ? `×${v.toFixed(1)}` : t('options.motion.rangeOff'))}
+          />
         </Field>
-        <Field label="角色呼吸感">
+        <Field label={t('options.motion.breathing')}>
           <input type="checkbox" checked={s.breathing} onChange={() => set({ breathing: !s.breathing })} />
         </Field>
-        <Field label="粒子氛圍">
+        <Field label={t('options.motion.particles')}>
           <select value={s.particles} onChange={(e) => set({ particles: (e.target as HTMLSelectElement).value as Settings['particles'] })}>
-            <option value="auto">依季節自動</option>
-            <option value="sakura">櫻花</option>
-            <option value="bokeh">光斑</option>
-            <option value="rain">雨</option>
-            <option value="snow">雪</option>
-            <option value="off">關閉</option>
+            <option value="auto">{t('options.motion.particlesAuto')}</option>
+            <option value="sakura">{t('options.motion.sakura')}</option>
+            <option value="bokeh">{t('options.motion.bokeh')}</option>
+            <option value="rain">{t('options.motion.rain')}</option>
+            <option value="snow">{t('options.motion.snow')}</option>
+            <option value="off">{t('common.off')}</option>
           </select>
         </Field>
-        <Field label="進場動畫">
+        <Field label={t('options.motion.enter')}>
           <input type="checkbox" checked={s.enterAnimation} onChange={() => set({ enterAnimation: !s.enterAnimation })} />
         </Field>
       </Section>
 
-      <Section id="power" title="效能">
-        <Field label="省電模式" hint="關閉粒子、影片與呼吸效果,並只在閒置時處理新圖">
+      <Section id="power" title={t('options.nav.power')}>
+        <Field label={t('options.power.powerSave')} hint={t('options.power.powerSaveHint')}>
           <select value={s.powerSave} onChange={(e) => set({ powerSave: (e.target as HTMLSelectElement).value as Settings['powerSave'] })}>
-            <option value="auto">使用電池時自動開啟</option>
-            <option value="on">一律開啟</option>
-            <option value="off">關閉</option>
+            <option value="auto">{t('options.power.auto')}</option>
+            <option value="on">{t('options.power.on')}</option>
+            <option value="off">{t('common.off')}</option>
           </select>
         </Field>
-        <Field label="只在電腦閒置時處理新圖">
+        <Field label={t('options.power.idleOnly')}>
           <input type="checkbox" checked={s.processOnlyWhenIdle} onChange={() => set({ processOnlyWhenIdle: !s.processOnlyWhenIdle })} />
         </Field>
       </Section>
 
-      <Section id="uploads" title="上傳" note="背景可用圖片、GIF 或 MP4/WebM 影片;角色請用圖片,會自動去背。檔案只存在這台電腦。">
+      <Section id="uploads" title={t('options.nav.uploads')} note={t('options.uploads.note')}>
         <div class="upload-actions">
           <label class="opt-button">
-            + 加入背景
+            {t('options.uploads.addBg')}
             <input type="file" accept="image/*,video/mp4,video/webm" multiple hidden onChange={(e) => void addUploads((e.target as HTMLInputElement).files, 'bg')} />
           </label>
           <label class="opt-button">
-            + 加入角色
+            {t('options.uploads.addChar')}
             <input type="file" accept="image/*" multiple hidden onChange={(e) => void addUploads((e.target as HTMLInputElement).files, 'char')} />
           </label>
         </div>
@@ -608,7 +617,7 @@ export function Options() {
             <li key={u.id}>
               <Thumb blob={u.blob} kind={u.kind} />
               <span>
-                {u.role === 'bg' ? '背景' : '角色'} · {u.name}
+                {u.role === 'bg' ? t('common.bg') : t('common.char')} · {u.name}
               </span>
               <button
                 type="button"
@@ -618,18 +627,18 @@ export function Options() {
                   await reload();
                 }}
               >
-                刪除
+                {t('common.delete')}
               </button>
             </li>
           ))}
         </ul>
       </Section>
 
-      <Section id="favorites" title="收藏" note="在新分頁按下方的 ♡ 收藏。換圖時,收藏的畫面會依下面的機率隨機再出現。">
-        <Field label="收藏再出現的機率" hint="每次換圖時抽中收藏的機率">
+      <Section id="favorites" title={t('options.nav.favorites')} note={t('options.favorites.note')}>
+        <Field label={t('options.favorites.weight')} hint={t('options.favorites.weightHint')}>
           <Range value={s.favoritesWeight} min={0} max={1} step={0.05} onChange={(v) => set({ favoritesWeight: v })} fmt={(v) => `${Math.round(v * 100)}%`} />
         </Field>
-        <Field label="收藏上限" hint="超過時自動移除最舊的收藏;填 0 代表不限制">
+        <Field label={t('options.favorites.limit')} hint={t('options.favorites.limitHint')}>
           <input
             type="number"
             class="num"
@@ -638,17 +647,18 @@ export function Options() {
             value={s.favoritesLimit}
             onChange={(e) => set({ favoritesLimit: Math.min(5000, Math.max(0, Math.round(Number((e.target as HTMLInputElement).value) || 0))) })}
           />
-          <span class="unit">幅</span>
+          <span class="unit">{t('options.favorites.limitUnit')}</span>
         </Field>
         <p class="opt-usage">
           <span>
-            收藏 <strong>{favs.length}</strong> 幅,約 <strong>{mb(favs.reduce((n, f) => n + favoriteBytes(f), 0))}</strong> MB
+            {tRich('options.favorites.usage', {
+              count: <strong>{favs.length}</strong>,
+              size: <strong>{mb(favs.reduce((n, f) => n + favoriteBytes(f), 0))}</strong>,
+            })}
           </span>
-          {storageUsed !== undefined && <span class="opt-muted">擴充功能資料總共約 {mb(storageUsed)} MB(含收藏、待顯示的畫面與上傳檔案)</span>}
+          {storageUsed !== undefined && <span class="opt-muted">{t('options.favorites.storage', { size: mb(storageUsed) })}</span>}
           {s.favoritesLimit > 0 && favs.length > s.favoritesLimit && (
-            <span class="opt-warn">
-              目前超過上限 {favs.length - s.favoritesLimit} 幅,下次收藏時會移除最舊的。
-            </span>
+            <span class="opt-warn">{t('options.favorites.overLimit', { n: favs.length - s.favoritesLimit })}</span>
           )}
           {favs.length > 0 && (
             <button
@@ -663,14 +673,14 @@ export function Options() {
                 await (await db()).clear('favorites');
                 setConfirmClear(false);
                 await reload();
-                flash('已清空所有收藏');
+                flash(t('options.favorites.cleared'));
               }}
             >
-              {confirmClear ? '再按一次確認清空' : '清空全部收藏'}
+              {confirmClear ? t('options.favorites.confirmClear') : t('options.favorites.clearAll')}
             </button>
           )}
         </p>
-        {!favs.length && <p class="opt-muted">還沒有收藏。</p>}
+        {!favs.length && <p class="opt-muted">{t('options.favorites.empty')}</p>}
         <ul class="thumb-grid">
           {favs.map((f) => (
             <li key={f.id}>
@@ -687,14 +697,14 @@ export function Options() {
                     await reload();
                   }}
                 >
-                  移除
+                  {t('common.remove')}
                 </button>
               </span>
             </li>
           ))}
         </ul>
         <p class="opt-muted">
-          黑名單:{blacklist.length} 項
+          {t('options.favorites.blacklist', { n: blacklist.length })}
           {blacklist.length > 0 && (
             <button
               type="button"
@@ -704,34 +714,32 @@ export function Options() {
                 setBlacklist([]);
               }}
             >
-              清空
+              {t('common.clear')}
             </button>
           )}
         </p>
       </Section>
 
-      <Section id="anilist" title="AniList" note="今日播出與本季新番不需登入。要顯示追番清單,需要建立自己的 AniList API Client。">
-        <ol class="opt-steps">
-          <li>
-            到 <a href="https://anilist.co/settings/developer" target="_blank" rel="noreferrer">anilist.co/settings/developer</a> 建立新的 Client。
-          </li>
-          <li>
-            Redirect URL 填入:<code>{redirectUrl}</code>
-          </li>
-          <li>把拿到的 Client ID 貼在下面,再到新分頁的「番劇 → 追番清單」連結帳號。</li>
-        </ol>
-        <Field label="Client ID">
+      <Section id="anilist" title={t('options.nav.anilist')} note={t('options.anilist.note')}>
+        <div class="opt-field opt-field-block">
+          <span class="opt-label">
+            {t('options.anilist.redirect')}
+            <small>{t('options.anilist.redirectHint')}</small>
+          </span>
+          <code class="opt-copy">{`https://${chrome.runtime.id}.chromiumapp.org/`}</code>
+        </div>
+        <Field label={t('options.anilist.clientId')} hint={t('options.anilist.clientIdHint')}>
           <input value={s.anilistClientId} onChange={(e) => set({ anilistClientId: (e.target as HTMLInputElement).value.trim() })} />
         </Field>
       </Section>
 
-      <Section id="backup" title="備份" note="匯出設定、連結、待辦、便條與黑名單(不含圖片)。">
+      <Section id="backup" title={t('options.nav.backup')} note={t('options.backup.note')}>
         <div class="upload-actions">
           <button type="button" class="opt-button" onClick={exportData}>
-            匯出 JSON
+            {t('options.backup.export')}
           </button>
           <label class="opt-button">
-            匯入 JSON
+            {t('options.backup.import')}
             <input type="file" accept="application/json" hidden onChange={(e) => void importData((e.target as HTMLInputElement).files?.[0])} />
           </label>
         </div>

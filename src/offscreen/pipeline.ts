@@ -11,6 +11,7 @@ import {
   type TimeBucket,
   type Variant,
 } from '../lib/curation';
+import { t } from '../i18n';
 import { db } from '../lib/db';
 import { deriveTheme, quantize } from '../lib/palette';
 import { lastWeather } from '../lib/weather';
@@ -126,7 +127,7 @@ async function bgGenerated(): Promise<Bg> {
     blob: await c.convertToBlob({ type: 'image/webp', quality: 0.9 }),
     kind: 'image', width: 1920, height: 1080, thumb,
     palette: quantize(thumb.data, 4),
-    credit: { id: `generated:${hue.toFixed(0)}`, source: 'upload', artist: '漸層' },
+    credit: { id: `generated:${hue.toFixed(0)}`, source: 'upload', artist: t('lib.gradientArtist') },
   };
 }
 

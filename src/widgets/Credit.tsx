@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
+import { t } from '../i18n';
 import { addToBlacklist } from '../lib/settings';
 import type { Credit, Scene } from '../lib/types';
 
@@ -7,7 +8,7 @@ const SOURCE_LABEL: Record<Credit['source'], string> = {
   nekosia: 'Nekosia',
   waifuim: 'waifu.im',
   danbooru: 'Danbooru',
-  upload: '我的上傳',
+  upload: t('widgets.credit.upload'),
 };
 
 function CreditRow({ role, credit, onBlock }: { role: string; credit: Credit; onBlock?: () => void }) {
@@ -18,7 +19,7 @@ function CreditRow({ role, credit, onBlock }: { role: string; credit: Credit; on
         {credit.artist ? (
           credit.artistUrl ? <a href={credit.artistUrl}>{credit.artist}</a> : <span>{credit.artist}</span>
         ) : (
-          <span class="panel-muted">作者不詳</span>
+          <span class="panel-muted">{t('widgets.credit.unknownArtist')}</span>
         )}
         <span class="credit-src">
           {' · '}
@@ -27,7 +28,7 @@ function CreditRow({ role, credit, onBlock }: { role: string; credit: Credit; on
       </p>
       {onBlock && (
         <button type="button" class="text-btn" onClick={onBlock}>
-          不要再出現
+          {t('widgets.credit.block')}
         </button>
       )}
     </div>
@@ -40,15 +41,15 @@ export function CreditPanel({ scene, onNext }: { scene: Scene; onNext: () => Pro
 
   const block = async (c: Credit) => {
     await addToBlacklist(c.id);
-    setMsg('已加入黑名單,之後不會再出現。');
+    setMsg(t('widgets.credit.blocked'));
   };
 
   return (
     <div class="credit">
-      <CreditRow role="背景" credit={scene.bg.credit} onBlock={scene.bg.credit.source !== 'upload' ? () => block(scene.bg.credit) : undefined} />
+      <CreditRow role={t('common.bg')} credit={scene.bg.credit} onBlock={scene.bg.credit.source !== 'upload' ? () => block(scene.bg.credit) : undefined} />
       {scene.char && (
         <CreditRow
-          role="角色"
+          role={t('common.char')}
           credit={scene.char.credit}
           onBlock={scene.char.credit.source !== 'upload' ? () => block(scene.char!.credit) : undefined}
         />
@@ -61,10 +62,10 @@ export function CreditPanel({ scene, onNext }: { scene: Scene; onNext: () => Pro
           type="button"
           class="text-btn"
           onClick={async () => {
-            if (!(await onNext())) setMsg('下一幅還在準備中,稍後再試。');
+            if (!(await onNext())) setMsg(t('widgets.credit.notReady'));
           }}
         >
-          換一幅 →
+          {t('widgets.credit.next')}
         </button>
       </div>
       {msg && <p class="panel-muted" role="status">{msg}</p>}

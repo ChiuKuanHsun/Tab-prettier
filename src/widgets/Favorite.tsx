@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
+import { t } from '../i18n';
 import { addFavorite, isFavorite, removeFavorite } from '../lib/scene-store';
 import type { Scene } from '../lib/types';
 
@@ -24,7 +25,7 @@ export function FavoriteButton({ scene, limit }: { scene: Scene; limit: number }
         await removeFavorite(scene.id);
       } else {
         const dropped = await addFavorite(scene, limit);
-        if (dropped) setNote(`收藏已達 ${limit} 幅上限,移除了最舊的 ${dropped} 幅`);
+        if (dropped) setNote(t('widgets.favorite.limitDropped', { limit, n: dropped }));
       }
       setFav(!fav);
     } finally {
@@ -43,8 +44,8 @@ export function FavoriteButton({ scene, limit }: { scene: Scene; limit: number }
       type="button"
       class={`dock-icon fav-btn ${fav ? 'is-on' : ''}`}
       aria-pressed={fav}
-      aria-label={fav ? '取消收藏這幅' : '收藏這幅'}
-      title={fav ? '已收藏,之後會隨機再出現(再按一次取消)' : '收藏這幅,之後會隨機再出現'}
+      aria-label={fav ? t('widgets.favorite.remove') : t('widgets.favorite.add')}
+      title={fav ? t('widgets.favorite.removeTitle') : t('widgets.favorite.addTitle')}
       onClick={toggle}
     >
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">

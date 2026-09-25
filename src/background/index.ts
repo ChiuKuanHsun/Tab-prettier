@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { queueCount } from '../lib/db';
 import { FOCUS_ALARM, getFocus, getFocusPrefs, PHASE_LABEL, setFocus, startFocus, type FocusState } from '../lib/focus';
 import { queueTarget, type ToBackground, type ToOffscreen } from '../lib/messages';
@@ -78,11 +79,16 @@ async function finishFocus() {
   await chrome.notifications.create('focus', {
     type: 'basic',
     iconUrl: chrome.runtime.getURL('icons/icon-128.png'),
-    title: wasWork ? '專注時間結束' : '休息結束',
-    message: wasWork ? `完成 ${Math.round(s.durationMs / 60_000)} 分鐘的專注,起來動一動吧。` : '準備好就開始下一輪專注。',
+    title: wasWork ? t('background.workDoneTitle') : t('background.breakDoneTitle'),
+    message: wasWork
+      ? t('background.workDoneMessage', { n: Math.round(s.durationMs / 60_000) })
+      : t('background.breakDoneMessage'),
     buttons: wasWork
-      ? [{ title: `休息 ${prefs.break} 分鐘` }, { title: `再${PHASE_LABEL.work} ${prefs.work} 分鐘` }]
-      : [{ title: `${PHASE_LABEL.work} ${prefs.work} 分鐘` }],
+      ? [
+          { title: t('background.startBreak', { n: prefs.break }) },
+          { title: t('background.workAgain', { phase: PHASE_LABEL.work, n: prefs.work }) },
+        ]
+      : [{ title: t('background.startWork', { phase: PHASE_LABEL.work, n: prefs.work }) }],
     priority: 2,
     // stays until dismissed, so a break reminder isn't missed while away from the screen
     requireInteraction: true,

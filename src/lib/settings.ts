@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { DEFAULT_SETTINGS, type LinkGroup, type Settings, type Todo } from './types';
 
 /**
@@ -62,7 +63,7 @@ export const saveSettings = (s: Settings) => writeKey('settings', s);
 export const DEFAULT_LINKS: LinkGroup[] = [
   {
     id: 'daily',
-    name: '常用',
+    name: t('lib.defaultLinks.daily'),
     links: [
       { id: 'yt', title: 'YouTube', url: 'https://www.youtube.com/' },
       { id: 'gh', title: 'GitHub', url: 'https://github.com/' },
@@ -71,7 +72,7 @@ export const DEFAULT_LINKS: LinkGroup[] = [
   },
   {
     id: 'anime',
-    name: '動漫',
+    name: t('lib.defaultLinks.anime'),
     links: [
       { id: 'al', title: 'AniList', url: 'https://anilist.co/' },
       { id: 'px', title: 'pixiv', url: 'https://www.pixiv.net/' },

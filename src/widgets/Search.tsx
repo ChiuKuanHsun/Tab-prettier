@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { t } from '../i18n';
 
 export const ENGINES: Record<string, { label: string; url?: string }> = {
-  default: { label: '預設' },
+  default: { label: t('widgets.search.defaultEngine') },
   google: { label: 'Google', url: 'https://www.google.com/search?q=%s' },
   bing: { label: 'Bing', url: 'https://www.bing.com/search?q=%s' },
   ddg: { label: 'DuckDuckGo', url: 'https://duckduckgo.com/?q=%s' },
@@ -132,8 +133,8 @@ export function Search({ engine, onEngine, suggest }: { engine: string; onEngine
         ref={input}
         class="search-input"
         type="search"
-        placeholder="搜尋,或輸入網址…"
-        aria-label="搜尋"
+        placeholder={t('widgets.search.placeholder')}
+        aria-label={t('common.search')}
         aria-keyshortcuts="/"
         role="combobox"
         aria-autocomplete="list"
@@ -152,7 +153,7 @@ export function Search({ engine, onEngine, suggest }: { engine: string; onEngine
         autoFocus
       />
       {listOpen && (
-        <ul id="search-suggestions" class="search-suggest" role="listbox" aria-label="搜尋建議">
+        <ul id="search-suggestions" class="search-suggest" role="listbox" aria-label={t('widgets.search.suggestions')}>
           {items.map((s, i) => {
             const typed = q.trim();
             const head = s.toLowerCase().startsWith(typed.toLowerCase()) ? s.slice(0, typed.length) : '';

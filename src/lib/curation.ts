@@ -2,6 +2,7 @@
  * Content curation: tag filters, time-of-day buckets and scene variants. Pure functions, shared by
  * the offscreen pipeline (choosing images) and the new tab (choosing among queued scenes).
  */
+import { t } from '../i18n';
 
 // --- Tags ---------------------------------------------------------------------------
 
@@ -49,7 +50,11 @@ export function timeBucket(d = new Date()): TimeBucket {
   return 'night';
 }
 
-export const BUCKET_LABEL: Record<TimeBucket, string> = { day: '白天', evening: '黃昏', night: '夜晚' };
+export const BUCKET_LABEL: Record<TimeBucket, string> = {
+  day: t('lib.bucket.day'),
+  evening: t('lib.bucket.evening'),
+  night: t('lib.bucket.night'),
+};
 
 /** Wallhaven queries per bucket (each has hundreds of anime results without characters). */
 export const BUCKET_QUERIES: Record<TimeBucket, string[]> = {

@@ -15,6 +15,7 @@ export default defineConfig(({ mode }) => ({
       input: {
         newtab: resolve('newtab.html'),
         options: resolve('options.html'),
+        help: resolve('help.html'),
         offscreen: resolve('offscreen.html'),
         background: resolve('src/background/index.ts'),
       },

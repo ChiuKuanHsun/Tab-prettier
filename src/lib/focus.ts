@@ -2,6 +2,7 @@
  * Focus timer shared by every tab: the state lives in chrome.storage.local, new tabs render it,
  * and the service worker schedules an alarm for `endAt` and notifies when a phase ends.
  */
+import { t } from '../i18n';
 
 export type FocusPhase = 'work' | 'break';
 
@@ -81,4 +82,4 @@ export async function getFocusPrefs(): Promise<FocusPrefs> {
 }
 export const setFocusPrefs = (p: FocusPrefs) => chrome.storage.local.set({ focusPrefs: p });
 
-export const PHASE_LABEL: Record<FocusPhase, string> = { work: '專注', break: '休息' };
+export const PHASE_LABEL: Record<FocusPhase, string> = { work: t('lib.phase.work'), break: t('lib.phase.break') };

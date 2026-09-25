@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { t } from '../i18n';
 import { getNotes, getTodos, onKeyChange, saveNotes, saveTodos, uid } from '../lib/settings';
 import type { Todo } from '../lib/types';
 
@@ -26,30 +27,30 @@ export function TodoPanel() {
           input.value = '';
         }}
       >
-        <input name="text" placeholder="新增待辦,Enter 送出" aria-label="新增待辦" autoComplete="off" />
+        <input name="text" placeholder={t('widgets.todo.placeholder')} aria-label={t('widgets.todo.add')} autoComplete="off" />
       </form>
       <ul class="todo-list">
-        {todos.map((t) => (
-          <li key={t.id} class={t.done ? 'is-done' : ''}>
+        {todos.map((item) => (
+          <li key={item.id} class={item.done ? 'is-done' : ''}>
             <label>
               <input
                 type="checkbox"
-                checked={t.done}
-                onChange={() => update(todos.map((x) => (x.id === t.id ? { ...x, done: !x.done } : x)))}
+                checked={item.done}
+                onChange={() => update(todos.map((x) => (x.id === item.id ? { ...x, done: !x.done } : x)))}
               />
-              <span>{t.text}</span>
+              <span>{item.text}</span>
             </label>
-            <button type="button" class="icon-btn" aria-label={`刪除 ${t.text}`} onClick={() => update(todos.filter((x) => x.id !== t.id))}>
+            <button type="button" class="icon-btn" aria-label={t('common.deleteItem', { name: item.text })} onClick={() => update(todos.filter((x) => x.id !== item.id))}>
               ×
             </button>
           </li>
         ))}
       </ul>
       <div class="panel-foot">
-        <span>剩 {left} 項</span>
+        <span>{t('widgets.todo.left', { n: left })}</span>
         {todos.some((t) => t.done) && (
           <button type="button" class="text-btn" onClick={() => update(todos.filter((t) => !t.done))}>
-            清除已完成
+            {t('widgets.todo.clearDone')}
           </button>
         )}
       </div>
@@ -67,8 +68,8 @@ export function NotesPanel() {
     <textarea
       class="notes"
       value={text}
-      placeholder="隨手記下點什麼…"
-      aria-label="便條"
+      placeholder={t('widgets.todo.notesPlaceholder')}
+      aria-label={t('widgets.todo.notes')}
       onInput={(e) => {
         const v = (e.target as HTMLTextAreaElement).value;
         setText(v);

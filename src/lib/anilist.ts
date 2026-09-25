@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { db, kvGet, kvSet } from './db';
 
 const ENDPOINT = 'https://graphql.anilist.co';
@@ -103,7 +104,7 @@ export async function login(clientId: string) {
   const url = `https://anilist.co/api/v2/oauth/authorize?client_id=${encodeURIComponent(clientId)}&response_type=token`;
   const redirect = await chrome.identity.launchWebAuthFlow({ url, interactive: true });
   const token = new URLSearchParams(new URL(redirect ?? '').hash.slice(1)).get('access_token');
-  if (!token) throw new Error('AniList 沒有回傳 token');
+  if (!token) throw new Error(t('lib.anilistNoToken'));
   await chrome.storage.local.set({ anilistToken: token });
   return token;
 }

@@ -1,0 +1,6 @@
+/* Help page: the options page styles plus prose for each section. */
+.help-body { display: grid; gap: 14px; align-content: start; font-size: 14px; }
+.help-body p { margin: 0; }
+.help-item { margin: 0; display: grid; gap: 2px; }
+.help-item dt { font-weight: 500; }
+.help-item dd { margin: 0; color: var(--muted); }

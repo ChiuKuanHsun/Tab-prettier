@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
+import { t } from '../i18n';
 import type { WeatherLocation } from '../lib/types';
 import { getWeather, MOOD_LABEL, resolveLocation, type WeatherMood, type WeatherNow } from '../lib/weather';
 
@@ -67,7 +68,7 @@ function Glyph({ mood, isDay }: { mood: WeatherMood; isDay: boolean }) {
 
 export function WeatherBadge({ w, place }: { w: WeatherNow; place: string }) {
   return (
-    <span class="weather" title={`${place}:${MOOD_LABEL[w.mood]} ${Math.round(w.temp)}°C`}>
+    <span class="weather" title={t('widgets.weather.title', { place, mood: MOOD_LABEL[w.mood], temp: Math.round(w.temp) })}>
       <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
         <Glyph mood={w.mood} isDay={w.isDay} />
       </svg>

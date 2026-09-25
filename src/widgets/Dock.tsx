@@ -1,5 +1,6 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { t } from '../i18n';
 
 export interface DockItem {
   id: string;
@@ -91,7 +92,7 @@ export function Dock({
           <div class="panel-body">{active.render()}</div>
         </section>
       )}
-      <nav class="dock-tabs" aria-label="工具">
+      <nav class="dock-tabs" aria-label={t('newtab.dock.tools')}>
         {items.map((it, i) => (
           <button
             key={it.id}
@@ -115,7 +116,7 @@ export function Dock({
           </button>
         ))}
         {extra}
-        <a class="dock-icon dock-settings" href={settingsUrl} aria-label="設定" title="設定">
+        <a class="dock-icon dock-settings" href={settingsUrl} aria-label={t('common.settings')} title={t('common.settings')}>
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
             {/* 8 teeth, so a 45° turn lands on an identical pose */}
             <path class="gear-teeth" d="M9.89 5.11L10.17 2.58L13.83 2.58L14.11 5.11A7.2 7.2 0 0 1 15.38 5.64L17.37 4.04L19.96 6.63L18.36 8.62A7.2 7.2 0 0 1 18.89 9.89L21.42 10.17L21.42 13.83L18.89 14.11A7.2 7.2 0 0 1 18.36 15.38L19.96 17.37L17.37 19.96L15.38 18.36A7.2 7.2 0 0 1 14.11 18.89L13.83 21.42L10.17 21.42L9.89 18.89A7.2 7.2 0 0 1 8.62 18.36L6.63 19.96L4.04 17.37L5.64 15.38A7.2 7.2 0 0 1 5.11 14.11L2.58 13.83L2.58 10.17L5.11 9.89A7.2 7.2 0 0 1 5.64 8.62L4.04 6.63L6.63 4.04L8.62 5.64A7.2 7.2 0 0 1 9.89 5.11Z" />

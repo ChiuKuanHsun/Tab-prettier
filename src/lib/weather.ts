@@ -3,6 +3,7 @@
  * leaves the latest reading in IndexedDB, where the offscreen pipeline picks it up to steer
  * background choice toward rainy or snowy scenes.
  */
+import { t } from '../i18n';
 import { kvGet, kvSet } from './db';
 import type { WeatherLocation } from './types';
 
@@ -27,12 +28,12 @@ export function moodOf(code: number): WeatherMood {
 }
 
 export const MOOD_LABEL: Record<WeatherMood, string> = {
-  clear: '晴',
-  cloudy: '多雲',
-  fog: '霧',
-  rain: '雨',
-  snow: '雪',
-  storm: '雷雨',
+  clear: t('lib.mood.clear'),
+  cloudy: t('lib.mood.cloudy'),
+  fog: t('lib.mood.fog'),
+  rain: t('lib.mood.rain'),
+  snow: t('lib.mood.snow'),
+  storm: t('lib.mood.storm'),
 };
 
 /** Wallhaven queries for weather that should show in the background. */
@@ -85,7 +86,7 @@ async function ipLookup(): Promise<{ city: string; latitude: number; longitude: 
   }
   const r = await (await fetch('https://ipinfo.io/json')).json();
   const [latitude, longitude] = String(r.loc).split(',').map(Number);
-  if (!r.city || Number.isNaN(latitude)) throw new Error('無法由 IP 判斷位置');
+  if (!r.city || Number.isNaN(latitude)) throw new Error(t('lib.ipLocateFailed'));
   return { city: r.city, latitude, longitude };
 }
 

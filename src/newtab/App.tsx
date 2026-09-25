@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { t as msg } from '../i18n'; // `t` is the layout's text box below
 import { computeLayout } from '../lib/compose';
 import { saveSettings } from '../lib/settings';
 import type { SceneTheme } from '../lib/types';
@@ -119,20 +120,20 @@ export function App() {
   const hhmm = (d: Date) => d.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: !settings.clock24h });
   const focusStatus =
     focus.status === 'running'
-      ? `${PHASE_LABEL[focus.phase]}中 · ${hhmm(new Date(focus.endAt))} 結束 · 現在 ${hhmm(now)}`
+      ? msg('newtab.focusRunning', { phase: PHASE_LABEL[focus.phase], end: hhmm(new Date(focus.endAt)), now: hhmm(now) })
       : focus.status === 'paused'
-        ? `${PHASE_LABEL[focus.phase]}已暫停 · 現在 ${hhmm(now)}`
+        ? msg('newtab.focusPaused', { phase: PHASE_LABEL[focus.phase], now: hhmm(now) })
         : undefined;
   const focusProgress =
     focusLeft !== undefined && (focus.status === 'running' || focus.status === 'paused') ? 1 - focusLeft / focus.durationMs : undefined;
 
   const dockItems: DockItem[] = [
-    { id: 'links', label: '連結', render: () => <LinksPanel /> },
-    { id: 'todo', label: '待辦', render: () => <TodoPanel /> },
-    { id: 'notes', label: '便條', render: () => <NotesPanel /> },
-    { id: 'focus', label: '專注', render: () => <FocusPanel state={focus} now={now} /> },
-    { id: 'anime', label: '番劇', render: () => <AnimePanel clientId={settings.anilistClientId} /> },
-    ...(scene ? [{ id: 'credit', label: '出處', render: () => <CreditPanel scene={scene} onNext={next} /> }] : []),
+    { id: 'links', label: msg('newtab.dock.links'), render: () => <LinksPanel /> },
+    { id: 'todo', label: msg('newtab.dock.todo'), render: () => <TodoPanel /> },
+    { id: 'notes', label: msg('newtab.dock.notes'), render: () => <NotesPanel /> },
+    { id: 'focus', label: msg('newtab.dock.focus'), render: () => <FocusPanel state={focus} now={now} /> },
+    { id: 'anime', label: msg('newtab.dock.anime'), render: () => <AnimePanel clientId={settings.anilistClientId} /> },
+    ...(scene ? [{ id: 'credit', label: msg('newtab.dock.credit'), render: () => <CreditPanel scene={scene} onNext={next} /> }] : []),
   ];
 
   const classes = [
@@ -191,7 +192,7 @@ export function App() {
             />
           </div>
           {settings.pinLinks && <LinkStrip />}
-          {!scene && <p class="preparing">正在準備第一幅畫…首次需要下載與處理圖片,約數十秒。</p>}
+          {!scene && <p class="preparing">{msg('newtab.preparing')}</p>}
         </div>
         <Dock
           items={dockItems}

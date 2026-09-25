@@ -58,6 +58,7 @@ code { font-size: 13px; background: var(--card); padding: 2px 6px; border: 1px s
 }
 .opt-nav a { color: var(--muted); text-decoration: none; }
 .opt-nav a:hover { color: var(--fg); }
+.opt-nav .opt-nav-help { margin-left: auto; color: var(--accent); }
 
 .opt-section {
   display: grid;
@@ -69,6 +70,8 @@ code { font-size: 13px; background: var(--card); padding: 2px 6px; border: 1px s
 }
 .opt-section h2 { margin: 0; font-family: var(--serif-ja); font-weight: 400; font-size: 20px; letter-spacing: 0.3em; }
 .opt-section header p { color: var(--muted); font-size: 13px; }
+.opt-help { font-size: 12px; letter-spacing: 0.2em; text-decoration: none; }
+.opt-help:hover { text-decoration: underline; }
 
 .opt-fields { display: grid; gap: 18px; align-content: start; }
 
@@ -92,6 +95,8 @@ input.wide { min-width: min(420px, 50vw); }
 input.num { min-width: 0; width: 96px; text-align: right; }
 .opt-field-block { grid-template-columns: 1fr; gap: 8px; }
 .opt-field-block .opt-link { margin-left: 8px; }
+/* one click selects the whole value, ready to copy */
+.opt-copy { justify-self: start; user-select: all; }
 .weather-search { display: flex; gap: 10px; }
 .weather-search input { flex: 1; }
 .weather-results { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
