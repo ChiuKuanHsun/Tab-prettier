@@ -2,3 +2,4 @@ node_modules/
 dist/
 *.zip
 Cached Theme.pak
+docs/ideas.md
