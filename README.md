@@ -16,6 +16,11 @@ npm run build        # 產出 dist/
 
 開發時可用 `npm run dev`(watch build),改完到 `chrome://extensions` 按重新整理。
 
+## 圖示
+
+`assets/icon/icon.svg` 是目前的圖示(銀紫髮貓耳娘從新分頁後探頭,耳朵伸出框外);
+同資料夾的 `concept-*.svg` 是保留的備選設計。改完執行 `npm run icons` 重新產生 `public/icons/` 的 PNG。
+
 ## 分頁列主題(選用)
 
 Chrome 的分頁列 / 工具列配色只能用「佈景主題」這種特殊擴充來改,它不能包含程式,也無法在執行中變色,

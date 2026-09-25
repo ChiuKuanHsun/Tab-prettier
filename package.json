@@ -7,7 +7,8 @@
     "dev": "vite build --watch --mode development",
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "icons": "node tools/build_icons.mjs"
   },
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.3.0",
@@ -18,6 +19,7 @@
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.6",
+    "@resvg/resvg-js": "^2.6.2",
     "@types/chrome": "^0.3.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.1",

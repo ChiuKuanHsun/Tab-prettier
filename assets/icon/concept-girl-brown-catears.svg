@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bg-concept-girl-brown-catears" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a3146"/><stop offset="1" stop-color="#16141a"/>
+    </linearGradient>
+    <clipPath id="sq-concept-girl-brown-catears"><rect x="16" y="16" width="96" height="96" rx="22"/></clipPath>
+  </defs>
+  <rect x="16" y="16" width="96" height="96" rx="22" fill="url(#bg-concept-girl-brown-catears)"/>
+  
+  <g stroke-linejoin="round">
+    <path d="M32 54 L29 8 L58 34 Z" fill="#c9a27a" stroke="#a8835c" stroke-width="3"/>
+    <path d="M96 54 L99 8 L70 34 Z" fill="#c9a27a" stroke="#a8835c" stroke-width="3"/>
+    <path d="M36 42 L34 20 L49 34 Z" fill="#f2b8c6"/>
+    <path d="M92 42 L94 20 L79 34 Z" fill="#f2b8c6"/>
+  </g>
+  <g clip-path="url(#sq-concept-girl-brown-catears)">
+  <ellipse cx="64" cy="64" rx="35" ry="33" fill="#c9a27a"/>
+  <path d="M29 64 Q27 86 34 100 L40 100 Q36 84 38 66 Z" fill="#a8835c"/>
+  <path d="M99 64 Q101 86 94 100 L88 100 Q92 84 90 66 Z" fill="#a8835c"/>
+  <ellipse cx="64" cy="76" rx="27" ry="22" fill="#f7e6d8"/>
+  <path d="M34 66 Q36 42 64 39 Q92 42 94 66 L88 58 L82 66 L74 55 L66 64 L58 55 L50 66 L44 57 L38 66 Z" fill="#c9a27a"/>
+  <path d="M41 58 Q45 47 57 43" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity="0.45"/>
+  <ellipse cx="52" cy="73" rx="5.6" ry="7" fill="#16141a"/>
+  <ellipse cx="76" cy="73" rx="5.6" ry="7" fill="#16141a"/>
+  <ellipse cx="52" cy="76" rx="3.8" ry="3.2" fill="#c9a27a"/>
+  <ellipse cx="76" cy="76" rx="3.8" ry="3.2" fill="#c9a27a"/>
+  <circle cx="54" cy="70" r="2.1" fill="#fff"/>
+  <circle cx="78" cy="70" r="2.1" fill="#fff"/>
+  <path d="M44.5 67.5 Q51 62.5 58.5 66" fill="none" stroke="#16141a" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M83.5 67.5 Q77 62.5 69.5 66" fill="none" stroke="#16141a" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M6 114 Q22 114 22 104 L22 90 Q22 80 32 80 L96 80 Q106 80 106 90 L106 104 Q106 114 122 114 Z" fill="#f4efe7"/>
+  <rect x="34" y="94" width="36" height="6" rx="3" fill="#16141a" opacity="0.45"/>
+  <path d="M90 90 V104 M83 97 H97" stroke="#c9a27a" stroke-width="4" stroke-linecap="round"/></g></svg>

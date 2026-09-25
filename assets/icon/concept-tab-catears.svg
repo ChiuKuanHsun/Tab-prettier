@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bg-concept-tab-catears" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a3146"/><stop offset="1" stop-color="#16141a"/>
+    </linearGradient>
+    <clipPath id="sq-concept-tab-catears"><rect x="16" y="16" width="96" height="96" rx="22"/></clipPath>
+  </defs>
+  <rect x="16" y="16" width="96" height="96" rx="22" fill="url(#bg-concept-tab-catears)"/>
+  
+  <g clip-path="url(#sq-concept-tab-catears)">
+      <g fill="#f4efe7" stroke="#f4efe7" stroke-width="4" stroke-linejoin="round">
+        <path d="M33 57 L37 31 L55 55 Z"/><path d="M95 57 L91 31 L73 55 Z"/>
+        <path d="M10 98 Q26 98 26 88 L26 64 Q26 53 37 53 L91 53 Q102 53 102 64 L102 88 Q102 98 118 98 Z"/>
+      </g>
+      <path d="M39 52 L40 40 L48 51 Z" fill="#c9a27a"/><path d="M89 52 L88 40 L80 51 Z" fill="#c9a27a"/>
+      <circle cx="43" cy="75" r="7" fill="#c9a27a"/>
+      <rect x="56" y="72" width="32" height="6" rx="3" fill="#16141a" opacity="0.55"/></g></svg>
