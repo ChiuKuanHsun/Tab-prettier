@@ -36,6 +36,12 @@ describe('rotation', () => {
     expect(queueTarget(rule({ rotation: 'minutes', rotationMinutes: 5 }))).toBe(3);
     expect(queueTarget(rule({ rotation: 'tabs', rotationTabs: 10 }))).toBe(2);
   });
+
+  it('uses a custom queue size when set, capped at 30', () => {
+    expect(queueTarget({ ...rule({ rotation: 'tab' }), queueSize: 12 })).toBe(12);
+    expect(queueTarget({ ...rule({ rotation: 'tab' }), queueSize: 0 })).toBe(5);
+    expect(queueTarget({ ...rule({ rotation: 'tab' }), queueSize: 99 })).toBe(30);
+  });
 });
 
 describe('pickCached', () => {

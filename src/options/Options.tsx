@@ -2,7 +2,7 @@ import type { ComponentChildren } from 'preact';
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { db, queueCount, type FavoriteScene } from '../lib/db';
 import { favoriteBytes } from '../lib/scene-store';
-import { send } from '../lib/messages';
+import { QUEUE_MAX, queueTarget, send } from '../lib/messages';
 import {
   getBlacklist,
   getLinks,
@@ -182,13 +182,16 @@ function WeatherPicker({
   const [err, setErr] = useState<string>();
   const [detected, setDetected] = useState<string>();
 
-  useEffect(() => {
-    if (mode !== 'auto') return;
+  const detect = (force = false) => {
     setDetected(undefined);
-    detectLocation().then(
+    detectLocation(force).then(
       (l) => setDetected(l.name),
       () => setDetected(t('options.weather.detectFailed')),
     );
+  };
+
+  useEffect(() => {
+    if (mode === 'auto') detect();
   }, [mode]);
 
   const search = async (e: Event) => {
@@ -225,7 +228,12 @@ function WeatherPicker({
         ))}
       </div>
       {mode === 'auto' && (
-        <small class="opt-muted">{t('options.weather.detected', { place: detected ?? t('options.weather.detecting') })}</small>
+        <small class="opt-muted">
+          {t('options.weather.detected', { place: detected ?? t('options.weather.detecting') })}
+          <button type="button" class="opt-link" disabled={detected === undefined} onClick={() => detect(true)}>
+            {t('options.weather.redetect')}
+          </button>
+        </small>
       )}
       {mode === 'manual' && (
         <>
@@ -601,6 +609,17 @@ export function Options() {
         {s.powerSave === 'cache' && <small class="opt-muted">{t('options.power.cacheNote')}</small>}
         <Field label={t('options.power.idleOnly')}>
           <input type="checkbox" checked={s.processOnlyWhenIdle} onChange={() => set({ processOnlyWhenIdle: !s.processOnlyWhenIdle })} />
+        </Field>
+        <Field label={t('options.power.queueSize')} hint={t('options.power.queueSizeHint', { n: queueTarget({ ...s, queueSize: 0 }) })}>
+          <input
+            type="number"
+            class="num"
+            min={0}
+            max={QUEUE_MAX}
+            value={s.queueSize}
+            onChange={(e) => set({ queueSize: Math.min(QUEUE_MAX, Math.max(0, Math.round(Number((e.target as HTMLInputElement).value) || 0))) })}
+          />
+          <span class="unit">{t('options.favorites.limitUnit')}</span>
         </Field>
       </Section>
 

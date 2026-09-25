@@ -16,10 +16,17 @@ export type ToOffscreen = {
 
 export type Broadcast = { to: 'all'; type: 'queue-updated'; count: number };
 
-export const send = (m: ToBackground) => chrome.runtime.sendMessage(m).catch(() => undefined);
+/** Upper bound for a custom queue size (each scene is roughly 1 MB). */
+export const QUEUE_MAX = 30;
 
-/** How many ready scenes to keep: more when scenes change on every tab or very often. */
-export function queueTarget(s: Pick<Settings, 'rotation' | 'rotationMinutes' | 'rotationTabs'>) {
+export const send =(m: ToBackground) => chrome.runtime.sendMessage(m).catch(() => undefined);
+
+/**
+ * How many ready scenes to keep: the user's number if set, otherwise more when scenes change on
+ * every tab or very often.
+ */
+export function queueTarget(s: Pick<Settings, 'rotation' | 'rotationMinutes' | 'rotationTabs'> & { queueSize?: number }) {
+  if (s.queueSize && s.queueSize > 0) return Math.min(QUEUE_MAX, Math.round(s.queueSize));
   if (s.rotation === 'tab') return 5;
   if ((s.rotation === 'minutes' && s.rotationMinutes < 10) || (s.rotation === 'tabs' && s.rotationTabs <= 2)) return 3;
   return 2;

@@ -94,8 +94,9 @@ async function ipLookup(): Promise<{ city: string; latitude: number; longitude: 
  * City-level location from the network's IP (cached 12 hours). The English city name is
  * localised through Open-Meteo's geocoder when it finds a nearby match.
  */
-export async function detectLocation(): Promise<WeatherLocation> {
-  const hit = await kvGet<WeatherLocation>('geo:ip', 12 * 3_600_000);
+/** Location from the IP address, cached for 12 hours; `force` looks it up again now. */
+export async function detectLocation(force = false): Promise<WeatherLocation> {
+  const hit = force ? undefined : await kvGet<WeatherLocation>('geo:ip', 12 * 3_600_000);
   if (hit) return hit;
   const ip = await ipLookup();
   let name = ip.city;
