@@ -16,6 +16,7 @@ import {
   uid,
 } from '../lib/settings';
 import type { MediaKind, Settings, Upload } from '../lib/types';
+import { DEFAULT_EXCLUDED_TAGS } from '../lib/curation';
 import { THEMES } from '../themes';
 
 const NEKOSIA_CATEGORIES = ['random', 'catgirl', 'foxgirl', 'wolf-girl', 'animal-ears', 'maid', 'uniform', 'cute', 'young-girl', 'white-hair', 'blue-hair', 'kimono', 'vtuber'];
@@ -240,9 +241,14 @@ export function Options() {
         <Field label="Wallhaven 場景">
           <input type="checkbox" checked={s.sources.wallhaven} onChange={() => setSrc({ wallhaven: !s.sources.wallhaven })} />
         </Field>
-        <Field label="場景關鍵字" hint="以逗號分隔,每批隨機挑一組;-girl 代表排除">
-          <input class="wide" value={s.sources.wallhavenQuery} onChange={(e) => setSrc({ wallhavenQuery: (e.target as HTMLInputElement).value })} />
+        <Field label="依時段挑背景" hint="白天出藍天雲朵、傍晚出夕陽、夜晚出夜景">
+          <input type="checkbox" checked={s.sources.timeAware} onChange={() => setSrc({ timeAware: !s.sources.timeAware })} />
         </Field>
+        {!s.sources.timeAware && (
+          <Field label="場景關鍵字" hint="以逗號分隔,每批隨機挑一組;-girl 代表排除">
+            <input class="wide" value={s.sources.wallhavenQuery} onChange={(e) => setSrc({ wallhavenQuery: (e.target as HTMLInputElement).value })} />
+          </Field>
+        )}
         <Field label="Nekosia 角色">
           <input type="checkbox" checked={s.sources.nekosia} onChange={() => setSrc({ nekosia: !s.sources.nekosia })} />
         </Field>
@@ -260,6 +266,25 @@ export function Options() {
         <Field label="使用自己上傳的比例" hint="有上傳檔案時才有作用">
           <Range value={s.sources.uploadsWeight} min={0} max={1} step={0.05} onChange={(v) => setSrc({ uploadsWeight: v })} fmt={(v) => `${Math.round(v * 100)}%`} />
         </Field>
+        <div class="opt-field opt-field-block">
+          <span class="opt-label">
+            排除標籤
+            <small>
+              角色圖帶有任一標籤就跳過(以逗號分隔)。預設排除男性角色與暴露內容;waifu.im 另外固定排除成人標籤。
+              <button type="button" class="opt-link" onClick={() => setSrc({ excludeTags: DEFAULT_EXCLUDED_TAGS })}>
+                恢復預設
+              </button>
+            </small>
+          </span>
+          <textarea rows={3} value={s.sources.excludeTags} onChange={(e) => setSrc({ excludeTags: (e.target as HTMLTextAreaElement).value })} />
+        </div>
+        <div class="opt-field opt-field-block">
+          <span class="opt-label">
+            偏好標籤
+            <small>例如 white-hair, catgirl, maid。每幅會從 3 個候選角色中挑,帶這些標籤的較容易被選中。</small>
+          </span>
+          <input class="wide" value={s.sources.preferTags} placeholder="(可留空)" onChange={(e) => setSrc({ preferTags: (e.target as HTMLInputElement).value })} />
+        </div>
       </Section>
 
       <Section id="blend" title="融合" note="色調融合與輪廓光在產生畫面時烘焙,調整後按上方「重新產生」即可套用。模糊與暗化即時生效。">
@@ -271,6 +296,9 @@ export function Options() {
         </Field>
         <Field label="色調融合強度" hint="把角色的色溫拉近背景">
           <Range value={s.harmonize} min={0} max={1} step={0.05} onChange={(v) => set({ harmonize: v })} fmt={(v) => `${Math.round(v * 100)}%`} />
+        </Field>
+        <Field label="構圖變化" hint="偶爾出現特寫、遠景小人物,或只有風景、時鐘置中">
+          <input type="checkbox" checked={s.layoutVariety} onChange={() => set({ layoutVariety: !s.layoutVariety })} />
         </Field>
         <Field label="輪廓光" hint="依背景光源方向打在角色邊緣">
           <Range value={s.rimLight} min={0} max={1} step={0.05} onChange={(v) => set({ rimLight: v })} fmt={(v) => `${Math.round(v * 100)}%`} />

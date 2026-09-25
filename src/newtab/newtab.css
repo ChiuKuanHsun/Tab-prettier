@@ -92,6 +92,7 @@ button, input, textarea { font: inherit; color: inherit; }
 }
 .bg-scrim.is-strong { opacity: 0.8; }
 .text-right .bg-scrim { --scrim-x: 78%; --vdate-x: 97%; }
+.text-center .bg-scrim { --scrim-x: 50%; }
 
 .bg-placeholder {
   background:
@@ -115,6 +116,7 @@ button, input, textarea { font: inherit; color: inherit; }
 
 .col-clock { display: flex; justify-content: flex-end; }
 .text-right .col-clock { justify-content: flex-start; }
+.text-center .col-clock { justify-content: center; }
 
 .clock {
   position: relative;
@@ -244,6 +246,7 @@ button, input, textarea { font: inherit; color: inherit; }
   padding-inline: 0.2em;
 }
 .text-right .col-ui { align-items: flex-end; }
+.text-center .col-ui { align-items: center; }
 
 .dateline {
   display: flex;

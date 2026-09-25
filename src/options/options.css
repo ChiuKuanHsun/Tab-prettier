@@ -90,6 +90,19 @@ input:not([type]), input[list], input[type='number'], select {
 }
 input.wide { min-width: min(420px, 50vw); }
 input.num { min-width: 0; width: 96px; text-align: right; }
+.opt-field-block { grid-template-columns: 1fr; gap: 8px; }
+.opt-field-block .opt-link { margin-left: 8px; }
+textarea {
+  width: 100%;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+  color: inherit;
+  background: var(--card);
+  border: 1px solid var(--line);
+  padding: 8px 10px;
+  resize: vertical;
+}
 .unit { color: var(--muted); font-size: 13px; }
 
 .theme-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }

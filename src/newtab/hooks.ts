@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import type { Broadcast } from '../lib/messages';
 import { send } from '../lib/messages';
+import { timeBucket } from '../lib/curation';
 import { pickScene } from '../lib/scene-store';
 import { getSettings, onKeyChange } from '../lib/settings';
 import type { Scene, Settings } from '../lib/types';
@@ -74,16 +75,17 @@ export function useScene(settings: Settings | undefined, lowPower: boolean) {
   const rotation = settings?.rotation;
   const rule = settings && { rotation: settings.rotation, rotationMinutes: settings.rotationMinutes, rotationTabs: settings.rotationTabs };
   const favWeight = settings?.favoritesWeight ?? 0;
+  const bucket = settings?.sources.timeAware ? timeBucket() : undefined;
 
   useEffect(() => {
     if (!rule) return;
     let alive = true;
-    void pickScene(rule, favWeight).then((s) => alive && setScene(s ?? null));
+    void pickScene(rule, favWeight, false, bucket).then((s) => alive && setScene(s ?? null));
     void send({ to: 'bg', type: 'refill', lowPower });
     const onMsg = (m: Broadcast) => {
       if (m?.type !== 'queue-updated') return;
       setScene((cur) => {
-        if (cur === null) void pickScene(rule, 0, true).then((s) => s && alive && setScene(s));
+        if (cur === null) void pickScene(rule, 0, true, bucket).then((s) => s && alive && setScene(s));
         return cur;
       });
     };
@@ -97,7 +99,7 @@ export function useScene(settings: Settings | undefined, lowPower: boolean) {
 
   const next = async () => {
     if (!rule) return false;
-    const s = await pickScene(rule, favWeight, true);
+    const s = await pickScene(rule, favWeight, true, bucket);
     void send({ to: 'bg', type: 'refill', lowPower });
     if (s && s.id !== scene?.id) {
       setScene(s);

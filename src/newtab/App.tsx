@@ -73,11 +73,11 @@ export function App() {
 
   const theme = scene?.theme ?? FALLBACK_THEME;
   const side = scene?.layout.charSide ?? 'right';
-  const layout = computeLayout(vp, side, scene?.char);
+  const layout = computeLayout(vp, side, scene?.char, scene?.layout.variant);
   const t = layout.text;
-  const colLeft = t.side === 'left' ? t.outer : t.inner;
+  const colLeft = Math.min(t.inner, t.outer);
   const colW = Math.abs(t.inner - t.outer);
-  const clockSize = Math.max(96, Math.min(colW / 2.35, vp.h * 0.3, 380));
+  const clockSize = Math.max(96, Math.min(colW / 2.35, vp.h * (t.side === 'center' ? 0.34 : 0.3), t.side === 'center' ? 440 : 380));
 
   const particleKind = settings.particles === 'auto' ? autoParticle() : settings.particles;
   const showParticles = particleKind !== 'off' && !lowPower && !reducedMotion;
@@ -156,7 +156,7 @@ export function App() {
         </div>
         <Dock
           items={dockItems}
-          side={t.side}
+          side={t.side === 'right' ? 'right' : 'left'}
           settingsUrl={chrome.runtime.getURL('options.html')}
           extra={scene && <FavoriteButton scene={scene} />}
         />

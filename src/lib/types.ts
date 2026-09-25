@@ -1,3 +1,5 @@
+import { DEFAULT_EXCLUDED_TAGS, type TimeBucket, type Variant } from './curation';
+
 export interface Rect { x: number; y: number; w: number; h: number }
 
 export interface Credit {
@@ -27,6 +29,8 @@ export interface SceneTheme {
 
 export interface SceneLayout {
   charSide: 'left' | 'right';
+  /** Composition variant (older scenes have none → standard). */
+  variant?: Variant;
   /** Emptiness (0..1, higher = calmer) of the left/right thirds of the background. */
   emptiness: { left: number; right: number };
   /** Normalised light direction estimated from the background (x right, y down). */
@@ -49,6 +53,8 @@ export interface Scene {
   char?: SceneChar;
   layout: SceneLayout;
   theme: SceneTheme;
+  /** Time of day the background looks like; new tabs prefer scenes matching the clock. */
+  bucket?: TimeBucket;
 }
 
 export interface LinkItem { id: string; title: string; url: string }
@@ -79,13 +85,21 @@ export interface Settings {
   favoritesWeight: number;
   sources: {
     wallhaven: boolean;
+    /** Follow the time of day (day / evening / night backgrounds); otherwise use wallhavenQuery. */
+    timeAware: boolean;
     /** Comma-separated Wallhaven queries; one is picked at random per batch. */
     wallhavenQuery: string;
     nekosia: boolean;
     nekosiaCategory: string;
     waifuim: boolean;
     uploadsWeight: number; // 0..1 chance to use an upload when one fits
+    /** Character images carrying any of these tags are skipped. */
+    excludeTags: string;
+    /** Characters carrying these tags win ties when choosing among candidates. */
+    preferTags: string;
   };
+  /** Vary the composition (close-ups, distant figures, scenery-only) instead of one layout. */
+  layoutVariety: boolean;
   bgBlur: number; // px
   bgDim: number; // 0..0.6
   harmonize: number; // 0..1 colour-transfer strength
@@ -110,12 +124,16 @@ export const DEFAULT_SETTINGS: Settings = {
   favoritesWeight: 0.2,
   sources: {
     wallhaven: true,
+    timeAware: true,
     wallhavenQuery: 'landscape -girl -boy, nature -girl -boy, clouds -girl -boy, city -girl -boy, sky -girl -boy, scenery',
     nekosia: true,
     nekosiaCategory: 'random',
     waifuim: true,
     uploadsWeight: 0.5,
+    excludeTags: DEFAULT_EXCLUDED_TAGS,
+    preferTags: '',
   },
+  layoutVariety: true,
   bgBlur: 1.5,
   bgDim: 0.12,
   harmonize: 0.35,

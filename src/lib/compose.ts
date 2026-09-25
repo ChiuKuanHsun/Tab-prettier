@@ -1,3 +1,5 @@
+import type { Variant } from './curation';
+
 /**
  * Composition: decides which side the character stands on and where the clock goes so that it
  * sits partly behind the character. `analyseEmptiness` runs offscreen on a thumbnail;
@@ -38,13 +40,26 @@ export interface CharInfo {
 
 export interface Layout {
   char?: { left: number; bottom: number; width: number; height: number };
-  /** The text column: `edge` is the inner x the clock aligns to; `align` which side it grows from. */
-  text: { side: 'left' | 'right'; inner: number; outer: number; top: number };
+  /**
+   * The text column between `outer` (viewport margin) and `inner` (where the clock meets the
+   * character). `center` spans the middle for scenery-only scenes.
+   */
+  text: { side: 'left' | 'right' | 'center'; inner: number; outer: number; top: number };
 }
 
-export function computeLayout(vp: Viewport, side: 'left' | 'right', char?: CharInfo): Layout {
+/** Per-variant figure size (share of viewport height) and how far below/above the bottom edge it sits. */
+function figure(variant: Variant, cutBottom: boolean) {
+  if (variant === 'closeup' && cutBottom) return { h: 1.1, bottom: -0.16, maxW: 0.62, centre: 0.7 };
+  if (variant === 'distant' && !cutBottom) return { h: 0.6, bottom: 0.05, maxW: 0.4, centre: 0.74 };
+  return { h: cutBottom ? 0.94 : 0.9, bottom: 0, maxW: 0.52, centre: 0.72 };
+}
+
+export function computeLayout(vp: Viewport, side: 'left' | 'right', char?: CharInfo, variant: Variant = 'standard'): Layout {
   const margin = Math.max(32, vp.w * 0.05);
   if (!char) {
+    if (variant === 'scenery') {
+      return { text: { side: 'center', outer: margin, inner: vp.w - margin, top: vp.h * 0.24 } };
+    }
     // No character: text column occupies the calm half.
     const textSide = side === 'left' ? 'right' : 'left';
     return textSide === 'left'
@@ -53,16 +68,18 @@ export function computeLayout(vp: Viewport, side: 'left' | 'right', char?: CharI
   }
 
   // Bust shots (cut at the bottom) fill more height; full-body art keeps a little headroom.
-  let height = vp.h * (char.cut.bottom ? 0.94 : 0.9);
+  // Close-ups overshoot the bottom edge; distant figures stand smaller, a little into the scene.
+  const f = figure(variant, char.cut.bottom);
+  let height = vp.h * f.h;
   let width = (height * char.width) / char.height;
-  const maxW = vp.w * 0.52;
+  const maxW = vp.w * f.maxW;
   if (width > maxW) {
     width = maxW;
     height = (width * char.height) / char.width;
   }
 
   // Centre on the outer third, but snap to the viewport edge on the side the art was cropped.
-  const centre = side === 'right' ? vp.w * 0.72 : vp.w * 0.28;
+  const centre = side === 'right' ? vp.w * f.centre : vp.w * (1 - f.centre);
   let left = centre - width / 2;
   if (side === 'right' && char.cut.right) left = vp.w - width;
   if (side === 'left' && char.cut.left) left = 0;
@@ -76,5 +93,5 @@ export function computeLayout(vp: Viewport, side: 'left' | 'right', char?: CharI
       ? { side: 'left' as const, outer: margin, inner: left + overlap, top: vp.h * 0.16 }
       : { side: 'right' as const, outer: vp.w - margin, inner: left + width - overlap, top: vp.h * 0.16 };
 
-  return { char: { left, bottom: 0, width, height }, text };
+  return { char: { left, bottom: vp.h * f.bottom, width, height }, text };
 }

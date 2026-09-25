@@ -1,3 +1,4 @@
+import { BUCKET_QUERIES, isExcluded, parseTagList, WAIFUIM_ALWAYS_EXCLUDED, type TimeBucket } from '../lib/curation';
 import { kvGet, kvSet } from '../lib/db';
 import type { Credit, Settings } from '../lib/types';
 import { fetchJson } from './image';
@@ -6,23 +7,47 @@ export interface Candidate {
   url: string;
   credit: Credit;
   palette?: string[];
+  /** IndexedDB key of the pool it came from, so an unused candidate can be put back. */
+  pool?: string;
+  /** Set once it has been put back after losing a colour match; it isn't put back again. */
+  returned?: boolean;
 }
+
+type Keep = (c: Candidate) => boolean;
 
 /**
  * Each source keeps a small pool of candidates in IndexedDB, so one API call feeds several
  * scenes (Wallhaven allows 45 req/min; Nekosia and waifu.im are also rate limited).
  */
-async function fromPool(key: string, blacklist: Set<string>, refill: () => Promise<Candidate[]>) {
-  let pool = (await kvGet<Candidate[]>(key)) ?? [];
-  pool = pool.filter((c) => !blacklist.has(c.credit.id));
-  if (!pool.length) pool = (await refill()).filter((c) => !blacklist.has(c.credit.id));
+async function fromPool(key: string, keep: Keep, refill: () => Promise<Candidate[]>) {
+  let pool = ((await kvGet<Candidate[]>(key)) ?? []).filter(keep);
+  // A strict tag filter can empty a fresh batch; try a couple of batches before giving up.
+  for (let i = 0; i < 3 && !pool.length; i++) pool = (await refill()).filter(keep);
   const next = pool.shift();
   await kvSet(key, pool);
   if (!next) throw new Error(`${key}: no candidates`);
-  return next;
+  return { ...next, pool: key };
+}
+
+/**
+ * Puts a good-but-unused candidate back into its pool for a later scene (it may suit another
+ * background better). Only once — otherwise a consistent loser would be re-downloaded and
+ * re-segmented for every scene.
+ */
+export async function returnToPool(c: Candidate) {
+  if (!c.pool || c.returned) return;
+  const pool = (await kvGet<Candidate[]>(c.pool)) ?? [];
+  if (!pool.some((p) => p.credit.id === c.credit.id)) await kvSet(c.pool, [...pool, { ...c, returned: true }].slice(-30));
 }
 
 const pick = <T>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
+
+const notBlacklisted = (blacklist: Set<string>): Keep => (c) => !blacklist.has(c.credit.id);
+
+function characterFilter(s: Settings, blacklist: Set<string>): Keep {
+  const exclude = parseTagList(s.sources.excludeTags);
+  return (c) => !blacklist.has(c.credit.id) && !isExcluded(c.credit.tags, exclude);
+}
 
 interface WallhavenItem {
   id: string;
@@ -30,20 +55,20 @@ interface WallhavenItem {
   path: string;
   colors: string[];
   file_size: number;
-  dimension_x: number;
-  dimension_y: number;
 }
 
-export function wallhaven(s: Settings, blacklist: Set<string>) {
-  return fromPool('pool:wallhaven', blacklist, async () => {
-    const queries = s.sources.wallhavenQuery.split(',').map((q) => q.trim()).filter(Boolean);
+export function wallhaven(s: Settings, blacklist: Set<string>, bucket: TimeBucket) {
+  const timed = s.sources.timeAware;
+  return fromPool(timed ? `pool:wallhaven:${bucket}` : 'pool:wallhaven', notBlacklisted(blacklist), async () => {
+    const custom = s.sources.wallhavenQuery.split(',').map((q) => q.trim()).filter(Boolean);
+    const queries = timed ? BUCKET_QUERIES[bucket] : custom.length ? custom : ['landscape'];
     const params = new URLSearchParams({
       categories: '010', // anime only
       purity: '100', // SFW only
       sorting: 'random',
       ratios: '16x9,16x10,21x9',
       atleast: '1920x1080',
-      q: pick(queries.length ? queries : ['landscape']),
+      q: pick(queries),
     });
     const res = await fetchJson<{ data: WallhavenItem[] }>(`https://wallhaven.cc/api/v1/search?${params}`);
     return res.data
@@ -58,6 +83,7 @@ export function wallhaven(s: Settings, blacklist: Set<string>) {
 
 interface NekosiaImage {
   id: string;
+  category: string;
   image: { compressed: { url: string }; original: { url: string } };
   colors: { main: string; palette: string[] };
   tags: string[];
@@ -75,9 +101,10 @@ async function nekosiaSession() {
 }
 
 export function nekosia(s: Settings, blacklist: Set<string>) {
-  return fromPool('pool:nekosia', blacklist, async () => {
+  return fromPool('pool:nekosia', characterFilter(s, blacklist), async () => {
     const cat = encodeURIComponent(s.sources.nekosiaCategory || 'random');
-    const params = new URLSearchParams({ count: '6', session: 'id', id: await nekosiaSession(), rating: 'safe' });
+    // rating=safe: Nekosia's strictest rating (no revealing outfits)
+    const params = new URLSearchParams({ count: '8', session: 'id', id: await nekosiaSession(), rating: 'safe' });
     const res = await fetchJson<{ images?: NekosiaImage[] } & Partial<NekosiaImage>>(
       `https://api.nekosia.cat/api/v1/images/${cat}?${params}`,
     );
@@ -91,7 +118,7 @@ export function nekosia(s: Settings, blacklist: Set<string>) {
         artist: d.attribution.artist.username ?? undefined,
         artistUrl: d.attribution.artist.profile ?? undefined,
         pageUrl: d.source.url ?? undefined,
-        tags: d.tags,
+        tags: [...new Set([d.category, ...d.tags].filter(Boolean))],
       },
     }));
   });
@@ -102,16 +129,18 @@ interface WaifuImItem {
   url: string;
   source: string | null;
   isAnimated: boolean;
+  isNsfw: boolean;
   artists: { name: string; pixiv: string | null; twitter: string | null }[];
   tags: { slug: string }[];
 }
 
-export function waifuim(_s: Settings, blacklist: Set<string>) {
-  return fromPool('pool:waifuim', blacklist, async () => {
-    const params = new URLSearchParams({ IncludedTags: 'waifu', IsNsfw: 'False', OrderBy: 'Random', PageSize: '6' });
+export function waifuim(s: Settings, blacklist: Set<string>) {
+  return fromPool('pool:waifuim', characterFilter(s, blacklist), async () => {
+    const params = new URLSearchParams({ IncludedTags: 'waifu', IsNsfw: 'False', OrderBy: 'Random', PageSize: '8' });
+    for (const t of WAIFUIM_ALWAYS_EXCLUDED) params.append('ExcludedTags', t);
     const res = await fetchJson<{ items: WaifuImItem[] }>(`https://api.waifu.im/images?${params}`);
     return res.items
-      .filter((d) => !d.isAnimated)
+      .filter((d) => !d.isAnimated && !d.isNsfw)
       .map((d) => ({
         url: d.url,
         credit: {

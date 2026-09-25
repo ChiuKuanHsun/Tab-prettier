@@ -1,4 +1,5 @@
 import { countView, db, dequeue, getCurrent, setCurrent, type FavoriteScene, type ShownScene } from './db';
+import type { TimeBucket } from './curation';
 import type { RotationRule, Scene } from './types';
 
 /** Whether the scene on screen is due to be replaced when a new tab opens. */
@@ -30,11 +31,16 @@ async function randomFavorite(excludeId?: string): Promise<Scene | undefined> {
  * with probability `favWeight`; otherwise the next queued scene is used (falling back to a
  * favourite when the queue is empty). Otherwise the current scene stays.
  */
-export async function pickScene(rule: RotationRule, favWeight: number, force = false): Promise<Scene | undefined> {
+export async function pickScene(
+  rule: RotationRule,
+  favWeight: number,
+  force = false,
+  bucket?: TimeBucket,
+): Promise<Scene | undefined> {
   const cur = await getCurrent();
   if (force || !cur || isDue(cur, rule)) {
     const fav = Math.random() < favWeight ? await randomFavorite(cur?.scene.id) : undefined;
-    const next = fav ?? (await dequeue()) ?? (await randomFavorite(cur?.scene.id));
+    const next = fav ?? (await dequeue(bucket)) ?? (await randomFavorite(cur?.scene.id));
     if (next) {
       await setCurrent(next);
       return next;

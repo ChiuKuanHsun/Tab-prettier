@@ -1,5 +1,8 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
+import type { TimeBucket } from './curation';
 import type { Scene, Upload } from './types';
+
+const STALE_OTHER_BUCKET_MS = 3 * 3_600_000;
 
 /** The scene on screen, when it was first shown and how many new tabs have shown it. */
 export interface ShownScene { scene: Scene; shownAt: number; views: number }
@@ -39,14 +42,22 @@ export async function enqueue(scene: Scene) {
   await (await db()).put('queue', scene);
 }
 
-/** Atomically pops the oldest ready scene, so parallel new tabs never get the same one. */
-export async function dequeue(): Promise<Scene | undefined> {
+/**
+ * Atomically pops a ready scene, so parallel new tabs never get the same one: the oldest one
+ * matching `prefer` (time of day) if any, else the oldest. Scenes made for another time of day
+ * that have waited over 3 hours are dropped so the refill can replace them.
+ */
+export async function dequeue(prefer?: TimeBucket): Promise<Scene | undefined> {
   const tx = (await db()).transaction('queue', 'readwrite');
-  const cursor = await tx.store.index('byCreated').openCursor();
-  const scene = cursor?.value;
-  if (cursor) await cursor.delete();
+  const all = await tx.store.index('byCreated').getAll();
+  const now = Date.now();
+  const pick = (prefer && all.find((s) => !s.bucket || s.bucket === prefer)) || all[0];
+  for (const s of all) {
+    const stale = prefer && s.bucket && s.bucket !== prefer && now - s.createdAt > STALE_OTHER_BUCKET_MS;
+    if (s === pick || stale) await tx.store.delete(s.id);
+  }
   await tx.done;
-  return scene;
+  return pick;
 }
 
 export async function getCurrent() {

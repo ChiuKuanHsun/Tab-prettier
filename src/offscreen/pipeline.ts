@@ -1,14 +1,25 @@
 import { hexToRgb, luminance, rgbToHsl, hslToRgb, type RGB } from '../lib/color';
 import { analyseEmptiness, chooseCharSide } from '../lib/compose';
+import {
+  classifyBucket,
+  moodDistance,
+  parseTagList,
+  pickCharVariant,
+  preferScore,
+  SCENERY_CHANCE,
+  timeBucket,
+  type TimeBucket,
+  type Variant,
+} from '../lib/curation';
 import { db } from '../lib/db';
 import { deriveTheme, quantize } from '../lib/palette';
 import { uid } from '../lib/settings';
 import type { Credit, MediaKind, Scene, SceneChar, Settings, Upload } from '../lib/types';
-import { applyRimLight, labStats, lightDirection, toGray, transferColors } from './harmonize';
+import { applyRimLight, labStats, lightDirection, toGray, transferColors, type LabStats } from './harmonize';
 import { canvas, fetchBlob, fit, pixels } from './image';
-import { fadeCutEdges, hasCharacter, refineMask } from './refine';
+import { fadeCutEdges, hasCharacter, refineMask, type RefinedMask } from './refine';
 import { segment } from './segment';
-import { nekosia, waifuim, wallhaven, type Candidate } from './sources';
+import { nekosia, returnToPool, waifuim, wallhaven, type Candidate } from './sources';
 
 const THUMB_W = 320, THUMB_H = 180;
 
@@ -69,9 +80,9 @@ async function bgFromUpload(u: Upload): Promise<Bg> {
   };
 }
 
-async function bgFromWallhaven(s: Settings, blacklist: Set<string>): Promise<Bg> {
+async function bgFromWallhaven(s: Settings, blacklist: Set<string>, bucket: TimeBucket): Promise<Bg> {
   for (let attempt = 0; attempt < 5; attempt++) {
-    const cand = await wallhaven(s, blacklist);
+    const cand = await wallhaven(s, blacklist, bucket);
     try {
       const bmp = await createImageBitmap(await fetchBlob(cand.url));
       // Reject backgrounds that already contain a character: they'd fight the composited one.
@@ -116,12 +127,12 @@ async function bgGenerated(): Promise<Bg> {
   };
 }
 
-async function buildBackground(s: Settings, blacklist: Set<string>): Promise<Bg> {
+async function buildBackground(s: Settings, blacklist: Set<string>, bucket: TimeBucket): Promise<Bg> {
   const ups = await uploadsByRole('bg');
   if (ups.length && (Math.random() < s.sources.uploadsWeight || !s.sources.wallhaven)) {
     return bgFromUpload(ups[Math.floor(Math.random() * ups.length)]);
   }
-  if (s.sources.wallhaven) return bgFromWallhaven(s, blacklist);
+  if (s.sources.wallhaven) return bgFromWallhaven(s, blacklist, bucket);
   return bgGenerated();
 }
 
@@ -133,50 +144,91 @@ async function nextCharCandidate(s: Settings, blacklist: Set<string>): Promise<C
   return fns[Math.floor(Math.random() * fns.length)](s, blacklist);
 }
 
-async function buildCharacter(s: Settings, blacklist: Set<string>, bg: Bg, light: { x: number; y: number }) {
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const cand = await nextCharCandidate(s, blacklist);
-    if (!cand) return undefined;
-    const isUpload = 'blob' in cand;
-    const credit: Credit = isUpload ? { id: `upload:${cand.id}`, source: 'upload', artist: cand.name } : cand.credit;
-    try {
-      const bmp = await createImageBitmap(isUpload ? cand.blob : await fetchBlob(cand.url));
-      const { c, ctx } = fit(bmp, 1400, 2000);
-      const w = c.width, h = c.height;
-      const t0 = performance.now();
-      const mask = await segment(c, w, h);
-      const r = refineMask(mask, w, h);
-      log('segmented', credit.id, `${Math.round(performance.now() - t0)}ms`, r.reason ?? 'ok', r.area.toFixed(2));
-      if (!r.ok) {
-        if (!isUpload) blacklist.add(credit.id);
-        continue;
-      }
-      fadeCutEdges(r.alpha, w, h, r.cut);
+interface Prepared {
+  cand: Candidate | Upload;
+  credit: Credit;
+  c: OffscreenCanvas;
+  ctx: OffscreenCanvasRenderingContext2D;
+  mask: RefinedMask;
+  stats: LabStats;
+}
 
-      const img = pixels(ctx);
-      const px = img.data;
-      transferColors(px, r.alpha, labStats(px, r.alpha), labStats(bg.thumb.data), s.harmonize);
-
-      // Rim colour: the brightest background tone, lifted towards white.
-      const bright = bg.palette.map(hexToRgb).sort((a, b) => luminance(b) - luminance(a))[0] ?? [255, 255, 255];
-      const [hh, ss] = rgbToHsl(bright);
-      const rim = hslToRgb([hh, Math.min(0.6, ss), 0.85]) as RGB;
-      applyRimLight(px, r.alpha, w, h, light, rim, s.rimLight);
-
-      for (let i = 0; i < r.alpha.length; i++) px[i * 4 + 3] = r.alpha[i];
-      ctx.putImageData(img, 0, 0);
-
-      const { x, y, w: bw, h: bh } = r.bbox;
-      const crop = canvas(bw, bh);
-      crop.ctx.drawImage(c, x, y, bw, bh, 0, 0, bw, bh);
-      const blob = await crop.c.convertToBlob({ type: 'image/webp', quality: 0.9 });
-      const out: SceneChar = { blob, width: bw, height: bh, cut: { left: r.cut.left, right: r.cut.right, bottom: r.cut.bottom }, credit };
-      return out;
-    } catch (e) {
-      log('char failed', credit.id, e);
+/** Downloads and segments one character candidate; undefined if the cut-out isn't usable. */
+async function prepareCharacter(cand: Candidate | Upload, blacklist: Set<string>): Promise<Prepared | undefined> {
+  const isUpload = 'blob' in cand;
+  const credit: Credit = isUpload ? { id: `upload:${cand.id}`, source: 'upload', artist: cand.name } : cand.credit;
+  try {
+    const bmp = await createImageBitmap(isUpload ? cand.blob : await fetchBlob(cand.url));
+    const { c, ctx } = fit(bmp, 1400, 2000);
+    const w = c.width, h = c.height;
+    const t0 = performance.now();
+    const mask = refineMask(await segment(c, w, h), w, h);
+    log('segmented', credit.id, `${Math.round(performance.now() - t0)}ms`, mask.reason ?? 'ok', mask.area.toFixed(2));
+    if (!mask.ok) {
+      if (!isUpload) blacklist.add(credit.id);
+      return undefined;
     }
+    fadeCutEdges(mask.alpha, w, h, mask.cut);
+    return { cand, credit, c, ctx, mask, stats: labStats(pixels(ctx).data, mask.alpha) };
+  } catch (e) {
+    log('char failed', credit.id, e);
+    return undefined;
   }
-  return undefined;
+}
+
+/** Colour-harmonises, rim-lights and crops the chosen cut-out. */
+async function finishCharacter(
+  p: Prepared,
+  s: Settings,
+  bg: Bg,
+  bgStats: LabStats,
+  light: { x: number; y: number },
+): Promise<SceneChar> {
+  const { c, ctx, mask: r } = p;
+  const w = c.width, h = c.height;
+  const img = pixels(ctx);
+  const px = img.data;
+  transferColors(px, r.alpha, p.stats, bgStats, s.harmonize);
+
+  // Rim colour: the brightest background tone, lifted towards white.
+  const bright = bg.palette.map(hexToRgb).sort((a, b) => luminance(b) - luminance(a))[0] ?? [255, 255, 255];
+  const [hh, ss] = rgbToHsl(bright);
+  const rim = hslToRgb([hh, Math.min(0.6, ss), 0.85]) as RGB;
+  applyRimLight(px, r.alpha, w, h, light, rim, s.rimLight);
+
+  for (let i = 0; i < r.alpha.length; i++) px[i * 4 + 3] = r.alpha[i];
+  ctx.putImageData(img, 0, 0);
+
+  const { x, y, w: bw, h: bh } = r.bbox;
+  const crop = canvas(bw, bh);
+  crop.ctx.drawImage(c, x, y, bw, bh, 0, 0, bw, bh);
+  const blob = await crop.c.convertToBlob({ type: 'image/webp', quality: 0.9 });
+  return { blob, width: bw, height: bh, cut: { left: r.cut.left, right: r.cut.right, bottom: r.cut.bottom }, credit: p.credit };
+}
+
+/**
+ * Gathers up to three usable characters and keeps the one whose colour mood is closest to the
+ * background (preferred tags win ties); the others go back to their pools for later scenes.
+ */
+async function buildCharacter(s: Settings, blacklist: Set<string>, bg: Bg, light: { x: number; y: number }) {
+  const bgStats = labStats(bg.thumb.data);
+  const prefer = parseTagList(s.sources.preferTags);
+  const ready: Prepared[] = [];
+  for (let attempt = 0; attempt < 8 && ready.length < 3; attempt++) {
+    const cand = await nextCharCandidate(s, blacklist).catch((e) => log('no candidate', e));
+    if (!cand) break;
+    const p = await prepareCharacter(cand, blacklist);
+    if (!p) continue;
+    ready.push(p);
+    if ('blob' in cand) break; // the user's own upload always wins
+  }
+  if (!ready.length) return undefined;
+
+  const score = (p: Prepared) => moodDistance(p.stats, bgStats) - 12 * preferScore(p.credit.tags, prefer);
+  ready.sort((a, b) => score(a) - score(b));
+  log('matched', ready.map((p) => `${p.credit.id}=${score(p).toFixed(1)}`).join(' '));
+  for (const p of ready.slice(1)) if (!('blob' in p.cand)) await returnToPool(p.cand);
+  return finishCharacter(ready[0], s, bg, bgStats, light);
 }
 
 /** Averages of an nx×ny grid of cells over a region, so contrast can be checked per spot. */
@@ -204,21 +256,28 @@ function regionAverage(img: ImageData, x0: number, x1: number, y0: number, y1: n
 }
 
 export async function buildScene(s: Settings, blacklist: Set<string>): Promise<Scene> {
-  const bg = await buildBackground(s, blacklist);
+  const bg = await buildBackground(s, blacklist, timeBucket());
   const gray = toGray(bg.thumb.data);
   const emptiness = analyseEmptiness(gray, THUMB_W, THUMB_H);
   const light = lightDirection(gray, THUMB_W, THUMB_H);
-  const charSide = chooseCharSide(emptiness);
+  const bucket = classifyBucket(regionAverage(bg.thumb, 0, THUMB_W, 0, THUMB_H));
+  // When both sides are about equally calm, either side works; vary it.
+  const close = Math.abs(emptiness.left - emptiness.right) < 0.08;
+  const charSide = close ? (Math.random() < 0.5 ? 'left' : 'right') : chooseCharSide(emptiness);
 
   const wantsChar = s.sources.nekosia || s.sources.waifuim || (await uploadsByRole('char')).length > 0;
-  const char = wantsChar ? await buildCharacter(s, blacklist, bg, light) : undefined;
+  const scenery = !wantsChar || (s.layoutVariety && bg.kind === 'image' && Math.random() < SCENERY_CHANCE);
+  const char = scenery ? undefined : await buildCharacter(s, blacklist, bg, light);
+  const variant: Variant = !char ? 'scenery' : s.layoutVariety ? pickCharVariant(char.cut.bottom) : 'standard';
+  log('scene', bucket, variant, charSide);
 
-  // Theme is judged against where the clock sits: the calm third, upper-middle band,
-  // darkened by the user's dim setting.
-  const textLeft = charSide === 'right';
+  // Theme is judged against where the text sits (the calm third, or the centre for scenery),
+  // darkened by the user's dim setting; the dock strip at the bottom gets its own reading.
   const dim = (c: RGB) => c.map((v) => v * (1 - s.bgDim)) as RGB;
-  const cells = regionCells(bg.thumb, textLeft ? 0 : THUMB_W * 0.55, textLeft ? THUMB_W * 0.45 : THUMB_W, THUMB_H * 0.12, THUMB_H * 0.6).map(dim);
-  const lowCells = regionCells(bg.thumb, textLeft ? 0 : THUMB_W * 0.6, textLeft ? THUMB_W * 0.4 : THUMB_W, THUMB_H * 0.86, THUMB_H, 4, 1).map(dim);
+  const [tx0, tx1] = !char ? [0.2, 0.8] : charSide === 'right' ? [0, 0.45] : [0.55, 1];
+  const [dx0, dx1] = !char || charSide === 'right' ? [0, 0.4] : [0.6, 1];
+  const cells = regionCells(bg.thumb, THUMB_W * tx0, THUMB_W * tx1, THUMB_H * 0.12, THUMB_H * 0.6).map(dim);
+  const lowCells = regionCells(bg.thumb, THUMB_W * dx0, THUMB_W * dx1, THUMB_H * 0.86, THUMB_H, 4, 1).map(dim);
   const low = deriveTheme(bg.palette, lowCells);
 
   return {
@@ -226,7 +285,8 @@ export async function buildScene(s: Settings, blacklist: Set<string>): Promise<S
     createdAt: Date.now(),
     bg: { blob: bg.blob, kind: bg.kind, width: bg.width, height: bg.height, palette: bg.palette, credit: bg.credit },
     char,
-    layout: { charSide, emptiness, light },
+    layout: { charSide, emptiness, light, variant },
     theme: { ...deriveTheme(bg.palette, cells), low: { ink: low.ink, inkSoft: low.inkSoft, surface: low.surface, accent: low.accent } },
+    bucket,
   };
 }
