@@ -57,6 +57,7 @@ const ITEMS: Record<SectionId, Item[]> = {
 const NEWTAB_ITEMS: Item[] = [
   [null, 'help.newtab.dock'],
   ['common.search', 'help.newtab.search'],
+  ['widgets.next.label', 'help.newtab.next'],
   ['newtab.dock.focus', 'help.newtab.focus'],
   ['newtab.dock.credit', 'help.newtab.credit'],
   [null, 'help.newtab.firstRun'],

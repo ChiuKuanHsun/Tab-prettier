@@ -7,6 +7,7 @@ import { AnimePanel } from '../widgets/Anime';
 import { CreditPanel } from '../widgets/Credit';
 import { Dock, type DockItem } from '../widgets/Dock';
 import { FavoriteButton } from '../widgets/Favorite';
+import { NextSceneButton } from '../widgets/NextScene';
 import { FocusPanel, useFocus } from '../widgets/Focus';
 import { useWeather, WeatherBadge } from '../widgets/Weather';
 import { weatherParticle } from '../lib/weather';
@@ -206,7 +207,14 @@ export function App() {
           items={dockItems}
           side={t.side === 'right' ? 'right' : 'left'}
           settingsUrl={chrome.runtime.getURL('options.html')}
-          extra={scene && <FavoriteButton scene={scene} limit={settings.favoritesLimit} />}
+          extra={
+            scene && (
+              <>
+                <NextSceneButton onNext={next} />
+                <FavoriteButton scene={scene} limit={settings.favoritesLimit} />
+              </>
+            )
+          }
         />
       </div>
     </main>
