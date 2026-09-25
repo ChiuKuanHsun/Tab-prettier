@@ -1,5 +1,6 @@
 import { t } from '../i18n';
 import { db, kvGet, kvSet } from './db';
+import type { ListAnime, ListCharacter } from './list-chars';
 
 const ENDPOINT = 'https://graphql.anilist.co';
 const HOUR = 3_600_000;
@@ -127,6 +128,52 @@ export async function myWatching(token: string, force = false): Promise<{ name: 
     const entries = data.MediaListCollection.lists.flatMap((l) => l.entries);
     entries.sort((a, b) => (a.media.nextAiringEpisode?.airingAt ?? Infinity) - (b.media.nextAiringEpisode?.airingAt ?? Infinity));
     return { name: Viewer.name, entries };
+  }, force);
+}
+
+/** The user's "Completed" list, most recently finished first. `force` skips the 30-minute cache. */
+export async function myCompleted(token: string, force = false): Promise<ListEntry[]> {
+  return cached(`anilist:completed:${token.slice(-8)}`, HOUR / 2, async () => {
+    const { Viewer } = await gql<{ Viewer: { id: number } }>('query{ Viewer{ id } }', {}, token);
+    const data = await gql<{ MediaListCollection: { lists: { entries: ListEntry[] }[] } }>(
+      `query($userId:Int){ MediaListCollection(userId:$userId, type:ANIME, status:COMPLETED, sort:UPDATED_TIME_DESC){ lists{ entries{ id progress media{ ${MEDIA} episodes } } } } }`,
+      { userId: Viewer.id },
+      token,
+    );
+    return data.MediaListCollection.lists.flatMap((l) => l.entries);
+  }, force);
+}
+
+/**
+ * The user's Watching and Completed shows with their main characters, for character scenes.
+ * Cached for 12 hours; characters come in batches of 50 shows to stay within AniList's limits.
+ */
+export async function myListAnime(token: string, force = false): Promise<ListAnime[]> {
+  return cached(`anilist:listanime:${token.slice(-8)}`, 12 * HOUR, async () => {
+    const { Viewer } = await gql<{ Viewer: { id: number } }>('query{ Viewer{ id } }', {}, token);
+    type Entry = { status: ListAnime['status']; media: { id: number; title: ListAnime['title']; coverImage: { medium?: string } } };
+    const data = await gql<{ MediaListCollection: { lists: { entries: Entry[] }[] } }>(
+      `query($userId:Int){ MediaListCollection(userId:$userId, type:ANIME, status_in:[CURRENT, COMPLETED]){ lists{ entries{ status media{ id title{ romaji native } coverImage{ medium } } } } } }`,
+      { userId: Viewer.id },
+      token,
+    );
+    const entries = data.MediaListCollection.lists.flatMap((l) => l.entries);
+    const chars = new Map<number, ListCharacter[]>();
+    for (let i = 0; i < entries.length; i += 50) {
+      const ids = entries.slice(i, i + 50).map((e) => e.media.id);
+      const page = await gql<{ Page: { media: { id: number; characters: { nodes: ListCharacter[] } }[] } }>(
+        `query($ids:[Int]){ Page(perPage:50){ media(id_in:$ids, type:ANIME){ id characters(role:MAIN, sort:FAVOURITES_DESC, perPage:6){ nodes{ id name{ full native } gender } } } } }`,
+        { ids },
+      );
+      for (const m of page.Page.media) chars.set(m.id, m.characters.nodes);
+    }
+    return entries.map((e) => ({
+      id: e.media.id,
+      status: e.status,
+      title: e.media.title,
+      cover: e.media.coverImage.medium ?? null,
+      characters: chars.get(e.media.id) ?? [],
+    }));
   }, force);
 }
 

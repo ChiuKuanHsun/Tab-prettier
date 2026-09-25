@@ -112,6 +112,14 @@ export interface Settings {
     favoriteChars: string[];
     /** 0..1 share of scenes whose character is one of favoriteChars (needs Danbooru). */
     favoriteCharsWeight: number;
+    /** Also take characters from the user's AniList lists (needs Danbooru and an AniList login). */
+    listChars: boolean;
+    listWatching: boolean;
+    listCompleted: boolean;
+    /** 0..1 share of scenes whose character comes from those lists. */
+    listCharsWeight: number;
+    /** AniList media ids left out by the user (new shows on the lists are included). */
+    listExcluded: number[];
     uploadsWeight: number; // 0..1 chance to use an upload when one fits
     /** Character images carrying any of these tags are skipped. */
     excludeTags: string;
@@ -165,6 +173,11 @@ export const DEFAULT_SETTINGS: Settings = {
     allowDuo: true,
     favoriteChars: [],
     favoriteCharsWeight: 0.3,
+    listChars: false,
+    listWatching: true,
+    listCompleted: true,
+    listCharsWeight: 0.3,
+    listExcluded: [],
     uploadsWeight: 0.5,
     excludeTags: DEFAULT_EXCLUDED_TAGS,
     preferTags: '',

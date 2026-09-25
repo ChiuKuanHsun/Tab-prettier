@@ -34,7 +34,7 @@ async function refill(msg: ToOffscreen) {
     while ((await queueCount()) < msg.target && failures < 3) {
       const t0 = performance.now();
       try {
-        const scene = await buildScene(msg.settings, blacklist);
+        const scene = await buildScene(msg.settings, blacklist, msg.listAnime);
         await enqueue(scene);
         failures = 0;
         const count = await queueCount();

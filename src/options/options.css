@@ -62,7 +62,7 @@ code { font-size: 13px; background: var(--card); padding: 2px 6px; border: 1px s
 
 .opt-section {
   display: grid;
-  grid-template-columns: 180px 1fr;
+  grid-template-columns: 180px minmax(0, 1fr);
   gap: 32px;
   padding: 40px 0;
   border-bottom: 1px solid var(--line);
@@ -73,7 +73,8 @@ code { font-size: 13px; background: var(--card); padding: 2px 6px; border: 1px s
 .opt-help { font-size: 12px; letter-spacing: 0.2em; text-decoration: none; }
 .opt-help:hover { text-decoration: underline; }
 
-.opt-fields { display: grid; gap: 18px; align-content: start; }
+/* minmax(0, …): long unbreakable content (titles, URLs) must not widen the column */
+.opt-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; align-content: start; }
 
 .opt-field { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; }
 .opt-label { display: grid; }
@@ -93,13 +94,41 @@ input:not([type]), input[list], input[type='number'], select {
 }
 input.wide { min-width: min(420px, 50vw); }
 input.num { min-width: 0; width: 96px; text-align: right; }
-.opt-field-block { grid-template-columns: 1fr; gap: 8px; }
+.opt-field-block { grid-template-columns: minmax(0, 1fr); gap: 8px; }
 .opt-field-block .opt-link { margin-left: 8px; }
 /* one click selects the whole value, ready to copy */
 .opt-copy { justify-self: start; user-select: all; }
 .weather-search { display: flex; gap: 10px; }
 .weather-search input { flex: 1; }
 .weather-results { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+/* Show list: fixed-height rows, at most eight visible, then it scrolls; long titles are cut
+   short instead of widening the settings column. */
+.list-anime {
+  --row: 40px;
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  background: var(--card);
+  max-height: calc(var(--row) * 8 + 8px);
+  overflow-y: auto;
+}
+.list-anime label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: var(--row);
+  min-width: 0;
+  padding: 0 12px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.list-anime label:hover { background: var(--line); }
+.list-anime img { width: 24px; height: 34px; object-fit: cover; flex: none; background: var(--line); }
+.list-anime span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list-anime small { margin-left: auto; color: var(--muted); font-size: 12px; flex: none; }
 .char-picker { display: grid; gap: 8px; position: relative; }
 .char-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .char-chips li {

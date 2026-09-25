@@ -3,6 +3,9 @@ import { hasAnyScene, queueCount } from '../lib/db';
 import { FOCUS_ALARM, getFocus, getFocusPrefs, PHASE_LABEL, setFocus, startFocus, type FocusState } from '../lib/focus';
 import { queueTarget, type ToBackground, type ToOffscreen } from '../lib/messages';
 import { getBlacklist, getSettings } from '../lib/settings';
+import { getToken, myListAnime } from '../lib/anilist';
+import { chosenAnime, type ListAnime } from '../lib/list-chars';
+import type { Settings } from '../lib/types';
 
 const OFFSCREEN_URL = 'offscreen.html';
 
@@ -24,6 +27,19 @@ async function ensureOffscreen() {
   await creating;
 }
 
+/** Shows on the user's AniList lists to take characters from, when that's switched on and logged in. */
+async function listAnimeFor(s: Settings): Promise<ListAnime[] | undefined> {
+  if (!s.sources.danbooru || !s.sources.listChars) return undefined;
+  const token = await getToken();
+  if (!token) return undefined;
+  try {
+    return chosenAnime(await myListAnime(token), s.sources);
+  } catch (e) {
+    console.warn('[bg] AniList list', e);
+    return undefined;
+  }
+}
+
 async function refill(opts: { fromIdle?: boolean; lowPower?: boolean; force?: boolean } = {}) {
   const settings = await getSettings();
   // Cache-only power saving makes nothing new, unless there is nothing at all to show yet or
@@ -40,7 +56,14 @@ async function refill(opts: { fromIdle?: boolean; lowPower?: boolean; force?: bo
   }
   await chrome.storage.session.set({ refillDeferred: false });
   await ensureOffscreen();
-  const msg: ToOffscreen = { to: 'offscreen', type: 'refill', settings, blacklist: await getBlacklist(), target };
+  const msg: ToOffscreen = {
+    to: 'offscreen',
+    type: 'refill',
+    settings,
+    blacklist: await getBlacklist(),
+    target,
+    listAnime: await listAnimeFor(settings),
+  };
   // A freshly created document may not have registered its listener yet (and other extension
   // pages can swallow the message), so retry until the offscreen document acknowledges it.
   for (let i = 0; i < 40; i++) {

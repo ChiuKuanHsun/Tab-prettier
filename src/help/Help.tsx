@@ -22,6 +22,7 @@ const ITEMS: Record<SectionId, Item[]> = {
     ['options.sources.danbooru', 'help.sources.danbooru'],
     ['options.sources.duo', 'help.sources.duo'],
     ['options.sources.favoriteChars', 'help.sources.favoriteChars'],
+    ['options.listChars.label', 'help.sources.listChars'],
     ['options.sources.exclude', 'help.sources.exclude'],
     ['options.sources.prefer', 'help.sources.prefer'],
   ],

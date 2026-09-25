@@ -18,7 +18,9 @@ import {
 } from '../lib/settings';
 import type { MediaKind, Settings, Upload } from '../lib/types';
 import { DEFAULT_EXCLUDED_TAGS } from '../lib/curation';
+import { getToken, myListAnime } from '../lib/anilist';
 import { searchCharacters, tagLabel, type CharacterTag } from '../lib/danbooru';
+import type { ListAnime } from '../lib/list-chars';
 import { detectLocation, geocode, type Place } from '../lib/weather';
 import { THEMES } from '../themes';
 import { t, tRich } from '../i18n';
@@ -164,6 +166,103 @@ function CharacterPicker({ value, onChange }: { value: string[]; onChange: (v: s
         </ul>
       )}
     </div>
+  );
+}
+
+/**
+ * Characters from the user's AniList lists: which lists, how often, and which shows (all by
+ * default; unticked ones are remembered, so shows added later are included).
+ */
+function ListChars({ src, setSrc }: { src: Settings['sources']; setSrc: (patch: Partial<Settings['sources']>) => void }) {
+  // undefined while loading, null when not logged in to AniList
+  const [anime, setAnime] = useState<ListAnime[] | null>();
+  const [err, setErr] = useState<string>();
+
+  const load = async (force = false) => {
+    setErr(undefined);
+    const token = await getToken();
+    if (!token) return setAnime(null);
+    setAnime(undefined);
+    try {
+      setAnime(await myListAnime(token, force));
+    } catch (e) {
+      setErr((e as Error).message);
+      setAnime([]);
+    }
+  };
+  useEffect(() => {
+    if (src.listChars) void load();
+  }, [src.listChars]);
+
+  const shown = (anime ?? []).filter((a) => (a.status === 'CURRENT' ? src.listWatching : src.listCompleted));
+  const excluded = new Set(src.listExcluded);
+  const chosen = shown.filter((a) => !excluded.has(a.id)).length;
+  const toggle = (id: number) =>
+    setSrc({ listExcluded: excluded.has(id) ? src.listExcluded.filter((x) => x !== id) : [...src.listExcluded, id] });
+
+  return (
+    <>
+      <Field label={t('options.listChars.label')} hint={t('options.listChars.hint')}>
+        <input type="checkbox" checked={src.listChars} onChange={() => setSrc({ listChars: !src.listChars })} />
+      </Field>
+      {src.listChars && (
+        <>
+          <Field label={t('options.listChars.weight')} hint={t('options.listChars.weightHint')}>
+            <Range
+              value={src.listCharsWeight}
+              min={0.05}
+              max={1}
+              step={0.05}
+              onChange={(v) => setSrc({ listCharsWeight: v })}
+              fmt={(v) => `${Math.round(v * 100)}%`}
+            />
+          </Field>
+          <div class="opt-field opt-field-block">
+            <div class="focus-chips">
+              <label class="radio">
+                <input type="checkbox" checked={src.listWatching} onChange={() => setSrc({ listWatching: !src.listWatching })} />
+                {t('options.listChars.watching')}
+              </label>
+              <label class="radio">
+                <input type="checkbox" checked={src.listCompleted} onChange={() => setSrc({ listCompleted: !src.listCompleted })} />
+                {t('options.listChars.completed')}
+              </label>
+            </div>
+            {anime === null && <small class="opt-warn">{t('options.listChars.noLogin')}</small>}
+            {anime === undefined && <small class="opt-muted">{t('common.loading')}</small>}
+            {err && <small class="opt-warn">{t('common.loadFailed', { error: err })}</small>}
+            {anime && (
+              <small class="opt-muted">
+                {t('options.listChars.chosen', { n: chosen, total: shown.length })}
+                <button type="button" class="opt-link" onClick={() => setSrc({ listExcluded: [] })}>
+                  {t('options.listChars.all')}
+                </button>
+                <button type="button" class="opt-link" onClick={() => setSrc({ listExcluded: (anime ?? []).map((a) => a.id) })}>
+                  {t('options.listChars.none')}
+                </button>
+                <button type="button" class="opt-link" onClick={() => void load(true)}>
+                  {t('widgets.anime.refresh')}
+                </button>
+              </small>
+            )}
+            {shown.length > 0 && (
+              <ul class="list-anime">
+                {shown.map((a) => (
+                  <li key={a.id}>
+                    <label>
+                      <input type="checkbox" checked={!excluded.has(a.id)} onChange={() => toggle(a.id)} />
+                      {a.cover && <img src={a.cover} alt="" loading="lazy" />}
+                      <span>{a.title.native || a.title.romaji}</span>
+                      <small>{t('options.listChars.chars', { n: a.characters.length })}</small>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </>
+      )}
+    </>
   );
 }
 
@@ -511,6 +610,7 @@ export function Options() {
             />
           </Field>
         )}
+        {s.sources.danbooru && <ListChars src={s.sources} setSrc={setSrc} />}
         <Field label={t('options.sources.uploadsWeight')} hint={t('options.sources.uploadsWeightHint')}>
           <Range value={s.sources.uploadsWeight} min={0} max={1} step={0.05} onChange={(v) => setSrc({ uploadsWeight: v })} fmt={(v) => `${Math.round(v * 100)}%`} />
         </Field>

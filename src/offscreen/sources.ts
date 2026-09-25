@@ -7,11 +7,13 @@ import {
   GENERAL_QUERIES,
   postCredit,
   postsUrl,
+  searchCharacters,
   usablePost,
   type DanbooruPost,
   type PostQuery,
 } from '../lib/danbooru';
 import { kvGet, kvSet } from '../lib/db';
+import { matchCharacterTag, usableCharacters, type ListAnime } from '../lib/list-chars';
 import type { Credit, Settings } from '../lib/types';
 import { fetchJson } from './image';
 
@@ -172,6 +174,28 @@ export function waifuim(s: Settings, blacklist: Set<string>) {
         },
       }));
   });
+}
+
+/**
+ * A Danbooru tag for a random main character from the user's AniList shows. Each character is
+ * looked up once — Japanese name first, English only if that fails — and the answer is kept,
+ * including "no sure match" (''), so this rarely touches the network.
+ */
+export async function listCharacterTag(anime: ListAnime[], noMale: boolean): Promise<string | undefined> {
+  for (let i = 0; i < 4; i++) {
+    const chars = usableCharacters(pick(anime), noMale);
+    if (!chars.length) continue;
+    const c = pick(chars);
+    const key = `danbooru:map:${c.id}`;
+    let tag = await kvGet<string>(key);
+    if (tag === undefined) {
+      const byNative = c.name.native ? await searchCharacters(c.name.native) : [];
+      tag = matchCharacterTag(byNative, [], c.name) ?? matchCharacterTag([], await searchCharacters(c.name.full), c.name) ?? '';
+      await kvSet(key, tag);
+    }
+    if (tag) return tag;
+  }
+  return undefined;
 }
 
 /**

@@ -1,3 +1,4 @@
+import type { ListAnime } from './list-chars';
 import type { Settings } from './types';
 
 /** newtab/options → service worker */
@@ -12,6 +13,8 @@ export type ToOffscreen = {
   settings: Settings;
   blacklist: string[];
   target: number;
+  /** Shows from the user's AniList lists to take characters from (the offscreen page can't log in). */
+  listAnime?: ListAnime[];
 };
 
 export type Broadcast = { to: 'all'; type: 'queue-updated'; count: number };

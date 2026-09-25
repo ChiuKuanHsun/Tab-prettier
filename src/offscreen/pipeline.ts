@@ -2,6 +2,7 @@ import { hexToRgb, luminance, rgbToHsl, hslToRgb, type RGB } from '../lib/color'
 import { analyseEmptiness, chooseCharSide } from '../lib/compose';
 import {
   classifyBucket,
+  isExcluded,
   moodDistance,
   parseTagList,
   pickCharVariant,
@@ -14,6 +15,7 @@ import {
 import { t } from '../i18n';
 import { db } from '../lib/db';
 import { deriveTheme, quantize } from '../lib/palette';
+import type { ListAnime } from '../lib/list-chars';
 import { lastWeather } from '../lib/weather';
 import { uid } from '../lib/settings';
 import type { Credit, MediaKind, Scene, SceneChar, Settings, Upload } from '../lib/types';
@@ -22,7 +24,7 @@ import { canvas, fetchBlob, fit, pixels } from './image';
 import { alphaMask, fadeCutEdges, hasCharacter, refineMask, type RefinedMask } from './refine';
 import { estimateDepth } from './depth';
 import { segment } from './segment';
-import { danbooru, danbooruResting, nekosia, returnToPool, waifuim, wallhaven, type Candidate } from './sources';
+import { danbooru, danbooruResting, listCharacterTag, nekosia, returnToPool, waifuim, wallhaven, type Candidate } from './sources';
 
 const THUMB_W = 320, THUMB_H = 180;
 
@@ -142,17 +144,32 @@ async function buildBackground(s: Settings, blacklist: Set<string>, bucket: Time
 
 const pickOne = <T>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
 
+/** Gives the Danbooru tag of the character a featured scene is about (undefined: none found). */
+type Featured = () => Promise<string | undefined>;
+
 /**
- * Whether this scene features one of the user's favourite characters: a share of scenes set by
- * favoriteCharsWeight, so favourites mix in with everything else rather than taking over.
+ * Whether this scene features a chosen character: one of the favourites (a share of scenes set
+ * by favoriteCharsWeight), else one from the AniList lists (listCharsWeight of the rest), so
+ * they mix in with everything else rather than taking over.
  */
-function sceneFavorites(s: Settings): string[] | undefined {
-  const favs = s.sources.danbooru ? s.sources.favoriteChars : [];
-  return favs.length && Math.random() < s.sources.favoriteCharsWeight ? favs : undefined;
+function sceneFeatured(s: Settings, listAnime?: ListAnime[]): Featured | undefined {
+  if (!s.sources.danbooru) return undefined;
+  const favs = s.sources.favoriteChars;
+  if (favs.length && Math.random() < s.sources.favoriteCharsWeight) return async () => pickOne(favs);
+  if (listAnime?.length && Math.random() < s.sources.listCharsWeight) {
+    const exclude = parseTagList(s.sources.excludeTags);
+    const noMale = isExcluded(['male'], exclude) || isExcluded(['boy'], exclude);
+    return () => listCharacterTag(listAnime, noMale);
+  }
+  return undefined;
 }
 
-async function nextCharCandidate(s: Settings, blacklist: Set<string>, favs?: string[]): Promise<Candidate | Upload | undefined> {
-  if (favs) return danbooru(s, blacklist, pickOne(favs));
+async function nextCharCandidate(s: Settings, blacklist: Set<string>, featured?: Featured): Promise<Candidate | Upload | undefined> {
+  if (featured) {
+    const tag = await featured();
+    if (!tag) throw new Error('no featured character');
+    return danbooru(s, blacklist, tag);
+  }
   const ups = await uploadsByRole('char');
   if (ups.length && Math.random() < s.sources.uploadsWeight) return pickOne(ups);
   const useDanbooru = s.sources.danbooru && !(await danbooruResting());
@@ -230,19 +247,25 @@ async function finishCharacter(
  * Gathers up to three usable characters and keeps the one whose colour mood is closest to the
  * background (preferred tags win ties); the others go back to their pools for later scenes.
  */
-async function buildCharacter(s: Settings, blacklist: Set<string>, bg: Bg, light: { x: number; y: number }) {
+async function buildCharacter(
+  s: Settings,
+  blacklist: Set<string>,
+  bg: Bg,
+  light: { x: number; y: number },
+  listAnime?: ListAnime[],
+) {
   const bgStats = labStats(bg.thumb.data);
   const prefer = parseTagList(s.sources.preferTags);
   const ready: Prepared[] = [];
-  let favs = (await danbooruResting()) ? undefined : sceneFavorites(s);
-  if (favs) log('favourite scene');
+  let featured = (await danbooruResting()) ? undefined : sceneFeatured(s, listAnime);
+  if (featured) log('featured scene');
   for (let attempt = 0; attempt < 8 && ready.length < 3; attempt++) {
-    // Favourites that keep failing (few usable images, network) give way to the usual sources.
-    if (favs && attempt === 4 && !ready.length) favs = undefined;
-    const cand = await nextCharCandidate(s, blacklist, favs).catch((e) => log('no candidate', e));
+    // Chosen characters that keep failing (few usable images, network) give way to the usual sources.
+    if (featured && attempt === 4 && !ready.length) featured = undefined;
+    const cand = await nextCharCandidate(s, blacklist, featured).catch((e) => log('no candidate', e));
     if (!cand) {
-      if (!favs) break;
-      favs = undefined;
+      if (!featured) break;
+      featured = undefined;
       continue;
     }
     const p = await prepareCharacter(cand, blacklist);
@@ -283,7 +306,7 @@ function regionAverage(img: ImageData, x0: number, x1: number, y0: number, y1: n
   return n ? [r / n, g / n, b / n] : [128, 128, 128];
 }
 
-export async function buildScene(s: Settings, blacklist: Set<string>): Promise<Scene> {
+export async function buildScene(s: Settings, blacklist: Set<string>, listAnime?: ListAnime[]): Promise<Scene> {
   const bg = await buildBackground(s, blacklist, timeBucket());
   // Depth map for the new tab's 2.5D motion (images only; optional — the tab falls back to flat).
   let depth: Blob | undefined;
@@ -306,7 +329,7 @@ export async function buildScene(s: Settings, blacklist: Set<string>): Promise<S
 
   const wantsChar = s.sources.nekosia || s.sources.waifuim || s.sources.danbooru || (await uploadsByRole('char')).length > 0;
   const scenery = !wantsChar || (s.layoutVariety && bg.kind === 'image' && Math.random() < SCENERY_CHANCE);
-  const char = scenery ? undefined : await buildCharacter(s, blacklist, bg, light);
+  const char = scenery ? undefined : await buildCharacter(s, blacklist, bg, light, listAnime);
   const variant: Variant = !char ? 'scenery' : s.layoutVariety ? pickCharVariant(char.cut.bottom) : 'standard';
   log('scene', bucket, variant, charSide);
 
