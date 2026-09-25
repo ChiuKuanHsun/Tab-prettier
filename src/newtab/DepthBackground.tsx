@@ -85,7 +85,20 @@ export function DepthBackground({
   onFail: () => void;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
+  // Read live by the render loop, so changing them never rebuilds the GL pipeline.
+  const strengthRef = useRef(strength);
+  const runningRef = useRef(running);
+  strengthRef.current = strength;
+  runningRef.current = running;
 
+  // The context is only thrown away when the canvas itself goes: a lost context stays lost on
+  // that canvas, so losing it between scenes (or slider steps) would leave it blank for good.
+  useEffect(() => {
+    const cv = ref.current; // captured now: the ref may already be cleared when this cleanup runs
+    return () => cv?.getContext('webgl2')?.getExtension('WEBGL_lose_context')?.loseContext();
+  }, []);
+
+  // (Re)builds the pipeline for a new image + depth map on the same context.
   useEffect(() => {
     const cv = ref.current!;
     const gl = cv.getContext('webgl2', { alpha: false, antialias: false, premultipliedAlpha: false });
@@ -95,6 +108,7 @@ export function DepthBackground({
     }
     let raf = 0, alive = true, last = 0;
     let cleanup = () => {};
+    let release = () => {};
     const t0 = performance.now();
 
     void (async () => {
@@ -115,8 +129,14 @@ export function DepthBackground({
         gl.enableVertexAttribArray(loc);
         gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 
-        texture(gl, 0, img);
-        texture(gl, 1, dep);
+        const texImg = texture(gl, 0, img);
+        const texDepth = texture(gl, 1, dep);
+        release = () => {
+          gl.deleteTexture(texImg);
+          gl.deleteTexture(texDepth);
+          gl.deleteBuffer(buf);
+          gl.deleteProgram(prog);
+        };
         gl.uniform1i(gl.getUniformLocation(prog, 'uImg'), 0);
         gl.uniform1i(gl.getUniformLocation(prog, 'uDepth'), 1);
         gl.uniform1f(gl.getUniformLocation(prog, 'uFocus'), 0.45);
@@ -140,7 +160,7 @@ export function DepthBackground({
 
         const draw = (now: number) => {
           const t = (now - t0) / 1000;
-          const amp = MAX_SHIFT * strength;
+          const amp = MAX_SHIFT * strengthRef.current;
           // pointer y is screen-down; texture v is up
           const dx = pointer.x + 0.35 * Math.sin(t * 0.13);
           const dy = -pointer.y + 0.25 * Math.cos(t * 0.09);
@@ -149,13 +169,13 @@ export function DepthBackground({
         };
         const frame = (now: number) => {
           raf = requestAnimationFrame(frame);
-          if (now - last < 33) return;
+          if (!runningRef.current || now - last < 33) return;
           last = now;
           draw(now);
         };
         draw(performance.now());
         onReady();
-        if (running) raf = requestAnimationFrame(frame);
+        raf = requestAnimationFrame(frame);
         cleanup = () => removeEventListener('resize', resize);
       } catch (e) {
         console.warn('[depth] falling back to flat background', e);
@@ -173,9 +193,9 @@ export function DepthBackground({
       cancelAnimationFrame(raf);
       cleanup();
       cv.removeEventListener('webglcontextlost', lost);
-      gl.getExtension('WEBGL_lose_context')?.loseContext();
+      release();
     };
-  }, [src, depthSrc, strength, running]);
+  }, [src, depthSrc]);
 
   return <canvas ref={ref} class="bg-media is-depth" aria-hidden="true" />;
 }

@@ -55,10 +55,12 @@ export function App() {
 
   const animate = !!settings && !reducedMotion;
 
+  // Starts once the real stage is mounted: while the scene loads, a bare placeholder <main> is
+  // rendered without the ref, so keying on `ready` makes this run again when the stage appears.
   useEffect(() => {
-    if (!stage.current || !animate || !settings?.parallax) return;
+    if (!ready || !stage.current || !animate || !settings?.parallax) return;
     return startParallax(stage.current);
-  }, [animate, settings?.parallax]);
+  }, [ready, animate, settings?.parallax]);
 
   // Reveal only once the layers are decoded, then run the entrance.
   useLayoutEffect(() => {
