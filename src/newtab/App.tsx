@@ -88,8 +88,14 @@ export function App() {
   const t = layout.text;
   const colLeft = Math.min(t.inner, t.outer);
   const colW = Math.abs(t.inner - t.outer);
+  // The clock reaches behind the character; when the small seconds / AM-PM sit at the end facing
+  // it (text on the left), the clock steps outward so they stay clear, allowing for the parallax
+  // drift between the text and character layers (12px per unit). The character doesn't move.
+  const tail = (settings.clockSeconds || !settings.clock24h) && !countdownActive(focus);
+  const reach = layout.char && t.side === 'left' ? t.inner - layout.char.left : 0;
+  const clockShift = tail && reach > 0 ? reach + 12 * (animate ? settings.parallax : 0) + 8 : 0;
   // HH:MM is ~2.35em wide; small seconds add ~0.45em
-  const clockSize = Math.max(96, Math.min(colW / (settings.clockSeconds && !countdownActive(focus) ? 2.8 : 2.35), vp.h * (t.side === 'center' ? 0.34 : 0.3), t.side === 'center' ? 440 : 380));
+  const clockSize = Math.max(96, Math.min((colW - clockShift) / (settings.clockSeconds && !countdownActive(focus) ? 2.8 : 2.35), vp.h * (t.side === 'center' ? 0.34 : 0.3), t.side === 'center' ? 440 : 380));
 
   const particleKind = settings.particles === 'auto' ? (weatherParticle(weather?.mood) ?? autoParticle()) : settings.particles;
   const showParticles = particleKind !== 'off' && !lowPower && !reducedMotion;
@@ -112,6 +118,7 @@ export function App() {
     '--col-w': `${colW}px`,
     '--col-top': `${t.top}px`,
     '--clock-size': `${clockSize}px`,
+    '--clock-shift': `${clockShift}px`,
     '--outer': `${Math.max(32, vp.w * 0.05)}px`,
   };
 

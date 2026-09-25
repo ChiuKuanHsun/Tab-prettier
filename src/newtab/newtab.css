@@ -123,6 +123,8 @@ button, input, textarea { font: inherit; color: inherit; }
 }
 
 .col-clock { display: flex; justify-content: flex-end; }
+/* keeps the seconds / AM-PM clear of the character (set only when the text is on the left) */
+.col-clock .clock { margin-right: var(--clock-shift, 0px); }
 .text-right .col-clock { justify-content: flex-start; }
 .text-center .col-clock { justify-content: center; }
 
