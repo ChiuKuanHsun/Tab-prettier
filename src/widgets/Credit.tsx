@@ -2,7 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { t } from '../i18n';
 import { isBirthdayOn } from '../lib/list-chars';
 import { addToBlacklist } from '../lib/settings';
-import type { Credit, Scene } from '../lib/types';
+import type { BirthdayOf, Credit, Scene } from '../lib/types';
 
 const SOURCE_LABEL: Record<Credit['source'], string> = {
   wallhaven: 'Wallhaven',
@@ -47,8 +47,9 @@ export function CakeIcon({ size = 17 }: { size?: number }) {
   );
 }
 
-/** Today's birthday character in this scene, if any. */
-export const birthdayToday = (scene?: Scene | null) => (isBirthdayOn(scene?.char?.birthday) ? scene!.char!.birthday : undefined);
+/** Today's birthday character in this scene, if any (and birthdays are switched on). */
+export const birthdayToday = (scene: Scene | null | undefined, on: boolean) =>
+  on && isBirthdayOn(scene?.char?.birthday) ? scene!.char!.birthday : undefined;
 
 /** Next to the date under the clock: whose birthday the scene celebrates. */
 export function BirthdayBadge({ name }: { name: string }) {
@@ -60,7 +61,7 @@ export function BirthdayBadge({ name }: { name: string }) {
   );
 }
 
-export function CreditPanel({ scene, onNext }: { scene: Scene; onNext: () => Promise<boolean> }) {
+export function CreditPanel({ scene, birthday, onNext }: { scene: Scene; birthday?: BirthdayOf; onNext: () => Promise<boolean> }) {
   const [msg, setMsg] = useState<string>();
   useEffect(() => setMsg(undefined), [scene.id]);
 
@@ -71,7 +72,7 @@ export function CreditPanel({ scene, onNext }: { scene: Scene; onNext: () => Pro
 
   return (
     <div class="credit">
-      {birthdayToday(scene) && <p class="credit-birthday">{t('widgets.credit.birthday', { name: birthdayToday(scene)!.name })}</p>}
+      {birthday && <p class="credit-birthday">{t('widgets.credit.birthday', { name: birthday.name })}</p>}
       <CreditRow role={t('common.bg')} credit={scene.bg.credit} onBlock={scene.bg.credit.source !== 'upload' ? () => block(scene.bg.credit) : undefined} />
       {scene.char && (
         <CreditRow

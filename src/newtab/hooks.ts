@@ -78,16 +78,17 @@ export function useScene(settings: Settings | undefined, lowPower: boolean) {
   const bucket = settings?.sources.timeAware ? timeBucket() : undefined;
   const cacheOnly = settings?.powerSave === 'cache';
   const favoritesOnly = settings?.favoritesOnly;
+  const birthdays = settings?.sources.listBirthdays;
 
   useEffect(() => {
     if (!rule) return;
     let alive = true;
-    void pickScene(rule, { favWeight, bucket, cacheOnly, favoritesOnly }).then((s) => alive && setScene(s ?? null));
+    void pickScene(rule, { favWeight, bucket, cacheOnly, favoritesOnly, birthdays }).then((s) => alive && setScene(s ?? null));
     void send({ to: 'bg', type: 'refill', lowPower });
     const onMsg = (m: Broadcast) => {
       if (m?.type !== 'queue-updated') return;
       setScene((cur) => {
-        if (cur === null) void pickScene(rule, { favWeight: 0, force: true, bucket }).then((s) => s && alive && setScene(s));
+        if (cur === null) void pickScene(rule, { favWeight: 0, force: true, bucket, birthdays }).then((s) => s && alive && setScene(s));
         return cur;
       });
     };
@@ -102,7 +103,7 @@ export function useScene(settings: Settings | undefined, lowPower: boolean) {
   /** Swaps in the next scene now; `favoritesOnly` overrides the setting (it may not have saved yet). */
   const next = async (opts: { favoritesOnly?: boolean } = {}) => {
     if (!rule) return false;
-    const s = await pickScene(rule, { favWeight, force: true, bucket, cacheOnly, favoritesOnly, ...opts });
+    const s = await pickScene(rule, { favWeight, force: true, bucket, cacheOnly, favoritesOnly, birthdays, ...opts });
     void send({ to: 'bg', type: 'refill', lowPower });
     if (s && s.id !== scene?.id) {
       setScene(s);

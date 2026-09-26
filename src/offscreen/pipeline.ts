@@ -157,7 +157,7 @@ const BIRTHDAY_SHARE = 0.5;
  */
 function sceneFeatured(s: Settings, listAnime?: ListAnime[]): Featured | undefined {
   if (!s.sources.danbooru) return undefined;
-  const birthdays = listAnime ? birthdayCharacters(listAnime) : [];
+  const birthdays = listAnime && s.sources.listBirthdays ? birthdayCharacters(listAnime) : [];
   if (birthdays.length && Math.random() < BIRTHDAY_SHARE) return () => birthdayCharacterTag(birthdays);
   const favs = s.sources.favoriteChars;
   if (favs.length && Math.random() < s.sources.favoriteCharsWeight) return async () => ({ tag: pickOne(favs) });

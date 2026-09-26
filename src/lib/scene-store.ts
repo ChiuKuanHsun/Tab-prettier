@@ -108,6 +108,8 @@ export interface PickOptions {
   cacheOnly?: boolean;
   /** Favourites only, in rotation, ignoring the other rules (while there are favourites). */
   favoritesOnly?: boolean;
+  /** Serve today's birthday scenes first (default on). */
+  birthdays?: boolean;
 }
 
 /**
@@ -129,7 +131,7 @@ export async function pickScene(rule: RotationRule, opts: PickOptions): Promise<
         : Math.random() < opts.favWeight
           ? await randomFavorite(cur?.scene.id, opts.bucket)
           : undefined;
-    const next = fav ?? (await (opts.cacheOnly ? fromCache(cur?.scene.id, opts.bucket) : dequeue(opts.bucket)));
+    const next = fav ?? (await (opts.cacheOnly ? fromCache(cur?.scene.id, opts.bucket) : dequeue(opts.bucket, opts.birthdays)));
     const chosen = next ?? (await randomFavorite(cur?.scene.id, opts.bucket));
     if (chosen) {
       if (cur && cur.scene.id !== chosen.id) await pushHistory(cur.scene, cur.shownAt);

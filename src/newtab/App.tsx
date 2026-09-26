@@ -136,7 +136,7 @@ export function App() {
   const focusProgress =
     focusLeft !== undefined && (focus.status === 'running' || focus.status === 'paused') ? 1 - focusLeft / focus.durationMs : undefined;
 
-  const birthday = birthdayToday(scene);
+  const birthday = birthdayToday(scene, settings.sources.listBirthdays);
 
   const dockItems: DockItem[] = [
     { id: 'links', label: msg('newtab.dock.links'), render: () => <LinksPanel /> },
@@ -159,7 +159,7 @@ export function App() {
           {
             id: 'credit',
             label: msg('newtab.dock.credit'),
-            render: () => <CreditPanel scene={scene} onNext={next} />,
+            render: () => <CreditPanel scene={scene} birthday={birthday} onNext={next} />,
             badge: birthday && { icon: <CakeIcon size={14} />, label: msg('widgets.credit.birthdayBadge') },
           },
         ]

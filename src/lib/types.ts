@@ -123,6 +123,8 @@ export interface Settings {
     listChars: boolean;
     listWatching: boolean;
     listCompleted: boolean;
+    /** On a list character's birthday, feature them in about half the scenes and say so. */
+    listBirthdays: boolean;
     /** 0..1 share of scenes whose character comes from those lists. */
     listCharsWeight: number;
     /** AniList media ids left out by the user (new shows on the lists are included). */
@@ -184,6 +186,7 @@ export const DEFAULT_SETTINGS: Settings = {
     listChars: false,
     listWatching: true,
     listCompleted: true,
+    listBirthdays: true,
     listCharsWeight: 0.3,
     listExcluded: [],
     uploadsWeight: 0.5,

@@ -87,16 +87,16 @@ export async function enqueue(scene: Scene) {
 
 /**
  * Atomically pops a ready scene, so parallel new tabs never get the same one: a scene for a
- * birthday that is today first, then the oldest one matching `prefer` (time of day) if any, else
- * the oldest. Scenes made for another time of day that have waited over 3 hours are dropped so
- * the refill can replace them.
+ * birthday that is today first (unless `birthdays` is off), then the oldest one matching
+ * `prefer` (time of day) if any, else the oldest. Scenes made for another time of day that have
+ * waited over 3 hours are dropped so the refill can replace them.
  */
-export async function dequeue(prefer?: TimeBucket): Promise<Scene | undefined> {
+export async function dequeue(prefer?: TimeBucket, birthdays = true): Promise<Scene | undefined> {
   const tx = (await db()).transaction('queue', 'readwrite');
   const all = await tx.store.index('byCreated').getAll();
   const now = Date.now();
   const pick =
-    all.find((s) => isBirthdayOn(s.char?.birthday)) ||
+    (birthdays && all.find((s) => isBirthdayOn(s.char?.birthday))) ||
     (prefer && all.find((s) => !s.bucket || s.bucket === prefer)) ||
     all[0];
   for (const s of all) {

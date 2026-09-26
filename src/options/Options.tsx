@@ -221,6 +221,9 @@ function ListChars({ src, setSrc }: { src: Settings['sources']; setSrc: (patch: 
               fmt={(v) => `${Math.round(v * 100)}%`}
             />
           </Field>
+          <Field label={t('options.listChars.birthdays')} hint={t('options.listChars.birthdaysHint')}>
+            <input type="checkbox" checked={src.listBirthdays} onChange={() => setSrc({ listBirthdays: !src.listBirthdays })} />
+          </Field>
           <div class="opt-field opt-field-block">
             <div class="focus-chips">
               <label class="radio">
