@@ -18,23 +18,33 @@ for (const level of ['log', 'warn', 'error'] as const) {
   };
 }
 let running = false;
-let pending: ToOffscreen | undefined;
+/** The newest request; a running refill switches to it between scenes. */
+let latest: ToOffscreen | undefined;
 let idleTimer: ReturnType<typeof setTimeout> | undefined;
 
+const sameSettings = (a: ToOffscreen, b: ToOffscreen) =>
+  JSON.stringify(a.settings) === JSON.stringify(b.settings) && JSON.stringify(a.listAnime) === JSON.stringify(b.listAnime);
+
 async function refill(msg: ToOffscreen) {
-  if (running) {
-    pending = msg;
-    return;
-  }
+  latest = msg;
+  if (running) return;
   running = true;
   clearTimeout(idleTimer);
-  const blacklist = new Set(msg.blacklist);
+  const blacklist = new Set<string>();
   let failures = 0;
   try {
-    while ((await queueCount()) < msg.target && failures < 3) {
+    while (latest && (await queueCount()) < latest.target && failures < 3) {
+      // Every scene follows the newest settings (a regenerate right after changing them must not
+      // get scenes made the old way).
+      const job = latest;
+      for (const id of job.blacklist) blacklist.add(id);
       const t0 = performance.now();
       try {
-        const scene = await buildScene(msg.settings, blacklist, msg.listAnime);
+        const scene = await buildScene(job.settings, blacklist, job.listAnime);
+        if (!sameSettings(job, latest)) {
+          console.log('[offscreen] settings changed while building; scene dropped');
+          continue;
+        }
         await enqueue(scene);
         failures = 0;
         const count = await queueCount();
@@ -48,11 +58,6 @@ async function refill(msg: ToOffscreen) {
     }
   } finally {
     running = false;
-  }
-  if (pending) {
-    const next = pending;
-    pending = undefined;
-    return refill(next);
   }
   // Free the model and let the service worker close this document once idle.
   idleTimer = setTimeout(async () => {
