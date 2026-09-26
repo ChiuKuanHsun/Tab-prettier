@@ -13,7 +13,11 @@ export interface ListCharacter {
   role: 'MAIN' | 'SUPPORTING';
   image: string | null;
   favourites: number;
+  /** Absent in lists cached before birthdays were fetched. */
+  birthday?: Birthday | null;
 }
+
+export interface Birthday { month: number; day: number }
 
 export interface ListAnime {
   id: number;
@@ -61,6 +65,23 @@ export function drawCharacter(chars: ListCharacter[], rand = Math.random()): Lis
     if (r < 0) return c;
   }
   return chars.at(-1);
+}
+
+const isLeapYear = (y: number) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+
+/** Whether `date` is the birthday; 29 February is celebrated on the 28th in other years. */
+export function isBirthdayOn(b: Birthday | null | undefined, date = new Date()): boolean {
+  if (!b) return false;
+  const month = date.getMonth() + 1, day = date.getDate();
+  if (b.month === 2 && b.day === 29 && !isLeapYear(date.getFullYear())) return month === 2 && day === 28;
+  return b.month === month && b.day === day;
+}
+
+/** Characters from the shows whose birthday is today, each once (a character can be in several shows). */
+export function birthdayCharacters(anime: ListAnime[], date = new Date()): ListCharacter[] {
+  const seen = new Map<number, ListCharacter>();
+  for (const a of anime) for (const c of a.characters) if (isBirthdayOn(c.birthday, date)) seen.set(c.id, c);
+  return [...seen.values()];
 }
 
 const words = (s: string) => s.toLowerCase().split(/[\s_]+/).filter(Boolean).sort().join(' ');

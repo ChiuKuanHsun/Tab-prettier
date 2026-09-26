@@ -13,8 +13,8 @@ import {
 } from '../lib/danbooru';
 import { kvGet, kvSet } from '../lib/db';
 import { lookupCharacter } from '../lib/char-map';
-import { drawCharacter, MIN_POSTS, type ListAnime } from '../lib/list-chars';
-import type { Credit, Settings } from '../lib/types';
+import { drawCharacter, MIN_POSTS, type ListAnime, type ListCharacter } from '../lib/list-chars';
+import type { BirthdayOf, Credit, Settings } from '../lib/types';
 import { fetchJson } from './image';
 
 export interface Candidate {
@@ -25,6 +25,8 @@ export interface Candidate {
   pool?: string;
   /** Set once it has been put back after losing a colour match; it isn't put back again. */
   returned?: boolean;
+  /** The birthday this candidate was fetched for; not kept when it goes back to its pool. */
+  birthday?: BirthdayOf;
 }
 
 type Keep = (c: Candidate) => boolean;
@@ -51,7 +53,8 @@ async function fromPool(key: string, keep: Keep, refill: () => Promise<Candidate
 export async function returnToPool(c: Candidate) {
   if (!c.pool || c.returned) return;
   const pool = (await kvGet<Candidate[]>(c.pool)) ?? [];
-  if (!pool.some((p) => p.credit.id === c.credit.id)) await kvSet(c.pool, [...pool, { ...c, returned: true }].slice(-30));
+  const { birthday: _, ...rest } = c;
+  if (!pool.some((p) => p.credit.id === c.credit.id)) await kvSet(c.pool, [...pool, { ...rest, returned: true }].slice(-30));
 }
 
 const pick = <T>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
@@ -184,9 +187,22 @@ export function waifuim(s: Settings, blacklist: Set<string>) {
 export async function listCharacterTag(anime: ListAnime[]): Promise<string | undefined> {
   for (let i = 0; i < 4; i++) {
     const c = drawCharacter(pick(anime).characters);
-    if (!c) continue;
-    const match = await lookupCharacter(c);
-    if (match && match.posts >= MIN_POSTS) return match.tag;
+    const tag = c && (await usableTag(c));
+    if (tag) return tag;
+  }
+  return undefined;
+}
+
+async function usableTag(c: ListCharacter) {
+  const match = await lookupCharacter(c);
+  return match && match.posts >= MIN_POSTS ? match.tag : undefined;
+}
+
+/** The Danbooru tag of one of today's birthday characters (tried in random order), with who it is. */
+export async function birthdayCharacterTag(chars: ListCharacter[]): Promise<{ tag: string; birthday: BirthdayOf } | undefined> {
+  for (const c of [...chars].sort(() => Math.random() - 0.5)) {
+    const tag = c.birthday && (await usableTag(c));
+    if (tag) return { tag, birthday: { name: c.name.native || c.name.full, ...c.birthday! } };
   }
   return undefined;
 }

@@ -146,11 +146,11 @@ export async function myCompleted(token: string, force = false): Promise<ListEnt
 
 /**
  * The user's Watching and Completed shows with their main and supporting characters (up to 25,
- * most-loved first), for character scenes. Cached for 12 hours; characters come in batches of
- * 50 shows to stay within AniList's limits.
+ * most-loved first) and their birthdays, for character scenes. Cached for 12 hours; characters
+ * come in batches of 50 shows to stay within AniList's limits.
  */
 export async function myListAnime(token: string, force = false): Promise<ListAnime[]> {
-  return cached(`anilist:listanime2:${token.slice(-8)}`, 12 * HOUR, async () => {
+  return cached(`anilist:listanime3:${token.slice(-8)}`, 12 * HOUR, async () => {
     const { Viewer } = await gql<{ Viewer: { id: number } }>('query{ Viewer{ id } }', {}, token);
     type Entry = { status: ListAnime['status']; media: { id: number; title: ListAnime['title']; coverImage: { medium?: string } } };
     const data = await gql<{ MediaListCollection: { lists: { entries: Entry[] }[] } }>(
@@ -162,15 +162,26 @@ export async function myListAnime(token: string, force = false): Promise<ListAni
     const chars = new Map<number, ListCharacter[]>();
     for (let i = 0; i < entries.length; i += 50) {
       const ids = entries.slice(i, i + 50).map((e) => e.media.id);
-      type Edge = { role: string; node: Omit<ListCharacter, 'role' | 'image'> & { image: { medium?: string } | null } };
+      type Edge = {
+        role: string;
+        node: Omit<ListCharacter, 'role' | 'image' | 'birthday'> & {
+          image: { medium?: string } | null;
+          dateOfBirth: { month: number | null; day: number | null } | null;
+        };
+      };
       const page = await gql<{ Page: { media: { id: number; characters: { edges: Edge[] } }[] } }>(
-        `query($ids:[Int]){ Page(perPage:50){ media(id_in:$ids, type:ANIME){ id characters(sort:[ROLE, FAVOURITES_DESC], perPage:25){ edges{ role node{ id name{ full native } gender image{ medium } favourites } } } } } }`,
+        `query($ids:[Int]){ Page(perPage:50){ media(id_in:$ids, type:ANIME){ id characters(sort:[ROLE, FAVOURITES_DESC], perPage:25){ edges{ role node{ id name{ full native } gender image{ medium } favourites dateOfBirth{ month day } } } } } } }`,
         { ids },
       );
       for (const m of page.Page.media) {
         const cast = m.characters.edges
           .filter((e) => e.role === 'MAIN' || e.role === 'SUPPORTING')
-          .map((e) => ({ ...e.node, role: e.role as ListCharacter['role'], image: e.node.image?.medium ?? null }));
+          .map(({ role, node: { dateOfBirth: dob, ...node } }) => ({
+            ...node,
+            role: role as ListCharacter['role'],
+            image: node.image?.medium ?? null,
+            birthday: dob?.month && dob.day ? { month: dob.month, day: dob.day } : null,
+          }));
         chars.set(m.id, cast);
       }
     }

@@ -23,6 +23,7 @@ const ITEMS: Record<SectionId, Item[]> = {
     ['options.sources.duo', 'help.sources.duo'],
     ['options.sources.favoriteChars', 'help.sources.favoriteChars'],
     ['options.listChars.label', 'help.sources.listChars'],
+    ['help.sources.birthdayTerm', 'help.sources.birthday'],
     ['options.sources.exclude', 'help.sources.exclude'],
     ['options.sources.prefer', 'help.sources.prefer'],
   ],

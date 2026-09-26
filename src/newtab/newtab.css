@@ -934,6 +934,7 @@ textarea:focus { border-color: var(--accent); }
 .credit-row p { margin: 0; font-size: 14px; }
 .credit-src { color: var(--ink-soft); font-size: 12px; }
 .credit-tags { font-size: 11.5px; color: var(--ink-soft); letter-spacing: 0.04em; line-height: 1.8; }
+.credit-birthday { margin: 0 0 10px; font-size: 14px; color: var(--accent); }
 
 /* ==========================================================================
    Theme: 夢幻柔光 (dreamy)

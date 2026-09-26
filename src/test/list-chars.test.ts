@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  birthdayCharacters,
   chosenAnime,
   drawCharacter,
+  isBirthdayOn,
   isPicked,
   matchCharacterTag,
   withPickedCharacters,
@@ -84,5 +86,29 @@ describe('matchCharacterTag', () => {
   it('gives nothing rather than a different character', () => {
     expect(matchCharacterTag([tag('frieren', 'フリーレンさま')], [], { full: 'X', native: 'フリーレン' })).toBeUndefined();
     expect(matchCharacterTag([], [tag('jellal_fernandes')], { full: 'Fern', native: null })).toBeUndefined();
+  });
+});
+
+describe('birthdays', () => {
+  const born = (id: number, month: number, day: number): ListCharacter => ({ ...char(id, 'Female'), birthday: { month, day } });
+
+  it('matches the month and day in local time', () => {
+    expect(isBirthdayOn({ month: 9, day: 26 }, new Date(2026, 8, 26))).toBe(true);
+    expect(isBirthdayOn({ month: 9, day: 26 }, new Date(2026, 8, 27))).toBe(false);
+    expect(isBirthdayOn(null, new Date(2026, 8, 26))).toBe(false);
+    expect(isBirthdayOn(undefined, new Date(2026, 8, 26))).toBe(false);
+  });
+
+  it('celebrates 29 February on the 28th outside leap years', () => {
+    const leapDay = { month: 2, day: 29 };
+    expect(isBirthdayOn(leapDay, new Date(2027, 1, 28))).toBe(true);
+    expect(isBirthdayOn(leapDay, new Date(2028, 1, 28))).toBe(false);
+    expect(isBirthdayOn(leapDay, new Date(2028, 1, 29))).toBe(true);
+  });
+
+  it("lists today's birthday characters once, even when they are in several shows", () => {
+    const today = new Date(2026, 8, 26);
+    const list = [anime(1, 'CURRENT', [born(1, 9, 26), born(2, 1, 1)]), anime(2, 'COMPLETED', [born(1, 9, 26), char(3, 'Female')])];
+    expect(birthdayCharacters(list, today).map((c) => c.id)).toEqual([1]);
   });
 });

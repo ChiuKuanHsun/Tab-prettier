@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { t } from '../i18n';
+import { isBirthdayOn } from '../lib/list-chars';
 import { addToBlacklist } from '../lib/settings';
 import type { Credit, Scene } from '../lib/types';
 
@@ -46,6 +47,9 @@ export function CreditPanel({ scene, onNext }: { scene: Scene; onNext: () => Pro
 
   return (
     <div class="credit">
+      {scene.char?.birthday && isBirthdayOn(scene.char.birthday) && (
+        <p class="credit-birthday">{t('widgets.credit.birthday', { name: scene.char.birthday.name })}</p>
+      )}
       <CreditRow role={t('common.bg')} credit={scene.bg.credit} onBlock={scene.bg.credit.source !== 'upload' ? () => block(scene.bg.credit) : undefined} />
       {scene.char && (
         <CreditRow

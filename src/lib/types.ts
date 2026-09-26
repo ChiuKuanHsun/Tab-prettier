@@ -46,7 +46,12 @@ export interface SceneChar {
   /** Which image edges the character is cut off at; the renderer anchors to those. */
   cut: { left: boolean; right: boolean; bottom: boolean };
   credit: Credit;
+  /** Set when the scene was made for a list character's birthday. */
+  birthday?: BirthdayOf;
 }
+
+/** A character's name and birthday, for "happy birthday" on that day. */
+export interface BirthdayOf { name: string; month: number; day: number }
 
 export interface Scene {
   id: string;

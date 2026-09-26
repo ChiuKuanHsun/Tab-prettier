@@ -14,16 +14,16 @@ import {
 import { t } from '../i18n';
 import { db } from '../lib/db';
 import { deriveTheme, quantize } from '../lib/palette';
-import type { ListAnime } from '../lib/list-chars';
+import { birthdayCharacters, type ListAnime } from '../lib/list-chars';
 import { lastWeather } from '../lib/weather';
 import { uid } from '../lib/settings';
-import type { Credit, MediaKind, Scene, SceneChar, Settings, Upload } from '../lib/types';
+import type { BirthdayOf, Credit, MediaKind, Scene, SceneChar, Settings, Upload } from '../lib/types';
 import { applyRimLight, labStats, lightDirection, toGray, transferColors, type LabStats } from './harmonize';
 import { canvas, fetchBlob, fit, pixels } from './image';
 import { alphaMask, fadeCutEdges, hasCharacter, refineMask, type RefinedMask } from './refine';
 import { estimateDepth } from './depth';
 import { segment } from './segment';
-import { danbooru, danbooruResting, listCharacterTag, nekosia, returnToPool, waifuim, wallhaven, type Candidate } from './sources';
+import { birthdayCharacterTag, danbooru, danbooruResting, listCharacterTag, nekosia, returnToPool, waifuim, wallhaven, type Candidate } from './sources';
 
 const THUMB_W = 320, THUMB_H = 180;
 
@@ -144,26 +144,37 @@ async function buildBackground(s: Settings, blacklist: Set<string>, bucket: Time
 const pickOne = <T>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
 
 /** Gives the Danbooru tag of the character a featured scene is about (undefined: none found). */
-type Featured = () => Promise<string | undefined>;
+type Featured = () => Promise<{ tag: string; birthday?: BirthdayOf } | undefined>;
+
+/** Share of scenes made on a list character's birthday that feature them. */
+const BIRTHDAY_SHARE = 0.5;
 
 /**
- * Whether this scene features a chosen character: one of the favourites (a share of scenes set
- * by favoriteCharsWeight), else one from the AniList lists (listCharsWeight of the rest), so
- * they mix in with everything else rather than taking over.
+ * Whether this scene features a chosen character: on a list character's birthday, often them;
+ * otherwise one of the favourites (a share of scenes set by favoriteCharsWeight), else one from
+ * the AniList lists (listCharsWeight of the rest), so they mix in with everything else rather
+ * than taking over.
  */
 function sceneFeatured(s: Settings, listAnime?: ListAnime[]): Featured | undefined {
   if (!s.sources.danbooru) return undefined;
+  const birthdays = listAnime ? birthdayCharacters(listAnime) : [];
+  if (birthdays.length && Math.random() < BIRTHDAY_SHARE) return () => birthdayCharacterTag(birthdays);
   const favs = s.sources.favoriteChars;
-  if (favs.length && Math.random() < s.sources.favoriteCharsWeight) return async () => pickOne(favs);
-  if (listAnime?.length && Math.random() < s.sources.listCharsWeight) return () => listCharacterTag(listAnime);
+  if (favs.length && Math.random() < s.sources.favoriteCharsWeight) return async () => ({ tag: pickOne(favs) });
+  if (listAnime?.length && Math.random() < s.sources.listCharsWeight) {
+    return async () => {
+      const tag = await listCharacterTag(listAnime);
+      return tag ? { tag } : undefined;
+    };
+  }
   return undefined;
 }
 
 async function nextCharCandidate(s: Settings, blacklist: Set<string>, featured?: Featured): Promise<Candidate | Upload | undefined> {
   if (featured) {
-    const tag = await featured();
-    if (!tag) throw new Error('no featured character');
-    return danbooru(s, blacklist, tag);
+    const f = await featured();
+    if (!f) throw new Error('no featured character');
+    return { ...(await danbooru(s, blacklist, f.tag)), birthday: f.birthday };
   }
   const ups = await uploadsByRole('char');
   if (ups.length && Math.random() < s.sources.uploadsWeight) return pickOne(ups);
@@ -235,7 +246,11 @@ async function finishCharacter(
   const crop = canvas(bw, bh);
   crop.ctx.drawImage(c, x, y, bw, bh, 0, 0, bw, bh);
   const blob = await crop.c.convertToBlob({ type: 'image/webp', quality: 0.9 });
-  return { blob, width: bw, height: bh, cut: { left: r.cut.left, right: r.cut.right, bottom: r.cut.bottom }, credit: p.credit };
+  const birthday = 'blob' in p.cand ? undefined : p.cand.birthday;
+  return {
+    blob, width: bw, height: bh, cut: { left: r.cut.left, right: r.cut.right, bottom: r.cut.bottom }, credit: p.credit,
+    ...(birthday && { birthday }),
+  };
 }
 
 /**
