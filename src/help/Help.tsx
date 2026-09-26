@@ -19,6 +19,7 @@ const ITEMS: Record<SectionId, Item[]> = {
     [null, 'help.sources.overview'],
     ['options.sources.timeAware', 'help.sources.timeAware'],
     ['options.sources.query', 'help.sources.query'],
+    ['options.sources.nekosiaCategory', 'help.sources.nekosiaCategory'],
     ['options.sources.danbooru', 'help.sources.danbooru'],
     ['options.sources.duo', 'help.sources.duo'],
     ['options.sources.favoriteChars', 'help.sources.favoriteChars'],

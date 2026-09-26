@@ -1,6 +1,6 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useMemo, useState } from 'preact/hooks';
-import { db, queueCount, type FavoriteScene } from '../lib/db';
+import { db, kvGet, kvSet, queueCount, type FavoriteScene } from '../lib/db';
 import { favoriteBytes } from '../lib/scene-store';
 import { QUEUE_MAX, queueTarget, send } from '../lib/messages';
 import {
@@ -28,7 +28,76 @@ import { requestHosts, SUGGEST, useHosts } from '../lib/permissions';
 import { t, tRich } from '../i18n';
 import { SECTION_IDS, type SectionId } from './sections';
 
-const NEKOSIA_CATEGORIES = ['random', 'catgirl', 'foxgirl', 'wolf-girl', 'animal-ears', 'maid', 'uniform', 'cute', 'young-girl', 'white-hair', 'blue-hair', 'kimono', 'vtuber'] as const;
+/**
+ * Nekosia tags with plenty of safe images (at least ~30 each, measured 2026-09-26), most first;
+ * any other of its ~800 tags can be typed in, but a small one repeats the same few pictures.
+ */
+const NEKOSIA_CATEGORIES = [
+  'random', 'animal-ears', 'cute', 'cat-ears', 'catgirl', 'tail', 'young-girl', 'uniform', 'white-hair', 'vtuber',
+  'smile', 'fox-ears', 'pink-hair', 'foxgirl', 'sailor-uniform', 'long-hair', 'twintails', 'heterochromia',
+  'blue-archive', 'blue-hair', 'maid-uniform', 'blushing', 'short-hair', 'wolf-girl', 'blonde', 'hoodie',
+  'school-uniform', 'hololive', 'dress', 'maid', 'cherry-blossom',
+];
+const OTHER_TAG = '';
+
+/** Every Nekosia tag, for the "other tag" suggestions; cached for a week. */
+async function nekosiaTags(): Promise<string[]> {
+  const hit = await kvGet<string[]>('nekosia:tags', 7 * 86_400_000);
+  if (hit) return hit;
+  const res = await fetch('https://api.nekosia.cat/api/v1/tags');
+  const tags = ((await res.json()) as { tags?: string[] }).tags ?? [];
+  if (tags.length) await kvSet('nekosia:tags', tags);
+  return tags;
+}
+
+/** The common tags as a list, plus "other tag…" for typing any of the rest (with suggestions). */
+function NekosiaCategory({ value, onChange }: { value: string; onChange: (tag: string) => void }) {
+  const current = value || 'random';
+  const [other, setOther] = useState(!NEKOSIA_CATEGORIES.includes(current));
+  const [tags, setTags] = useState<string[]>([]);
+  useEffect(() => {
+    if (other && !tags.length) void nekosiaTags().then(setTags, () => undefined);
+  }, [other]);
+  return (
+    <>
+      <Field label={t('options.sources.nekosiaCategory')}>
+        <select
+          value={other ? OTHER_TAG : current}
+          onChange={(e) => {
+            const v = (e.target as HTMLSelectElement).value;
+            setOther(v === OTHER_TAG);
+            if (v !== OTHER_TAG) onChange(v);
+          }}
+        >
+          {NEKOSIA_CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+          <option value={OTHER_TAG}>{t('options.sources.nekosiaOther')}</option>
+        </select>
+      </Field>
+      {other && (
+        <Field label={t('options.sources.nekosiaTag')} hint={t('options.sources.nekosiaTagHint')}>
+          <input
+            list="nekosia-tags"
+            value={NEKOSIA_CATEGORIES.includes(current) ? '' : current}
+            placeholder="bunny-ears"
+            onChange={(e) => {
+              const v = (e.target as HTMLInputElement).value.trim().toLowerCase();
+              if (v) onChange(v);
+            }}
+          />
+          <datalist id="nekosia-tags">
+            {tags.map((tag) => (
+              <option key={tag} value={tag} />
+            ))}
+          </datalist>
+        </Field>
+      )}
+    </>
+  );
+}
 
 function Section({ id, title, note, children }: { id: SectionId; title: string; note?: string; children: ComponentChildren }) {
   return (
@@ -632,19 +701,7 @@ export function Options() {
         <Field label={t('options.sources.nekosia')}>
           <input type="checkbox" checked={s.sources.nekosia} onChange={() => setSrc({ nekosia: !s.sources.nekosia })} />
         </Field>
-        <Field label={t('options.sources.nekosiaCategory')}>
-          <select value={s.sources.nekosiaCategory || 'random'} onChange={(e) => setSrc({ nekosiaCategory: (e.target as HTMLSelectElement).value })}>
-            {NEKOSIA_CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {t(`options.sources.nekosiaCats.${c}`)}
-              </option>
-            ))}
-            {/* a category typed in before this became a list */}
-            {!(NEKOSIA_CATEGORIES as readonly string[]).includes(s.sources.nekosiaCategory || 'random') && (
-              <option value={s.sources.nekosiaCategory}>{s.sources.nekosiaCategory}</option>
-            )}
-          </select>
-        </Field>
+        <NekosiaCategory value={s.sources.nekosiaCategory} onChange={(tag) => setSrc({ nekosiaCategory: tag })} />
         <Field label={t('options.sources.waifuim')}>
           <input type="checkbox" checked={s.sources.waifuim} onChange={() => setSrc({ waifuim: !s.sources.waifuim })} />
         </Field>
