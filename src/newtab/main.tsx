@@ -7,9 +7,10 @@ import '@fontsource/shippori-mincho/400.css';
 import '@fontsource/shippori-mincho/500.css';
 import '@fontsource/shippori-mincho/600.css';
 import { render } from 'preact';
-import { t } from '../i18n';
+import { htmlLang, t } from '../i18n';
 import { App } from './App';
 import './newtab.css';
 
+document.documentElement.lang = htmlLang();
 document.title = t('newtab.title');
 render(<App />, document.getElementById('app')!);

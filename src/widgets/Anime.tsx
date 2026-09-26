@@ -18,7 +18,7 @@ import {
   type ListEntry,
   type MediaLite,
 } from '../lib/anilist';
-import { t, tRich } from '../i18n';
+import { locale, t, tRich } from '../i18n';
 import type { ListAnime } from '../lib/list-chars';
 import type { Settings } from '../lib/types';
 import { ListCharacters, useCharPicks } from './ListCharacters';
@@ -43,7 +43,7 @@ function useAsync<T>(load: () => Promise<T>, deps: unknown[]) {
 }
 
 const hhmm = (sec: number) =>
-  new Date(sec * 1000).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
+  new Date(sec * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false });
 
 function untilText(sec: number) {
   const d = sec * 1000 - Date.now();

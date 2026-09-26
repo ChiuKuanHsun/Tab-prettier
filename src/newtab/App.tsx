@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { t as msg } from '../i18n'; // `t` is the layout's text box below
+import { locale, t as msg } from '../i18n'; // `t` is the layout's text box below
 import { computeLayout } from '../lib/compose';
 import { saveSettings } from '../lib/settings';
 import type { SceneTheme } from '../lib/types';
@@ -126,7 +126,7 @@ export function App() {
 
   const focusLeft = remainingMs(focus, now.getTime());
   const countdown = focusLeft !== undefined ? formatRemaining(focusLeft) : undefined;
-  const hhmm = (d: Date) => d.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: !settings.clock24h });
+  const hhmm = (d: Date) => d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: !settings.clock24h });
   const focusStatus =
     focus.status === 'running'
       ? msg('newtab.focusRunning', { phase: PHASE_LABEL[focus.phase], end: hhmm(new Date(focus.endAt)), now: hhmm(now) })

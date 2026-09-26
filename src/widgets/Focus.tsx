@@ -17,7 +17,7 @@ import {
   type FocusPrefs,
   type FocusState,
 } from '../lib/focus';
-import { t } from '../i18n';
+import { locale, t } from '../i18n';
 
 export function useFocus(): FocusState {
   const [s, setS] = useState<FocusState>({ status: 'idle' });
@@ -114,7 +114,7 @@ export function FocusPanel({ state, now }: { state: FocusState; now: Date }) {
   const left = remainingMs(state, now.getTime());
   if (left !== undefined && (state.status === 'running' || state.status === 'paused')) {
     const progress = 1 - left / state.durationMs;
-    const end = state.status === 'running' ? new Date(state.endAt).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false }) : undefined;
+    const end = state.status === 'running' ? new Date(state.endAt).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false }) : undefined;
     return (
       <div class="focus">
         <p class="focus-phase">

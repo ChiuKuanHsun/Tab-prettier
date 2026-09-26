@@ -1,4 +1,5 @@
 import type { ComponentChildren } from 'preact';
+import { locale } from '../i18n';
 
 const KANJI = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
 const WEEK_JA = ['日', '月', '火', '水', '木', '金', '土'];
@@ -57,7 +58,7 @@ export function Clock({
 
 export function VerticalDate({ now }: { now: Date }) {
   return (
-    <div class="vdate" aria-label={now.toLocaleDateString('zh-TW', { dateStyle: 'full' })}>
+    <div class="vdate" aria-label={now.toLocaleDateString(locale, { dateStyle: 'full' })}>
       <span class="vdate-md">{kanjiNumber(now.getMonth() + 1)}月{kanjiNumber(now.getDate())}日</span>
       <span class="vdate-dow">{WEEK_JA[now.getDay()]}曜日</span>
     </div>

@@ -1,0 +1,10 @@
+{
+  "appName": {
+    "message": "Tab Prettier — Anime Depth New Tab",
+    "description": "Extension name in Chrome and the Web Store."
+  },
+  "appDesc": {
+    "message": "Every new tab is a new anime scene: backgrounds × characters in layered depth, with clock, search, links, to-dos and anime info.",
+    "description": "Extension description in Chrome and the Web Store (max 132 characters)."
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "appName": {
+    "message": "Tab Prettier — 動漫景深新分頁",
+    "description": "Extension name in Chrome and the Web Store."
+  },
+  "appDesc": {
+    "message": "每次開新分頁都是一幅新的動漫合成畫：場景 × 角色、景深分層、時鐘、搜尋、連結、待辦與番劇資訊。",
+    "description": "Extension description in Chrome and the Web Store (max 132 characters)."
+  }
+}

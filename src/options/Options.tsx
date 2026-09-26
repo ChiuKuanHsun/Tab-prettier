@@ -25,7 +25,7 @@ import { ListCharacters, useCharPicks } from '../widgets/ListCharacters';
 import { detectLocation, geocode, type Place } from '../lib/weather';
 import { THEMES } from '../themes';
 import { requestHosts, SUGGEST, useHosts } from '../lib/permissions';
-import { t, tRich } from '../i18n';
+import { localePref, saveLocalePref, t, tRich, type LocalePref } from '../i18n';
 import { SECTION_IDS, type SectionId } from './sections';
 
 /**
@@ -633,6 +633,20 @@ export function Options() {
             </label>
           ))}
         </div>
+        <Field label={t('options.look.language')}>
+          <select
+            value={localePref()}
+            onChange={async (e) => {
+              await saveLocalePref((e.target as HTMLSelectElement).value as LocalePref);
+              location.reload(); // labels built when the page loaded follow only after a reload
+            }}
+          >
+            <option value="auto">{t('options.look.languageAuto')}</option>
+            {/* each language in its own name, so it can be found whatever is showing */}
+            <option value="zh-TW">繁體中文</option>
+            <option value="en">English</option>
+          </select>
+        </Field>
         <Field label={t('options.look.rotation')} hint={t('options.look.rotationHint')}>
           <select value={s.rotation} onChange={(e) => set({ rotation: (e.target as HTMLSelectElement).value as Settings['rotation'] })}>
             <option value="tab">{t('options.look.rotationTab')}</option>

@@ -7,6 +7,7 @@ type Item = [term: MessageKey | null, text: MessageKey];
 
 const ITEMS: Record<SectionId, Item[]> = {
   look: [
+    ['options.look.language', 'help.look.language'],
     ['options.look.rotation', 'help.look.rotation'],
     ['options.look.rotationMinutes', 'help.look.minutes'],
     ['options.look.rotationTabs', 'help.look.tabs'],

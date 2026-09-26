@@ -3,7 +3,7 @@
  * leaves the latest reading in IndexedDB, where the offscreen pipeline picks it up to steer
  * background choice toward rainy or snowy scenes.
  */
-import { t } from '../i18n';
+import { locale, t } from '../i18n';
 import { kvGet, kvSet } from './db';
 import type { WeatherLocation } from './types';
 
@@ -123,7 +123,7 @@ export async function resolveLocation(
 }
 
 export async function geocode(q: string): Promise<Place[]> {
-  const params = new URLSearchParams({ name: q.trim(), count: '6', language: 'zh', format: 'json' });
+  const params = new URLSearchParams({ name: q.trim(), count: '6', language: locale === 'en' ? 'en' : 'zh', format: 'json' });
   const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?${params}`);
   if (!res.ok) throw new Error(`geocoding HTTP ${res.status}`);
   return ((await res.json()).results ?? []) as Place[];

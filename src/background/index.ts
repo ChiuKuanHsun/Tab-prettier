@@ -1,6 +1,6 @@
-import { t } from '../i18n';
+import { loadLocalePref, t } from '../i18n';
 import { hasAnyScene, queueCount } from '../lib/db';
-import { FOCUS_ALARM, getFocus, getFocusPrefs, PHASE_LABEL, setFocus, startFocus, type FocusState } from '../lib/focus';
+import { FOCUS_ALARM, getFocus, getFocusPrefs, setFocus, startFocus, type FocusState } from '../lib/focus';
 import { queueTarget, type ToBackground, type ToOffscreen } from '../lib/messages';
 import { getBlacklist, getSettings } from '../lib/settings';
 import { getToken, myListAnime } from '../lib/anilist';
@@ -105,6 +105,8 @@ async function finishFocus() {
   if (s.status !== 'running' || s.endAt > Date.now() + 2000) return;
   await setFocus({ status: 'done', phase: s.phase, finishedAt: Date.now() });
   const prefs = await getFocusPrefs();
+  await loadLocalePref(); // the user's language, not just Chrome's
+  const work = t('lib.phase.work');
   const wasWork = s.phase === 'work';
   await chrome.notifications.create('focus', {
     type: 'basic',
@@ -116,9 +118,9 @@ async function finishFocus() {
     buttons: wasWork
       ? [
           { title: t('background.startBreak', { n: prefs.break }) },
-          { title: t('background.workAgain', { phase: PHASE_LABEL.work, n: prefs.work }) },
+          { title: t('background.workAgain', { phase: work, n: prefs.work }) },
         ]
-      : [{ title: t('background.startWork', { phase: PHASE_LABEL.work, n: prefs.work }) }],
+      : [{ title: t('background.startWork', { phase: work, n: prefs.work }) }],
     priority: 2,
     // stays until dismissed, so a break reminder isn't missed while away from the screen
     requireInteraction: true,

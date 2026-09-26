@@ -211,6 +211,8 @@ export const zhTW = {
     },
     look: {
       theme: '主題',
+      language: '語言 Language',
+      languageAuto: '跟隨 Chrome',
       rotation: '換圖頻率',
       rotationHint: '頻率越低越省電',
       rotationTab: '每次開新分頁',
@@ -386,6 +388,7 @@ export const zhTW = {
       firstRun: '第一次使用時需要下載與處理圖片，約數十秒。',
     },
     look: {
+      language: '預設跟隨 Chrome 的語言：中文顯示繁體中文，其他語言顯示英文。也可以固定成其中一種，切換後頁面會重新整理。',
       rotation: '是否換圖在開新分頁時判斷；頻率越低，背景處理越少、越省電。',
       minutes: '距離這幅第一次出現超過這個時間，下一個新分頁就換。',
       tabs: '同一幅顯示這麼多次後換下一幅。',
