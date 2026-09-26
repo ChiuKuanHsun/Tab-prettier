@@ -125,8 +125,9 @@ async function nekosiaSession() {
 }
 
 export function nekosia(s: Settings, blacklist: Set<string>) {
-  return fromPool('pool:nekosia', characterFilter(s, blacklist), async () => {
-    const cat = encodeURIComponent(s.sources.nekosiaCategory || 'random');
+  const cat = encodeURIComponent(s.sources.nekosiaCategory || 'random');
+  // one pool per category, so changing it takes effect right away
+  return fromPool(`pool:nekosia:${cat}`, characterFilter(s, blacklist), async () => {
     // rating=safe: Nekosia's strictest rating (no revealing outfits)
     const params = new URLSearchParams({ count: '8', session: 'id', id: await nekosiaSession(), rating: 'safe' });
     const res = await fetchJson<{ images?: NekosiaImage[] } & Partial<NekosiaImage>>(

@@ -28,7 +28,7 @@ import { requestHosts, SUGGEST, useHosts } from '../lib/permissions';
 import { t, tRich } from '../i18n';
 import { SECTION_IDS, type SectionId } from './sections';
 
-const NEKOSIA_CATEGORIES = ['random', 'catgirl', 'foxgirl', 'wolf-girl', 'animal-ears', 'maid', 'uniform', 'cute', 'young-girl', 'white-hair', 'blue-hair', 'kimono', 'vtuber'];
+const NEKOSIA_CATEGORIES = ['random', 'catgirl', 'foxgirl', 'wolf-girl', 'animal-ears', 'maid', 'uniform', 'cute', 'young-girl', 'white-hair', 'blue-hair', 'kimono', 'vtuber'] as const;
 
 function Section({ id, title, note, children }: { id: SectionId; title: string; note?: string; children: ComponentChildren }) {
   return (
@@ -633,12 +633,17 @@ export function Options() {
           <input type="checkbox" checked={s.sources.nekosia} onChange={() => setSrc({ nekosia: !s.sources.nekosia })} />
         </Field>
         <Field label={t('options.sources.nekosiaCategory')}>
-          <input list="nekosia-cats" value={s.sources.nekosiaCategory} onChange={(e) => setSrc({ nekosiaCategory: (e.target as HTMLInputElement).value })} />
-          <datalist id="nekosia-cats">
+          <select value={s.sources.nekosiaCategory || 'random'} onChange={(e) => setSrc({ nekosiaCategory: (e.target as HTMLSelectElement).value })}>
             {NEKOSIA_CATEGORIES.map((c) => (
-              <option key={c} value={c} />
+              <option key={c} value={c}>
+                {t(`options.sources.nekosiaCats.${c}`)}
+              </option>
             ))}
-          </datalist>
+            {/* a category typed in before this became a list */}
+            {!(NEKOSIA_CATEGORIES as readonly string[]).includes(s.sources.nekosiaCategory || 'random') && (
+              <option value={s.sources.nekosiaCategory}>{s.sources.nekosiaCategory}</option>
+            )}
+          </select>
         </Field>
         <Field label={t('options.sources.waifuim')}>
           <input type="checkbox" checked={s.sources.waifuim} onChange={() => setSrc({ waifuim: !s.sources.waifuim })} />
