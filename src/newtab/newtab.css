@@ -551,7 +551,21 @@ button, input, textarea { font: inherit; color: inherit; }
 }
 .dock-right { left: auto; right: var(--outer); align-items: flex-end; }
 
-.dock-tabs { display: flex; gap: 22px; align-items: baseline; }
+.dock-tabs { position: relative; isolation: isolate; display: flex; gap: 22px; align-items: baseline; }
+/* A frosted pad under the tab row keeps it readable on any art, however close the colours: the
+   backdrop blurred and tinted a little towards the surface, fading out at the edges so it has no
+   visible box and barely touches the picture. */
+.dock-tabs::before {
+  content: '';
+  position: absolute;
+  inset: -16px -36px -14px;
+  z-index: -1;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--surface) 40%, transparent);
+  backdrop-filter: blur(12px) saturate(1.15);
+  mask-image: radial-gradient(closest-side, #000 55%, transparent);
+  pointer-events: none;
+}
 
 .dock-tab {
   position: relative;
