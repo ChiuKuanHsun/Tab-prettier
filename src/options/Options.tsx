@@ -27,7 +27,7 @@ import { THEMES } from '../themes';
 import { detectTier, type PerfTier } from '../lib/perf';
 import { allowFolder, bindFolder, folderAccess, getFolder, listFolder, unbindFolder, type FolderHandle, type FolderRole } from '../lib/folders';
 import { DEFAULT_BLOCK_SITES, parseSites, sitePattern, unallowedSites, watchedSites } from '../lib/focus-block';
-import { requestHosts, SUGGEST, useHosts } from '../lib/permissions';
+import { RECENT, requestHosts, requestPerms, SUGGEST, TOP_SITES, usePerms, type Perms } from '../lib/permissions';
 import { localePref, saveLocalePref, t, tRich, type LocalePref } from '../i18n';
 import { SECTION_IDS, type SectionId } from './sections';
 
@@ -137,11 +137,11 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 }
 
 /**
- * A switch for a feature that reaches a site the extension may not be allowed to yet: switching
+ * A switch for a feature that needs an optional permission (a site, or browser data): switching
  * it on asks Chrome first (and stays off if declined); on but not allowed shows a line to allow it.
  */
-function HostSwitch(props: { label: string; hint?: string; on: boolean; origins: string[]; onChange: (on: boolean) => void }) {
-  const allowed = useHosts(props.origins);
+function PermSwitch(props: { label: string; hint?: string; on: boolean; perms: Perms; onChange: (on: boolean) => void }) {
+  const allowed = usePerms(props.perms);
   return (
     <>
       <Field label={props.label} hint={props.hint}>
@@ -151,14 +151,14 @@ function HostSwitch(props: { label: string; hint?: string; on: boolean; origins:
           onChange={async (e) => {
             if (props.on) return props.onChange(false);
             (e.target as HTMLInputElement).checked = false; // until Chrome says yes
-            if (await requestHosts(props.origins)) props.onChange(true);
+            if (await requestPerms(props.perms)) props.onChange(true);
           }}
         />
       </Field>
       {props.on && allowed === false && (
         <p class="opt-warn opt-host-warn">
           {t('options.permission.missing')}
-          <button type="button" class="opt-link" onClick={() => void requestHosts(props.origins)}>
+          <button type="button" class="opt-link" onClick={() => void requestPerms(props.perms)}>
             {t('widgets.permission.allow')}
           </button>
         </p>
@@ -852,11 +852,25 @@ export function Options() {
             </Field>
           </>
         )}
-        <HostSwitch
+        <PermSwitch
+          label={t('options.look.linksRecent')}
+          hint={t('options.look.linksRecentHint')}
+          on={s.linksRecent}
+          perms={RECENT}
+          onChange={(on) => set({ linksRecent: on })}
+        />
+        <PermSwitch
+          label={t('options.look.linksTop')}
+          hint={t('options.look.linksTopHint')}
+          on={s.linksTop}
+          perms={TOP_SITES}
+          onChange={(on) => set({ linksTop: on })}
+        />
+        <PermSwitch
           label={t('options.look.suggest')}
           hint={t('options.look.suggestHint')}
           on={s.searchSuggest}
-          origins={SUGGEST}
+          perms={{ origins: SUGGEST }}
           onChange={(on) => set({ searchSuggest: on })}
         />
         <WeatherPicker mode={s.weatherMode} value={s.weatherLocation} onChange={(patch) => set(patch)} />

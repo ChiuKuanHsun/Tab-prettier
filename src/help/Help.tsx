@@ -13,6 +13,8 @@ const ITEMS: Record<SectionId, Item[]> = {
     ['options.look.rotationTabs', 'help.look.tabs'],
     ['options.look.suggest', 'help.look.suggest'],
     ['options.look.linkTint', 'help.look.linkTint'],
+    ['options.look.linksRecent', 'help.look.linksRecent'],
+    ['options.look.linksTop', 'help.look.linksTop'],
     ['options.weather.label', 'help.look.weather'],
     ['options.weather.auto', 'help.look.weatherAuto'],
     ['help.look.chromeTheme', 'help.look.chromeThemeText'],

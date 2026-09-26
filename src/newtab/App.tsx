@@ -145,7 +145,7 @@ export function App() {
   const birthday = birthdayToday(scene, settings.sources.listBirthdays);
 
   const dockItems: DockItem[] = [
-    { id: 'links', label: msg('newtab.dock.links'), render: () => <LinksPanel /> },
+    { id: 'links', label: msg('newtab.dock.links'), render: () => <LinksPanel recent={settings.linksRecent} top={settings.linksTop} /> },
     { id: 'todo', label: msg('newtab.dock.todo'), render: () => <TodoPanel /> },
     { id: 'notes', label: msg('newtab.dock.notes'), render: () => <NotesPanel /> },
     { id: 'focus', label: msg('newtab.dock.focus'), render: () => <FocusPanel state={focus} now={now} /> },

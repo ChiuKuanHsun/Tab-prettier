@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { t } from '../i18n';
 import { duotone } from '../lib/duotone';
+import { RECENT, TOP_SITES, usePerms } from '../lib/permissions';
 import { getLinks, onKeyChange, saveLinks, uid } from '../lib/settings';
 import type { LinkGroup } from '../lib/types';
 
@@ -62,7 +63,83 @@ export function LinkStrip({ perRow, tint }: { perRow: number; tint?: IconTint })
   );
 }
 
-export function LinksPanel() {
+interface BrowserLink { key: string; title: string; url: string; open?: () => void }
+
+const webPage = (url: string | undefined): url is string => !!url && /^(https?|file):/.test(url);
+
+/** Recently closed tabs, reopened with their history; live while the permission is granted. */
+function useRecentlyClosed(on: boolean): BrowserLink[] {
+  const ok = usePerms(RECENT);
+  const [items, setItems] = useState<BrowserLink[]>([]);
+  useEffect(() => {
+    if (!on || !ok) return setItems([]);
+    const load = () =>
+      void chrome.sessions.getRecentlyClosed({ maxResults: 20 }).then((sessions) =>
+        setItems(
+          sessions
+            .flatMap(({ tab }) => {
+              const id = tab?.sessionId;
+              if (!id || !webPage(tab.url)) return []; // other new tabs, settings pages…
+              return [{ key: id, title: tab.title || tab.url, url: tab.url, open: () => void chrome.sessions.restore(id) }];
+            })
+            .slice(0, 8),
+        ),
+      );
+    load();
+    chrome.sessions.onChanged.addListener(load);
+    return () => chrome.sessions.onChanged.removeListener(load);
+  }, [on, ok]);
+  return items;
+}
+
+/** The sites Chrome's own new tab offers as shortcuts. */
+function useTopSites(on: boolean): BrowserLink[] {
+  const ok = usePerms(TOP_SITES);
+  const [items, setItems] = useState<BrowserLink[]>([]);
+  useEffect(() => {
+    if (!on || !ok) return setItems([]);
+    void chrome.topSites.get().then((sites) =>
+      setItems(sites.filter((s) => webPage(s.url)).slice(0, 8).map((s) => ({ key: s.url, title: s.title || s.url, url: s.url }))),
+    );
+  }, [on, ok]);
+  return items;
+}
+
+function BrowserList({ title, items }: { title: string; items: BrowserLink[] }) {
+  if (!items.length) return null;
+  return (
+    <section class="link-group">
+      <h3 class="panel-kicker">{title}</h3>
+      <ul class="link-list">
+        {items.map((l) => (
+          <li key={l.key}>
+            <a
+              href={l.url}
+              class="link"
+              title={l.url}
+              aria-label={l.open ? t('widgets.links.restore', { title: l.title }) : undefined}
+              onClick={
+                l.open &&
+                ((e) => {
+                  e.preventDefault();
+                  l.open!();
+                })
+              }
+            >
+              <img src={favicon(l.url)} alt="" width={18} height={18} />
+              <span>{l.title}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** The user's link groups (editable), then recently closed tabs and top sites when switched on. */
+export function LinksPanel({ recent, top }: { recent: boolean; top: boolean }) {
+  const recentItems = useRecentlyClosed(recent);
+  const topItems = useTopSites(top);
   const [groups, update] = useLinks();
   const [editing, setEditing] = useState(false);
   const [drag, setDrag] = useState<{ g: number; i: number }>();
@@ -178,6 +255,8 @@ export function LinksPanel() {
           )}
         </section>
       ))}
+      {!editing && <BrowserList title={t('widgets.links.recent')} items={recentItems} />}
+      {!editing && <BrowserList title={t('widgets.links.top')} items={topItems} />}
     </div>
   );
 }

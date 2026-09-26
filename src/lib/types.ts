@@ -170,6 +170,10 @@ export interface Settings {
   linkIconsTint: boolean;
   /** Most pinned links per row before wrapping. */
   linksPerRow: number;
+  /** The Links panel also lists recently closed tabs (optional sessions + tabs permissions). */
+  linksRecent: boolean;
+  /** The Links panel also lists Chrome's top sites (optional topSites permission). */
+  linksTop: boolean;
   searchEngine: string;
   searchSuggest: boolean;
   /** auto = locate by IP; manual = weatherLocation; off = no weather. */
@@ -232,6 +236,8 @@ export const DEFAULT_SETTINGS: Settings = {
   pinLinks: false,
   linkIconsTint: false,
   linksPerRow: 8,
+  linksRecent: false,
+  linksTop: false,
   searchEngine: 'default',
   searchSuggest: true,
   weatherMode: 'auto',
