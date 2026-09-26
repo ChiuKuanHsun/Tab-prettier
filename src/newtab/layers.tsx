@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { DepthBackground } from './DepthBackground';
+import { DepthBackground, type DepthFog } from './DepthBackground';
 import type { Layout } from '../lib/compose';
 import type { ParticleKind, Scene } from '../lib/types';
 
@@ -8,19 +8,22 @@ export function Background({
   url,
   depthUrl,
   depthStrength,
+  fog,
   playing,
 }: {
   scene: Scene;
   url: string;
-  /** Depth map URL; with depthStrength > 0 the image is drawn through the 2.5D WebGL warp. */
+  /** Depth map URL; with depthStrength > 0 or some fog the image is drawn through WebGL. */
   depthUrl?: string;
   depthStrength: number;
+  /** Weather haze, thicker with distance (needs the depth map). */
+  fog?: DepthFog;
   playing: boolean;
 }) {
   const vid = useRef<HTMLVideoElement>(null);
   const [flat, setFlat] = useState(false);
   useEffect(() => setFlat(false), [url]);
-  const useDepth = scene.bg.kind === 'image' && !!depthUrl && depthStrength > 0 && !flat;
+  const useDepth = scene.bg.kind === 'image' && !!depthUrl && (depthStrength > 0 || !!fog) && !flat;
   useEffect(() => {
     const v = vid.current;
     if (!v) return;
@@ -40,6 +43,7 @@ export function Background({
           src={url}
           depthSrc={depthUrl!}
           strength={depthStrength}
+          fog={fog}
           running={playing}
           onReady={() => {}}
           onFail={() => setFlat(true)}
@@ -81,7 +85,12 @@ export function autoParticle(month = new Date().getMonth()): Kind {
 
 interface P { x: number; y: number; vx: number; vy: number; r: number; a: number; spin: number; rot: number; hue: number }
 
-export function Particles({ kind, accent, running }: { kind: Kind; accent: string; running: boolean }) {
+/**
+ * Falling or floating particles on one depth plane: `far` sits behind the character (most of them,
+ * so the figure stays clear), `near` is a handful of large, fast, blurred ones in front of it, like
+ * drops or petals close to the lens.
+ */
+export function Particles({ kind, accent, running, plane }: { kind: Kind; accent: string; running: boolean; plane: 'far' | 'near' }) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -97,8 +106,11 @@ export function Particles({ kind, accent, running }: { kind: Kind; accent: strin
     resize();
     addEventListener('resize', resize);
 
-    const count = kind === 'rain' ? 90 : kind === 'bokeh' ? 22 : 38;
-    const spawn = (anywhere: boolean): P => ({
+    const near = plane === 'near';
+    const count = near ? (kind === 'rain' ? 10 : kind === 'bokeh' ? 3 : 5) : kind === 'rain' ? 90 : kind === 'bokeh' ? 22 : 38;
+    // closer means bigger, faster (parallax) and fainter
+    const toNear = (p: P): P => (near ? { ...p, r: p.r * 2.6, vx: p.vx * 1.5, vy: p.vy * 1.5, a: p.a * 0.55 } : p);
+    const spawn = (anywhere: boolean): P => toNear({
       x: Math.random() * w,
       y: anywhere ? Math.random() * h : -20,
       vx: kind === 'rain' ? -1.2 : (Math.random() - 0.3) * 0.6,
@@ -129,7 +141,7 @@ export function Particles({ kind, accent, running }: { kind: Kind; accent: strin
         ctx.fill();
       } else if (kind === 'rain') {
         ctx.strokeStyle = 'rgba(220,230,255,.6)';
-        ctx.lineWidth = 1;
+        ctx.lineWidth = near ? 2 : 1;
         ctx.beginPath();
         ctx.moveTo(p.x, p.y);
         ctx.lineTo(p.x + p.vx * 2, p.y + p.r);
@@ -171,7 +183,7 @@ export function Particles({ kind, accent, running }: { kind: Kind; accent: strin
       cancelAnimationFrame(raf);
       removeEventListener('resize', resize);
     };
-  }, [kind, accent, running]);
+  }, [kind, accent, running, plane]);
 
-  return <canvas ref={ref} class="layer layer-particles" data-enter="fade" aria-hidden="true" />;
+  return <canvas ref={ref} class={`layer layer-particles is-${plane}`} data-enter="fade" aria-hidden="true" />;
 }

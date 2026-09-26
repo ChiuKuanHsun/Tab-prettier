@@ -423,7 +423,7 @@ export const en: Messages = {
       tabs: 'The scene changes after being shown this many times.',
       suggest: 'Fetches suggested terms from Google as you type (the same as the address bar). The first time, Chrome asks whether to allow connecting to Google.',
       linkTint: "Pinned link icons take two tones of the current scene's accent: dark parts in the accent, light parts in a pale tint, so logos stay recognisable; one-colour icons become accent silhouettes. The colours change with the scene, and hovering shows the originals. Icons in the \"Links\" panel keep their colours.",
-      weather: 'Shows the weather next to the date. When it rains or snows, the background switches to a rain or snow scene and the particles follow.',
+      weather: "Shows the weather next to the date. When it rains or snows, the background switches to a rain or snow scene and the particles follow. With particles on auto, rain, snow or fog also hazes the distance, thicker the farther away (needs the depth map, which the low performance level skips). Most particles fall behind the character; only a few large, blurred ones pass in front.",
       weatherAuto: 'Auto mode uses your IP and is only accurate to the city. It can be wrong on a VPN or company network; if so, choose a city. English city names search best (e.g. Taipei).',
       chromeTheme: 'Chrome tab bar',
       chromeThemeText: 'To give Chrome\'s tab bar the same style, install a theme pack from the project\'s chrome-themes/ folder separately (fixed colors; see the README).',

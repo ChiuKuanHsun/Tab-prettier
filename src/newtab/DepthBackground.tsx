@@ -22,6 +22,8 @@ uniform vec2 uScale;
 uniform vec2 uOffset;
 uniform vec2 uShift;
 uniform float uFocus;
+uniform vec3 uFogColor;
+uniform float uFog;
 void main() {
   vec2 uv = vUv * uScale + uOffset;
   vec2 p = uv;
@@ -30,6 +32,9 @@ void main() {
     p = uv - uShift * (d - uFocus);
   }
   outColor = texture(uImg, p);
+  // weather haze: the farther the pixel (dark in the depth map), the more of the fog colour
+  float far = 1.0 - texture(uDepth, p).r;
+  outColor.rgb = mix(outColor.rgb, uFogColor, uFog * smoothstep(0.2, 0.95, far));
 }`;
 
 const ZOOM = 1.08; // headroom so the warp never reveals the image edge
@@ -63,16 +68,20 @@ async function load(src: string) {
   return img;
 }
 
+/** Weather haze over the far part of the picture: how much (0..1) and its colour (0..1 RGB). */
+export interface DepthFog { amount: number; color: [number, number, number] }
+
 /**
  * Background drawn through WebGL with a depth-driven parallax: the eased pointer moves the
- * camera, plus a slow drift so the scene breathes on its own. Renders at ≤30fps and only while
- * the tab is visible. Calls `onFail` (so the caller can show the flat image) if WebGL2 or the
- * textures aren't available.
+ * camera, plus a slow drift so the scene breathes on its own; `fog` hazes the distance. Renders
+ * at ≤30fps and only while the tab is visible (with no motion, only when the fog changes). Calls
+ * `onFail` (so the caller can show the flat image) if WebGL2 or the textures aren't available.
  */
 export function DepthBackground({
   src,
   depthSrc,
   strength,
+  fog,
   running,
   onReady,
   onFail,
@@ -80,6 +89,7 @@ export function DepthBackground({
   src: string;
   depthSrc: string;
   strength: number;
+  fog?: DepthFog;
   running: boolean;
   onReady: () => void;
   onFail: () => void;
@@ -88,8 +98,10 @@ export function DepthBackground({
   // Read live by the render loop, so changing them never rebuilds the GL pipeline.
   const strengthRef = useRef(strength);
   const runningRef = useRef(running);
+  const fogRef = useRef(fog);
   strengthRef.current = strength;
   runningRef.current = running;
+  fogRef.current = fog;
 
   // The context is only thrown away when the canvas itself goes: a lost context stays lost on
   // that canvas, so losing it between scenes (or slider steps) would leave it blank for good.
@@ -143,6 +155,9 @@ export function DepthBackground({
         const uScale = gl.getUniformLocation(prog, 'uScale');
         const uOffset = gl.getUniformLocation(prog, 'uOffset');
         const uShift = gl.getUniformLocation(prog, 'uShift');
+        const uFog = gl.getUniformLocation(prog, 'uFog');
+        const uFogColor = gl.getUniformLocation(prog, 'uFogColor');
+        let drawnFog = '';
 
         const resize = () => {
           const dpr = Math.min(1.5, devicePixelRatio);
@@ -165,11 +180,17 @@ export function DepthBackground({
           const dx = pointer.x + 0.35 * Math.sin(t * 0.13);
           const dy = -pointer.y + 0.25 * Math.cos(t * 0.09);
           gl.uniform2f(uShift, dx * amp, dy * amp);
+          const f = fogRef.current;
+          gl.uniform1f(uFog, f?.amount ?? 0);
+          gl.uniform3f(uFogColor, ...(f?.color ?? [0, 0, 0]));
+          drawnFog = JSON.stringify(f);
           gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         };
         const frame = (now: number) => {
           raf = requestAnimationFrame(frame);
           if (!runningRef.current || now - last < 33) return;
+          // a still picture (no motion) is only redrawn when the fog changes
+          if (strengthRef.current <= 0 && JSON.stringify(fogRef.current) === drawnFog) return;
           last = now;
           draw(now);
         };

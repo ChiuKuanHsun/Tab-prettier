@@ -12,7 +12,7 @@ import { FavoriteButton, FavoriteRotationToggle } from '../widgets/Favorite';
 import { NextSceneButton } from '../widgets/NextScene';
 import { FocusPanel, useFocus } from '../widgets/Focus';
 import { useWeather, WeatherBadge } from '../widgets/Weather';
-import { weatherParticle } from '../lib/weather';
+import { weatherFog, weatherParticle } from '../lib/weather';
 import { countdownActive, formatRemaining, PHASE_LABEL, remainingMs } from '../lib/focus';
 import { LinksPanel, LinkStrip } from '../widgets/Links';
 import { Search } from '../widgets/Search';
@@ -103,6 +103,8 @@ export function App() {
 
   const particleKind = settings.particles === 'auto' ? (weatherParticle(weather?.mood) ?? autoParticle()) : settings.particles;
   const showParticles = particleKind !== 'off' && !lowPower && !reducedMotion;
+  // haze in the distance when the effects follow the weather
+  const depthFog = settings.particles === 'auto' ? weatherFog(weather?.mood, scene?.bucket) : undefined;
 
   const style = {
     '--accent': theme.accent,
@@ -186,11 +188,14 @@ export function App() {
           url={urls.bg}
           depthUrl={urls.depth}
           depthStrength={animate && !lowPower ? settings.depthMotion : 0}
+          fog={depthFog}
           playing={visible && !lowPower}
         />
       ) : (
         <div class="layer layer-bg bg-placeholder" />
       )}
+      {/* most particles fall behind the clock and the character; a few blurred ones pass in front */}
+      {showParticles && <Particles kind={particleKind} accent={theme.accent} running={visible} plane="far" />}
 
       <div class="layer layer-text" aria-hidden="true">
         <div class="col col-clock" data-enter="rise">
@@ -201,7 +206,7 @@ export function App() {
       {scene?.char && urls?.char && layout.char && <Character scene={scene} url={urls.char} box={layout.char} />}
 
       <div class="layer layer-fog" />
-      {showParticles && <Particles kind={particleKind} accent={theme.accent} running={visible} />}
+      {showParticles && <Particles kind={particleKind} accent={theme.accent} running={visible} plane="near" />}
 
       <div class="layer layer-ui">
         <div class="vdate-wrap" data-enter="fade">

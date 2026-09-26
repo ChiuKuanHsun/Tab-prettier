@@ -5,6 +5,7 @@
  */
 import { locale, t } from '../i18n';
 import { kvGet, kvSet } from './db';
+import type { TimeBucket } from './curation';
 import type { WeatherLocation } from './types';
 
 export type WeatherMood = 'clear' | 'cloudy' | 'fog' | 'rain' | 'snow' | 'storm';
@@ -49,6 +50,25 @@ export function weatherParticle(mood: WeatherMood | undefined): 'rain' | 'snow' 
   if (mood === 'rain' || mood === 'storm') return 'rain';
   if (mood === 'snow') return 'snow';
   return undefined;
+}
+
+/** Haze for the far part of the background, by weather: amount and base colour (0..1 RGB). */
+const FOG: Partial<Record<WeatherMood, [number, [number, number, number]]>> = {
+  fog: [0.55, [0.78, 0.79, 0.82]],
+  rain: [0.3, [0.6, 0.64, 0.7]],
+  storm: [0.36, [0.52, 0.55, 0.62]],
+  snow: [0.32, [0.86, 0.88, 0.93]],
+  cloudy: [0.12, [0.74, 0.76, 0.8]],
+};
+/** Darker haze for scenes that look like dusk or night, so it doesn't glow. */
+const FOG_LIGHT: Record<TimeBucket, number> = { day: 1, evening: 0.72, night: 0.42 };
+
+/** Weather haze for a scene (thicker with distance on the new tab), or none in clear weather. */
+export function weatherFog(mood: WeatherMood | undefined, bucket: TimeBucket = 'day') {
+  const f = mood && FOG[mood];
+  if (!f) return undefined;
+  const k = FOG_LIGHT[bucket];
+  return { amount: f[0], color: f[1].map((c) => c * k) as [number, number, number] };
 }
 
 const LAST = 'weather:last';
