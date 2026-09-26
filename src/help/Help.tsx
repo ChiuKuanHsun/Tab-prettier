@@ -17,7 +17,6 @@ const ITEMS: Record<SectionId, Item[]> = {
     ['options.look.linksTop', 'help.look.linksTop'],
     ['options.weather.label', 'help.look.weather'],
     ['options.weather.auto', 'help.look.weatherAuto'],
-    ['help.look.chromeTheme', 'help.look.chromeThemeText'],
   ],
   sources: [
     [null, 'help.sources.overview'],
