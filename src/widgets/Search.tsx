@@ -104,7 +104,9 @@ export function Search({
   const cur = ENGINES[engine] ?? ENGINES.default;
   const allowed = useHosts(SUGGEST);
   const historyOk = usePerms(SEARCH_HISTORY);
-  const useHistory = history && !!historyOk;
+  // Sites, tabs and past searches only for general web searches: with a site's own search
+  // (YouTube, pixiv …) the text is meant for that site, not for going somewhere.
+  const useHistory = history && !!historyOk && (engine === 'default' || engine === 'google');
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
