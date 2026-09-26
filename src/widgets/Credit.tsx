@@ -93,7 +93,11 @@ export function CreditPanel({
         />
       )}
       {scene.char?.credit.tags?.length ? (
-        <p class="credit-tags">{scene.char.credit.tags.slice(0, 8).map((t) => `#${t}`).join('  ')}</p>
+        <p class="credit-tags">
+          {scene.char.credit.tags.map((tag) => (
+            <span key={tag}>#{tag}</span>
+          ))}
+        </p>
       ) : null}
       <div class="panel-actions">
         <button

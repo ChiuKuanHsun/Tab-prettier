@@ -983,7 +983,22 @@ textarea:focus { border-color: var(--accent); }
 .credit-row { display: grid; grid-template-columns: 56px 1fr auto; align-items: baseline; gap: 8px; }
 .credit-row p { margin: 0; font-size: 14px; }
 .credit-src { color: var(--ink-soft); font-size: 12px; }
-.credit-tags { font-size: 11.5px; color: var(--ink-soft); letter-spacing: 0.04em; line-height: 1.8; }
+/* Every tag; past five lines the list scrolls instead of growing the panel. */
+.credit-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 12px;
+  max-height: calc(11.5px * 1.8 * 5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  letter-spacing: 0.04em;
+  line-height: 1.8;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--ink) 30%, transparent) transparent;
+}
+.credit-tags span { overflow-wrap: anywhere; }
 .credit-birthday { margin: 0 0 10px; font-size: 14px; color: var(--accent); }
 
 /* ==========================================================================
