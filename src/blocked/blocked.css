@@ -16,19 +16,21 @@ body {
   font-family: var(--serif-ja);
 }
 
+/* Fills the whole window, whatever wraps it (#app has no height of its own). */
 .blocked {
-  position: relative;
+  position: fixed;
+  inset: 0;
   display: grid;
   place-items: center;
-  height: 100%;
   overflow: hidden;
 }
 
+/* Frosted: blurred past the window's edges, so no dark rim shows where the blur fades out. */
 .blocked-bg {
   position: absolute;
-  inset: -24px;
-  width: calc(100% + 48px);
-  height: calc(100% + 48px);
+  inset: -40px;
+  width: calc(100% + 80px);
+  height: calc(100% + 80px);
   object-fit: cover;
   filter: blur(14px) brightness(0.45) saturate(0.9);
 }
