@@ -32,7 +32,7 @@ export const zhTW = {
       todo: '待辦',
       notes: '便條',
       focus: '專注',
-      anime: '番劇',
+      anime: '動畫',
       credit: '出處',
     },
   },
