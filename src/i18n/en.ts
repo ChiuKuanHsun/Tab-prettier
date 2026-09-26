@@ -428,7 +428,7 @@ export const en: Messages = {
   help: {
     title: 'Tab Prettier help',
     heading: 'Help',
-    intro: 'The settings page keeps hints short. Here is the full explanation of each option.',
+    intro: '',
     backToSettings: 'Back to settings',
     newtab: {
       title: 'New tab',
@@ -456,7 +456,7 @@ export const en: Messages = {
       timeAware: 'Blue skies and clouds by day, sunsets at dusk, night views at night. Turn it off to use the scene keywords below instead.',
       query: 'Comma-separated; each batch picks one at random. -girl excludes.',
       nekosiaCategory: "The menu lists common tags with lots of images; \"Other tag…\" lets you type any of nearly 800 tags. Tags with few images keep repeating, and a misspelled tag falls back to other sources.",
-      danbooru: 'Only general-rated images. Images with transparent backgrounds need no cutout, so edges are cleaner.',
+      danbooru: 'Only general-rated images.',
       duo: 'About a quarter of scenes use images of two characters, including ones with your favorite characters together. Images with three or more are never used.',
       favoriteChars: "Search by English, romaji or Japanese name. These characters are used for a share of scenes set by \"Favorite character share\"; excluded tags still apply. Needs Danbooru characters on.",
       listChars: "Takes main and supporting characters (main ones twice as likely) from your AniList \"Watching\" and \"Completed\" shows, then finds pictures on Danbooru. Female characters are checked by default; \"Characters\" next to a show lets you adjust them one by one. Characters with no sure match or fewer than 20 images are marked and never picked. Shows newly added to your lists are included automatically, and the lists refresh every 12 hours. Connect your account first under \"Anime → My list\" on the new tab.",
@@ -466,7 +466,7 @@ export const en: Messages = {
     },
     blend: {
       bake: "Colour harmony and rim light are applied when a scene is made; after changing them, press \"Clear and regenerate with new settings\" at the top of the settings. Blur and dimming apply right away.",
-      closeups: "About a third of bust shots are enlarged into close-ups, the lower part below the edge; full-body art whose feet touch the image's bottom edge can count as a bust shot, so switch this off to always see the feet. The switch applies to every scene at once, favourites included.",
+      closeups: "About a third of bust shots are enlarged into close-ups, the lower part below the edge; full-body art whose feet touch the image's bottom edge can count as a bust shot, so switch this off to always see the whole figure. The switch applies to every scene at once, favourites included.",
       distant: "About 30% of full-body figures are shown smaller, as if standing in the scene.",
       variety: 'Sometimes no character, just scenery with the clock centered.',
       rim: 'Lights the character\'s edges from the direction of the background\'s light source.',
