@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { t } from '../i18n';
 import {
   composeSuggestions,
@@ -33,19 +33,31 @@ async function fetchSuggestions(q: string, engine: string, signal: AbortSignal):
   return (data[1] ?? []).slice(0, 8);
 }
 
-/** Visits and open tabs for the typed text (the history API matches words in addresses and titles). */
-async function browserData(text: string): Promise<{ visits: Visit[]; tabs: OpenTab[]; currentTabId?: number }> {
+interface BrowserData { visits: Visit[]; tabs: OpenTab[]; currentTabId?: number; at: number }
+
+/**
+ * The last half year of history and the open tabs, read once when the box gets focus: searching
+ * the history per keystroke took seconds, filtering this copy takes no time at all.
+ */
+async function browserData(): Promise<BrowserData> {
   const [visits, tabs, current] = await Promise.all([
-    chrome.history.search({ text, startTime: 0, maxResults: 200 }),
+    chrome.history.search({ text: '', startTime: Date.now() - 180 * 86_400_000, maxResults: 10_000 }),
     chrome.tabs.query({}),
     chrome.tabs.getCurrent(),
   ]);
   return {
-    visits: visits.filter((v): v is Visit & chrome.history.HistoryItem => !!v.url),
+    visits: visits.flatMap((v) => (v.url ? [{ ...v, url: v.url }] : [])),
     tabs: tabs.flatMap((tab) => (tab.id !== undefined && tab.url ? [{ id: tab.id, windowId: tab.windowId, url: tab.url, title: tab.title ?? '' }] : [])),
     currentTabId: current?.id,
+    at: Date.now(),
   };
 }
+
+/** The visits that can match the text at all (a cheap filter before ranking). */
+const relevant = (visits: Visit[], text: string) => {
+  const t = text.toLowerCase();
+  return visits.filter((v) => v.url.toLowerCase().includes(t) || (v.title ?? '').toLowerCase().includes(t));
+};
 
 const isUrl = (t: string) => /^https?:\/\/\S+$/i.test(t);
 
@@ -84,7 +96,7 @@ export function Search({
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
   const [google, setGoogle] = useState<string[]>([]);
-  const [browser, setBrowser] = useState<Awaited<ReturnType<typeof browserData>>>();
+  const [browser, setBrowser] = useState<BrowserData>();
   const [active, setActive] = useState(-1);
   const [showList, setShowList] = useState(false);
   /** Set after a deletion or Esc: no inline completion until the next typed character. */
@@ -136,29 +148,29 @@ export function Search({
     };
   }, [text, engine, suggest, allowed]);
 
-  // History and tabs are local and quick: no debounce, so the inline completion keeps up with typing.
+  // History and tabs are read when the box gets focus (again after a minute), then filtered locally.
+  const loadBrowser = () => {
+    if (!useHistory || (browser && Date.now() - browser.at < 60_000)) return;
+    void browserData().then(setBrowser, () => undefined);
+  };
   useEffect(() => {
-    if (!useHistory || !text) {
-      setBrowser(undefined);
-      return;
-    }
-    let alive = true;
-    void browserData(text).then((d) => alive && setBrowser(d), () => undefined);
-    return () => {
-      alive = false;
-    };
-  }, [text, useHistory]);
+    if (useHistory && document.activeElement === input.current) loadBrowser();
+    if (!useHistory) setBrowser(undefined);
+  }, [useHistory]);
 
   useEffect(() => setActive(-1), [text]);
 
-  const items = text ? composeSuggestions(text, { ...browser, google: google.filter((g) => g !== text) }) : [];
+  const visits = useMemo(() => (browser && text ? relevant(browser.visits, text) : []), [browser, text]);
+  const items = text ? composeSuggestions(text, { visits, tabs: browser?.tabs, currentTabId: browser?.currentTabId, google: google.filter((g) => g !== text) }) : [];
   // the address-bar completion: typed text plus the rest of a site name, the rest selected
-  const completion = useHistory && !noComplete && active < 0 && q === text ? inlineCompletion(browser?.visits ?? [], q) : undefined;
+  const completion = useHistory && !noComplete && active < 0 && q === text ? inlineCompletion(visits, q) : undefined;
   const boxValue = active >= 0 && items[active] ? boxText(items[active]) : completion ? q + completion.display.slice(q.length) : q;
 
+  // Every keystroke re-selects the completed part: typing a letter that matches it leaves the
+  // shown text unchanged, and without this the selection would be gone.
   useLayoutEffect(() => {
     if (completion && document.activeElement === input.current) input.current!.setSelectionRange(q.length, boxValue.length);
-  }, [boxValue, completion?.display]);
+  }, [q, boxValue, completion?.display]);
 
   const search = (raw: string) => {
     const s = raw.trim();
@@ -275,7 +287,10 @@ export function Search({
           setShowList(true);
         }}
         onKeyDown={onKeyDown}
-        onFocus={() => setShowList(true)}
+        onFocus={() => {
+          setShowList(true);
+          loadBrowser();
+        }}
         onBlur={() => setShowList(false)}
         autoFocus
       />
