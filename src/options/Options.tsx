@@ -24,6 +24,7 @@ import { isPicked, type ListAnime } from '../lib/list-chars';
 import { ListCharacters, useCharPicks } from '../widgets/ListCharacters';
 import { detectLocation, geocode, type Place } from '../lib/weather';
 import { THEMES } from '../themes';
+import { requestHosts, SUGGEST, useHosts, WALLHAVEN } from '../lib/permissions';
 import { t, tRich } from '../i18n';
 import { SECTION_IDS, type SectionId } from './sections';
 
@@ -53,6 +54,37 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
       </span>
       <span class="opt-control">{children}</span>
     </label>
+  );
+}
+
+/**
+ * A switch for a feature that reaches a site the extension may not be allowed to yet: switching
+ * it on asks Chrome first (and stays off if declined); on but not allowed shows a line to allow it.
+ */
+function HostSwitch(props: { label: string; hint?: string; on: boolean; origins: string[]; onChange: (on: boolean) => void }) {
+  const allowed = useHosts(props.origins);
+  return (
+    <>
+      <Field label={props.label} hint={props.hint}>
+        <input
+          type="checkbox"
+          checked={props.on}
+          onChange={async (e) => {
+            if (props.on) return props.onChange(false);
+            (e.target as HTMLInputElement).checked = false; // until Chrome says yes
+            if (await requestHosts(props.origins)) props.onChange(true);
+          }}
+        />
+      </Field>
+      {props.on && allowed === false && (
+        <p class="opt-warn opt-host-warn">
+          {t('options.permission.missing')}
+          <button type="button" class="opt-link" onClick={() => void requestHosts(props.origins)}>
+            {t('widgets.permission.allow')}
+          </button>
+        </p>
+      )}
+    </>
   );
 }
 
@@ -575,16 +607,23 @@ export function Options() {
         <Field label={t('options.look.pinLinks')} hint={t('options.look.pinLinksHint')}>
           <input type="checkbox" checked={s.pinLinks} onChange={() => set({ pinLinks: !s.pinLinks })} />
         </Field>
-        <Field label={t('options.look.suggest')} hint={t('options.look.suggestHint')}>
-          <input type="checkbox" checked={s.searchSuggest} onChange={() => set({ searchSuggest: !s.searchSuggest })} />
-        </Field>
+        <HostSwitch
+          label={t('options.look.suggest')}
+          hint={t('options.look.suggestHint')}
+          on={s.searchSuggest}
+          origins={SUGGEST}
+          onChange={(on) => set({ searchSuggest: on })}
+        />
         <WeatherPicker mode={s.weatherMode} value={s.weatherLocation} onChange={(patch) => set(patch)} />
       </Section>
 
       <Section id="sources" title={t('options.nav.sources')} note={t('options.sources.note')}>
-        <Field label={t('options.sources.wallhaven')}>
-          <input type="checkbox" checked={s.sources.wallhaven} onChange={() => setSrc({ wallhaven: !s.sources.wallhaven })} />
-        </Field>
+        <HostSwitch
+          label={t('options.sources.wallhaven')}
+          on={s.sources.wallhaven}
+          origins={WALLHAVEN}
+          onChange={(on) => setSrc({ wallhaven: on })}
+        />
         <Field label={t('options.sources.timeAware')} hint={t('options.sources.timeAwareHint')}>
           <input type="checkbox" checked={s.sources.timeAware} onChange={() => setSrc({ timeAware: !s.sources.timeAware })} />
         </Field>

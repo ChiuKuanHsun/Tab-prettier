@@ -1,5 +1,6 @@
 import { t } from '../i18n';
-import { hasAnyScene, queueCount } from '../lib/db';
+import { dropQueued, hasAnyScene, queueCount } from '../lib/db';
+import { hasHosts, WALLHAVEN } from '../lib/permissions';
 import { FOCUS_ALARM, getFocus, getFocusPrefs, PHASE_LABEL, setFocus, startFocus, type FocusState } from '../lib/focus';
 import { queueTarget, type ToBackground, type ToOffscreen } from '../lib/messages';
 import { getBlacklist, getSettings } from '../lib/settings';
@@ -44,8 +45,15 @@ async function listAnimeFor(s: Settings): Promise<ListAnime[] | undefined> {
   }
 }
 
+/** The settings as the pipeline should follow them: Wallhaven counts as off until it's allowed. */
+async function effectiveSettings(): Promise<Settings> {
+  const s = await getSettings();
+  if (!s.sources.wallhaven || (await hasHosts(WALLHAVEN))) return s;
+  return { ...s, sources: { ...s.sources, wallhaven: false } };
+}
+
 async function refill(opts: { fromIdle?: boolean; lowPower?: boolean; force?: boolean } = {}) {
-  const settings = await getSettings();
+  const settings = await effectiveSettings();
   // Cache-only power saving makes nothing new, unless there is nothing at all to show yet or
   // the user asked for it (regenerate in the settings).
   if (settings.powerSave === 'cache' && !opts.force && (await hasAnyScene())) return;
@@ -83,6 +91,13 @@ chrome.runtime.onInstalled.addListener(async () => {
   await refill();
 });
 chrome.runtime.onStartup.addListener(() => void refill());
+
+// Once Wallhaven is allowed, the gradient scenes made while waiting give way to real backgrounds.
+chrome.permissions.onAdded.addListener(async (p) => {
+  if (!p.origins?.some((o) => WALLHAVEN.includes(o))) return;
+  await dropQueued((s) => s.bg.credit.id.startsWith('generated:'));
+  await refill();
+});
 chrome.alarms.onAlarm.addListener((a) => {
   if (a.name === 'refill') void refill();
   if (a.name === FOCUS_ALARM) void finishFocus();

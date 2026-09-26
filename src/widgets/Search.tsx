@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { t } from '../i18n';
+import { SUGGEST, useHosts } from '../lib/permissions';
+import { HostPrompt } from './HostPrompt';
 
 export const ENGINES: Record<string, { label: string; url?: string }> = {
   default: { label: t('widgets.search.defaultEngine') },
@@ -23,7 +25,18 @@ async function fetchSuggestions(q: string, engine: string, signal: AbortSignal):
 
 const isUrl = (t: string) => /^https?:\/\/\S+$/i.test(t);
 
-export function Search({ engine, onEngine, suggest }: { engine: string; onEngine: (e: string) => void; suggest: boolean }) {
+export function Search({
+  engine,
+  onEngine,
+  suggest,
+  onSuggestOff,
+}: {
+  engine: string;
+  onEngine: (e: string) => void;
+  suggest: boolean;
+  /** Turns suggestions off (the user declined to allow them). */
+  onSuggestOff: () => void;
+}) {
   const input = useRef<HTMLInputElement>(null);
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
@@ -31,6 +44,7 @@ export function Search({ engine, onEngine, suggest }: { engine: string; onEngine
   const [active, setActive] = useState(-1);
   const [showList, setShowList] = useState(false);
   const cur = ENGINES[engine] ?? ENGINES.default;
+  const allowed = useHosts(SUGGEST);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -47,7 +61,7 @@ export function Search({ engine, onEngine, suggest }: { engine: string; onEngine
   // Debounced suggestions; each keystroke aborts the previous request.
   useEffect(() => {
     const text = q.trim();
-    if (!suggest || !text || isUrl(text)) {
+    if (!suggest || !allowed || !text || isUrl(text)) {
       setItems([]);
       return;
     }
@@ -65,7 +79,7 @@ export function Search({ engine, onEngine, suggest }: { engine: string; onEngine
       clearTimeout(t);
       ctrl.abort();
     };
-  }, [q, engine, suggest]);
+  }, [q, engine, suggest, allowed]);
 
   const go = (raw: string) => {
     const text = raw.trim();
@@ -76,6 +90,8 @@ export function Search({ engine, onEngine, suggest }: { engine: string; onEngine
   };
 
   const listOpen = showList && items.length > 0;
+  // Suggestions are on but Google isn't allowed yet: ask where they would appear.
+  const ask = showList && suggest && allowed === false && !!q.trim() && !isUrl(q.trim());
 
   const onKeyDown = (e: KeyboardEvent) => {
     if (!listOpen) return;
@@ -176,6 +192,12 @@ export function Search({ engine, onEngine, suggest }: { engine: string; onEngine
             );
           })}
         </ul>
+      )}
+      {ask && (
+        // mousedown would blur the input and close this before the click lands
+        <div class="search-suggest search-suggest-ask" onMouseDown={(e) => e.preventDefault()}>
+          <HostPrompt text={t('widgets.permission.suggest')} origins={SUGGEST} onDecline={onSuggestOff} />
+        </div>
       )}
     </form>
   );

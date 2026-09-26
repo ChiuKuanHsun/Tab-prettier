@@ -142,6 +142,12 @@ export const zhTW = {
       placeholder: '搜尋，或輸入網址…',
       suggestions: '搜尋建議',
     },
+    permission: {
+      allow: '允許',
+      decline: '不用了',
+      wallhaven: '背景圖取自 Wallhaven，需要你允許連線；在那之前先用漸層背景。',
+      suggest: '搜尋建議要連線到 Google，需要你允許。',
+    },
     todo: {
       placeholder: '新增待辦，Enter 送出',
       add: '新增待辦',
@@ -190,6 +196,9 @@ export const zhTW = {
     added: '已加入 {n} 個檔案',
     imported: '已匯入',
     badFile: '檔案格式不正確',
+    permission: {
+      missing: '還沒允許連線，目前沒有作用。',
+    },
     nav: {
       look: '外觀',
       sources: '圖源',
@@ -378,7 +387,7 @@ export const zhTW = {
       rotation: '是否換圖在開新分頁時判斷；頻率越低，背景處理越少、越省電。',
       minutes: '距離這幅第一次出現超過這個時間，下一個新分頁就換。',
       tabs: '同一幅顯示這麼多次後換下一幅。',
-      suggest: '輸入時向 Google 取得建議字詞（和網址列的建議相同）。',
+      suggest: '輸入時向 Google 取得建議字詞（和網址列的建議相同）。第一次使用時 Chrome 會詢問是否允許連線到 Google。',
       weather: '日期旁顯示天氣；下雨下雪時背景會換成雨景、雪景，粒子也會跟著變。',
       weatherAuto: '自動模式依 IP 判斷，只到城市等級；用 VPN 或公司網路時可能不準，不準就改用手動。搜尋城市時英文名稱較準確（例如 Taipei）。',
       chromeTheme: 'Chrome 分頁列',
@@ -386,6 +395,7 @@ export const zhTW = {
     },
     sources: {
       overview: '背景取自 Wallhaven 的無人場景；角色取自 Nekosia / waifu.im / Danbooru 並自動去背。僅使用 SFW 內容。',
+      permission: 'Wallhaven 需要你允許連線才能使用：新分頁第一次開啟時會詢問，也可以在這裡的開關允許。拒絕的話背景改用漸層，或你上傳的背景。其他圖源不需要額外權限。',
       timeAware: '白天出藍天雲朵、傍晚出夕陽、夜晚出夜景。關閉後改用下方的場景關鍵字。',
       query: '以逗號分隔，每批隨機挑一組；-girl 代表排除。',
       danbooru: '只取全年齡分級的圖；透明背景的圖不必去背，邊緣更乾淨。',

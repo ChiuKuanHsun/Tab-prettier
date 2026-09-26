@@ -230,6 +230,7 @@ textarea {
 .opt-usage { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; margin: 0; font-size: 14px; }
 .opt-usage strong { font-family: var(--serif); font-size: 19px; font-weight: 400; font-variant-numeric: lining-nums; }
 .opt-warn { color: var(--accent); font-size: 13px; }
+.opt-host-warn { display: flex; gap: 10px; align-items: baseline; margin: 0; }
 
 .thumb-grid {
   list-style: none;

@@ -5,6 +5,8 @@ import { saveSettings } from '../lib/settings';
 import type { SceneTheme } from '../lib/types';
 import { AnimePanel } from '../widgets/Anime';
 import { BirthdayBadge, birthdayToday, CakeIcon, CreditPanel } from '../widgets/Credit';
+import { HostPrompt } from '../widgets/HostPrompt';
+import { useHosts, WALLHAVEN } from '../lib/permissions';
 import { Dock, type DockItem } from '../widgets/Dock';
 import { FavoriteButton, FavoriteRotationToggle } from '../widgets/Favorite';
 import { NextSceneButton } from '../widgets/NextScene';
@@ -53,6 +55,7 @@ export function App() {
   const focusActive = focus.status === 'running';
   const now = useNow(focusActive || settings?.clockSeconds ? 1000 : 60_000);
   const { scene, urls, next } = useScene(settings, lowPower);
+  const wallhavenAllowed = useHosts(WALLHAVEN);
   const stage = useRef<HTMLElement>(null);
   const [ready, setReady] = useState(false);
 
@@ -224,9 +227,17 @@ export function App() {
               engine={settings.searchEngine}
               suggest={settings.searchSuggest}
               onEngine={(e) => void saveSettings({ ...settings, searchEngine: e })}
+              onSuggestOff={() => void saveSettings({ ...settings, searchSuggest: false })}
             />
           </div>
           {settings.pinLinks && <LinkStrip />}
+          {settings.sources.wallhaven && wallhavenAllowed === false && (
+            <HostPrompt
+              text={msg('widgets.permission.wallhaven')}
+              origins={WALLHAVEN}
+              onDecline={() => void saveSettings({ ...settings, sources: { ...settings.sources, wallhaven: false } })}
+            />
+          )}
           {!scene && <p class="preparing">{msg('newtab.preparing')}</p>}
         </div>
         <Dock

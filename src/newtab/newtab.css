@@ -476,6 +476,18 @@ button, input, textarea { font: inherit; color: inherit; }
 }
 @keyframes pulse { 50% { opacity: 0.45; } }
 
+/* A site the extension isn't allowed to reach yet: one quiet line with two choices. */
+.host-prompt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.search-suggest-ask { padding: 10px 14px; }
+
 /* --- Dock & panels -------------------------------------------------------- */
 
 .dock {

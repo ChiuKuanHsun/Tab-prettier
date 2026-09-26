@@ -29,22 +29,9 @@
     "idle",
     "notifications"
   ],
-  "host_permissions": [
+  "optional_host_permissions": [
     "https://wallhaven.cc/*",
-    "https://w.wallhaven.cc/*",
-    "https://api.nekosia.cat/*",
-    "https://cdn.nekosia.cat/*",
-    "https://api.waifu.im/*",
-    "https://cdn.waifu.im/*",
-    "https://danbooru.donmai.us/*",
-    "https://cdn.donmai.us/*",
-    "https://graphql.anilist.co/*",
-    "https://anilist.co/*",
-    "https://suggestqueries.google.com/*",
-    "https://api.open-meteo.com/*",
-    "https://geocoding-api.open-meteo.com/*",
-    "https://ipwho.is/*",
-    "https://ipinfo.io/*"
+    "https://suggestqueries.google.com/*"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
