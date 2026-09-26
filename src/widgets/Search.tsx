@@ -181,11 +181,8 @@ export function Search({
                 aria-selected={i === active}
                 // keeps the input focused, so its blur doesn't close the list before the click
                 onMouseDown={(e) => e.preventDefault()}
-                // fills the box (Enter searches); hovering only highlights
-                onClick={() => {
-                  setQ(s);
-                  setActive(-1);
-                }}
+                // searches it; hovering only highlights
+                onClick={() => go(s)}
               >
                 {head && <span class="search-suggest-typed">{head}</span>}
                 <span>{s.slice(head.length)}</span>
