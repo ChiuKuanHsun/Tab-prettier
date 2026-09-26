@@ -54,8 +54,20 @@ export function Search({
         input.current?.focus();
       }
     };
+    // A click on the artwork itself (not a control, panel or text being selected) puts the cursor
+    // here: Chrome keeps a new tab's focus in the address bar, so this saves a second click.
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('a, button, input, textarea, select, label, [contenteditable], [tabindex], .panel, .dock')) return;
+      if (getSelection()?.toString()) return;
+      input.current?.focus();
+    };
     addEventListener('keydown', onKey);
-    return () => removeEventListener('keydown', onKey);
+    addEventListener('click', onClick);
+    return () => {
+      removeEventListener('keydown', onKey);
+      removeEventListener('click', onClick);
+    };
   }, []);
 
   // Debounced suggestions; each keystroke aborts the previous request.
