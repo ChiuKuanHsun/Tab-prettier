@@ -320,7 +320,7 @@ export function Search({
                   {main.slice(head.length)}
                 </span>
                 {s.kind === 'url' && <span class="search-suggest-sub">{displayUrl(s.url)}</span>}
-                {s.kind === 'tab' && <span class="search-suggest-sub">{t('widgets.search.switchTab')}</span>}
+                {s.kind === 'tab' && <span class="search-suggest-action">{t('widgets.search.switchTab')}</span>}
               </li>
             );
           })}
