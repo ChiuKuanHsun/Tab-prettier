@@ -5,6 +5,7 @@ import { saveSettings } from '../lib/settings';
 import type { SceneTheme } from '../lib/types';
 import { AnimePanel } from '../widgets/Anime';
 import { hexToRgb, luminance } from '../lib/color';
+import { download, exportScene } from './exportScene';
 import { shownVariant } from '../lib/curation';
 import { BirthdayBadge, birthdayToday, CakeIcon, CreditPanel } from '../widgets/Credit';
 import { Dock, type DockItem } from '../widgets/Dock';
@@ -163,7 +164,9 @@ export function App() {
           {
             id: 'credit',
             label: msg('newtab.dock.credit'),
-            render: () => <CreditPanel scene={scene} birthday={birthday} onNext={next} />,
+            render: () => (
+              <CreditPanel scene={scene} birthday={birthday} onNext={next} onExport={async () => download(await exportScene(scene, settings))} />
+            ),
             badge: birthday && { icon: <CakeIcon size={14} />, label: msg('widgets.credit.birthdayBadge') },
           },
         ]

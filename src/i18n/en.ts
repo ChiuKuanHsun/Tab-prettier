@@ -75,6 +75,9 @@ export const en: Messages = {
       blocked: 'Added to the blocklist. It won\'t show up again.',
       notReady: 'The next scene is still being prepared. Try again shortly.',
       next: 'Next scene →',
+      export: 'Download',
+      exporting: 'Making the image…',
+      exportFailed: "Couldn't make the image. Please try again.",
       birthday: '🎂 Today is {name}\'s birthday. Happy birthday!',
       birthdayShort: '{name}\'s birthday',
       birthdayBadge: 'A character has a birthday today',
@@ -413,7 +416,7 @@ export const en: Messages = {
       search: 'Click the background or press / to jump to the search bar. In a freshly opened tab the cursor is in Chrome\'s address bar (a Chrome limitation), so / types there; click the page first.',
       next: 'The arrow next to ♡ in the bottom toolbar switches to the next scene. If it isn\'t ready yet, you\'ll be asked to try again shortly.',
       focus: 'Once started, the big clock becomes a countdown. When time is up you get a system notification, even if the tab is closed. Custom times can be 1–240 minutes.',
-      credit: 'The "Credits" panel shows the artist and source. "Don\'t show again" adds the image to the blocklist.',
+      credit: 'The "Credits" panel shows the artist and source. "Don\'t show again" adds the image to the blocklist. "Download" saves the scene as a PNG at your screen\'s resolution, just the background and character (no clock, buttons or particles), ready to use as a wallpaper.',
       firstRun: 'The first run downloads and processes images, which takes tens of seconds.',
     },
     look: {

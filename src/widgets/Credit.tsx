@@ -61,7 +61,18 @@ export function BirthdayBadge({ name }: { name: string }) {
   );
 }
 
-export function CreditPanel({ scene, birthday, onNext }: { scene: Scene; birthday?: BirthdayOf; onNext: () => Promise<boolean> }) {
+export function CreditPanel({
+  scene,
+  birthday,
+  onNext,
+  onExport,
+}: {
+  scene: Scene;
+  birthday?: BirthdayOf;
+  onNext: () => Promise<boolean>;
+  /** Saves the scene as a wallpaper image. */
+  onExport: () => Promise<void>;
+}) {
   const [msg, setMsg] = useState<string>();
   useEffect(() => setMsg(undefined), [scene.id]);
 
@@ -93,6 +104,22 @@ export function CreditPanel({ scene, birthday, onNext }: { scene: Scene; birthda
           }}
         >
           {t('widgets.credit.next')}
+        </button>
+        <button
+          type="button"
+          class="text-btn"
+          onClick={async () => {
+            setMsg(t('widgets.credit.exporting'));
+            try {
+              await onExport();
+              setMsg(undefined);
+            } catch (e) {
+              console.warn('[export]', e);
+              setMsg(t('widgets.credit.exportFailed'));
+            }
+          }}
+        >
+          {t('widgets.credit.export')}
         </button>
       </div>
       {msg && <p class="panel-muted" role="status">{msg}</p>}
