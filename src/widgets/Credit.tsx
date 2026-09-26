@@ -36,6 +36,30 @@ function CreditRow({ role, credit, onBlock }: { role: string; credit: Credit; on
   );
 }
 
+/** Line-drawn cake, in the style of the weather glyphs. */
+export function CakeIcon({ size = 17 }: { size?: number }) {
+  return (
+    <svg class="cake-icon" viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
+      <path d="M4 20.5h16M5 20.5v-6.5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6.5" />
+      <path d="M5 15.5c1.2 1 2.3 1 3.5 0s2.3-1 3.5 0 2.3 1 3.5 0 2.3-1 3.5 0" />
+      <path d="M12 12V8.5M12 6c.9-.9.9-1.8 0-2.7-.9.9-.9 1.8 0 2.7z" />
+    </svg>
+  );
+}
+
+/** Today's birthday character in this scene, if any. */
+export const birthdayToday = (scene?: Scene | null) => (isBirthdayOn(scene?.char?.birthday) ? scene!.char!.birthday : undefined);
+
+/** Next to the date under the clock: whose birthday the scene celebrates. */
+export function BirthdayBadge({ name }: { name: string }) {
+  return (
+    <span class="birthday" title={t('widgets.credit.birthday', { name })}>
+      <CakeIcon />
+      <span>{t('widgets.credit.birthdayShort', { name })}</span>
+    </span>
+  );
+}
+
 export function CreditPanel({ scene, onNext }: { scene: Scene; onNext: () => Promise<boolean> }) {
   const [msg, setMsg] = useState<string>();
   useEffect(() => setMsg(undefined), [scene.id]);
@@ -47,9 +71,7 @@ export function CreditPanel({ scene, onNext }: { scene: Scene; onNext: () => Pro
 
   return (
     <div class="credit">
-      {scene.char?.birthday && isBirthdayOn(scene.char.birthday) && (
-        <p class="credit-birthday">{t('widgets.credit.birthday', { name: scene.char.birthday.name })}</p>
-      )}
+      {birthdayToday(scene) && <p class="credit-birthday">{t('widgets.credit.birthday', { name: birthdayToday(scene)!.name })}</p>}
       <CreditRow role={t('common.bg')} credit={scene.bg.credit} onBlock={scene.bg.credit.source !== 'upload' ? () => block(scene.bg.credit) : undefined} />
       {scene.char && (
         <CreditRow

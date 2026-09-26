@@ -6,6 +6,8 @@ export interface DockItem {
   id: string;
   label: string;
   render: () => ComponentChildren;
+  /** A small mark after the label (e.g. a cake on a birthday), with its text for screen readers. */
+  badge?: { icon: ComponentChildren; label: string };
 }
 
 /**
@@ -113,6 +115,12 @@ export function Dock({
           >
             <span class="dock-num">{String(i + 1).padStart(2, '0')}</span>
             <span class="dock-label">{it.label}</span>
+            {it.badge && (
+              <span class="dock-badge" title={it.badge.label}>
+                {it.badge.icon}
+                <span class="sr-only">{it.badge.label}</span>
+              </span>
+            )}
           </button>
         ))}
         {extra}

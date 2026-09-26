@@ -4,7 +4,7 @@ import { computeLayout } from '../lib/compose';
 import { saveSettings } from '../lib/settings';
 import type { SceneTheme } from '../lib/types';
 import { AnimePanel } from '../widgets/Anime';
-import { CreditPanel } from '../widgets/Credit';
+import { BirthdayBadge, birthdayToday, CakeIcon, CreditPanel } from '../widgets/Credit';
 import { Dock, type DockItem } from '../widgets/Dock';
 import { FavoriteButton, FavoriteRotationToggle } from '../widgets/Favorite';
 import { NextSceneButton } from '../widgets/NextScene';
@@ -136,6 +136,8 @@ export function App() {
   const focusProgress =
     focusLeft !== undefined && (focus.status === 'running' || focus.status === 'paused') ? 1 - focusLeft / focus.durationMs : undefined;
 
+  const birthday = birthdayToday(scene);
+
   const dockItems: DockItem[] = [
     { id: 'links', label: msg('newtab.dock.links'), render: () => <LinksPanel /> },
     { id: 'todo', label: msg('newtab.dock.todo'), render: () => <TodoPanel /> },
@@ -152,7 +154,16 @@ export function App() {
         />
       ),
     },
-    ...(scene ? [{ id: 'credit', label: msg('newtab.dock.credit'), render: () => <CreditPanel scene={scene} onNext={next} /> }] : []),
+    ...(scene
+      ? [
+          {
+            id: 'credit',
+            label: msg('newtab.dock.credit'),
+            render: () => <CreditPanel scene={scene} onNext={next} />,
+            badge: birthday && { icon: <CakeIcon size={14} />, label: msg('widgets.credit.birthdayBadge') },
+          },
+        ]
+      : []),
   ];
 
   const classes = [
@@ -200,7 +211,12 @@ export function App() {
               now={now}
               status={focusStatus}
               progress={focusProgress}
-              extra={weatherState && <WeatherBadge w={weatherState.w} place={weatherState.place} />}
+              extra={
+                <>
+                  {weatherState && <WeatherBadge w={weatherState.w} place={weatherState.place} />}
+                  {birthday && <BirthdayBadge name={birthday.name} />}
+                </>
+              }
             />
           </div>
           <div data-enter="rise">

@@ -305,6 +305,27 @@ button, input, textarea { font: inherit; color: inherit; }
 }
 .text-right .weather { margin-inline: 0 4px; }
 
+.birthday {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-style: normal;
+  font-size: 0.82em;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.cake-icon {
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 4px var(--surface));
+}
+.dock-badge { display: inline-flex; align-self: center; margin-inline-start: -2px; color: var(--accent); }
+
 .sr-only {
   position: absolute;
   width: 1px;
