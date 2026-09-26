@@ -145,7 +145,7 @@ export const zhTW = {
     permission: {
       allow: '允許',
       decline: '不用了',
-      wallhaven: '背景圖取自 Wallhaven，需要你允許連線；在那之前先用漸層背景。',
+      sources: '{names} 的圖需要你允許連線才能使用；在那之前先用其他圖源。',
       suggest: '搜尋建議要連線到 Google，需要你允許。',
     },
     todo: {
@@ -395,7 +395,7 @@ export const zhTW = {
     },
     sources: {
       overview: '背景取自 Wallhaven 的無人場景；角色取自 Nekosia / waifu.im / Danbooru 並自動去背。僅使用 SFW 內容。',
-      permission: 'Wallhaven 需要你允許連線才能使用：新分頁第一次開啟時會詢問，也可以在這裡的開關允許。拒絕的話背景改用漸層，或你上傳的背景。其他圖源不需要額外權限。',
+      permission: 'Wallhaven 與 Danbooru 需要你允許連線才能使用：新分頁第一次開啟時會一起詢問，也可以在這裡的開關允許。拒絕 Wallhaven 的話背景改用漸層或你上傳的背景；拒絕 Danbooru 的話角色只用 Nekosia 與 waifu.im，喜歡的角色與清單角色也不會出現。其他圖源不需要額外權限。',
       timeAware: '白天出藍天雲朵、傍晚出夕陽、夜晚出夜景。關閉後改用下方的場景關鍵字。',
       query: '以逗號分隔，每批隨機挑一組；-girl 代表排除。',
       danbooru: '只取全年齡分級的圖；透明背景的圖不必去背，邊緣更乾淨。',

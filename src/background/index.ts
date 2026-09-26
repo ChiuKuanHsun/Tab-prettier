@@ -1,6 +1,6 @@
 import { t } from '../i18n';
 import { dropQueued, hasAnyScene, queueCount } from '../lib/db';
-import { hasHosts, WALLHAVEN } from '../lib/permissions';
+import { blockedSources, WALLHAVEN } from '../lib/permissions';
 import { FOCUS_ALARM, getFocus, getFocusPrefs, PHASE_LABEL, setFocus, startFocus, type FocusState } from '../lib/focus';
 import { queueTarget, type ToBackground, type ToOffscreen } from '../lib/messages';
 import { getBlacklist, getSettings } from '../lib/settings';
@@ -45,11 +45,12 @@ async function listAnimeFor(s: Settings): Promise<ListAnime[] | undefined> {
   }
 }
 
-/** The settings as the pipeline should follow them: Wallhaven counts as off until it's allowed. */
+/** The settings as the pipeline should follow them: a source counts as off until it's allowed. */
 async function effectiveSettings(): Promise<Settings> {
   const s = await getSettings();
-  if (!s.sources.wallhaven || (await hasHosts(WALLHAVEN))) return s;
-  return { ...s, sources: { ...s.sources, wallhaven: false } };
+  const blocked = await blockedSources(s.sources);
+  if (!blocked.length) return s;
+  return { ...s, sources: { ...s.sources, ...Object.fromEntries(blocked.map((k) => [k, false])) } };
 }
 
 async function refill(opts: { fromIdle?: boolean; lowPower?: boolean; force?: boolean } = {}) {
@@ -92,10 +93,10 @@ chrome.runtime.onInstalled.addListener(async () => {
 });
 chrome.runtime.onStartup.addListener(() => void refill());
 
-// Once Wallhaven is allowed, the gradient scenes made while waiting give way to real backgrounds.
+// Once a source is allowed, it joins in; when that's Wallhaven, the gradient scenes made while
+// waiting give way to real backgrounds.
 chrome.permissions.onAdded.addListener(async (p) => {
-  if (!p.origins?.some((o) => WALLHAVEN.includes(o))) return;
-  await dropQueued((s) => s.bg.credit.id.startsWith('generated:'));
+  if (p.origins?.some((o) => WALLHAVEN.includes(o))) await dropQueued((s) => s.bg.credit.id.startsWith('generated:'));
   await refill();
 });
 chrome.alarms.onAlarm.addListener((a) => {

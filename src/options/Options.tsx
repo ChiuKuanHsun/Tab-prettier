@@ -24,7 +24,7 @@ import { isPicked, type ListAnime } from '../lib/list-chars';
 import { ListCharacters, useCharPicks } from '../widgets/ListCharacters';
 import { detectLocation, geocode, type Place } from '../lib/weather';
 import { THEMES } from '../themes';
-import { requestHosts, SUGGEST, useHosts, WALLHAVEN } from '../lib/permissions';
+import { DANBOORU, requestHosts, SUGGEST, useHosts, WALLHAVEN } from '../lib/permissions';
 import { t, tRich } from '../i18n';
 import { SECTION_IDS, type SectionId } from './sections';
 
@@ -646,9 +646,13 @@ export function Options() {
         <Field label={t('options.sources.waifuim')}>
           <input type="checkbox" checked={s.sources.waifuim} onChange={() => setSrc({ waifuim: !s.sources.waifuim })} />
         </Field>
-        <Field label={t('options.sources.danbooru')} hint={t('options.sources.danbooruHint')}>
-          <input type="checkbox" checked={s.sources.danbooru} onChange={() => setSrc({ danbooru: !s.sources.danbooru })} />
-        </Field>
+        <HostSwitch
+          label={t('options.sources.danbooru')}
+          hint={t('options.sources.danbooruHint')}
+          on={s.sources.danbooru}
+          origins={DANBOORU}
+          onChange={(on) => setSrc({ danbooru: on })}
+        />
         {s.sources.danbooru && (
           <Field label={t('options.sources.duo')} hint={t('options.sources.duoHint')}>
             <input type="checkbox" checked={s.sources.allowDuo} onChange={() => setSrc({ allowDuo: !s.sources.allowDuo })} />
