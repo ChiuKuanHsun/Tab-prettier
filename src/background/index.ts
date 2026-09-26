@@ -2,7 +2,8 @@ import { loadLocalePref, t } from '../i18n';
 import { hasAnyScene, queueCount } from '../lib/db';
 import { FOCUS_ALARM, getFocus, getFocusPrefs, setFocus, startFocus, type FocusState } from '../lib/focus';
 import { queueTarget, type ToBackground, type ToOffscreen } from '../lib/messages';
-import { getBlacklist, getSettings } from '../lib/settings';
+import { getBlacklist, getSettings, onKeyChange } from '../lib/settings';
+import { blockingNow, isBlockedUrl, sitePattern, unallowedSites } from '../lib/focus-block';
 import { getToken, myListAnime } from '../lib/anilist';
 import { chosenAnime, withPickedCharacters, type ListAnime } from '../lib/list-chars';
 import { getCharPicks } from '../lib/list-picks';
@@ -84,6 +85,7 @@ async function refill(opts: { fromIdle?: boolean; lowPower?: boolean; force?: bo
 
 chrome.runtime.onInstalled.addListener(async () => {
   await chrome.alarms.create('refill', { periodInMinutes: 30 });
+  await syncBlocker();
   await refill();
 });
 chrome.runtime.onStartup.addListener(() => void refill());
@@ -101,8 +103,63 @@ async function scheduleFocus(s: FocusState) {
 }
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'local' && changes.focus) void scheduleFocus((changes.focus.newValue as FocusState) ?? { status: 'idle' });
+  if (area === 'local' && changes.focus) {
+    const s = (changes.focus.newValue as FocusState) ?? { status: 'idle' };
+    void scheduleFocus(s);
+    if (blockingNow(s)) void blockOpenTabs();
+  }
 });
+
+// --- Blocking sites while focusing -------------------------------------------------
+
+const BLOCK_SCRIPT = 'focus-block';
+let registered: string | undefined;
+let syncing = Promise.resolve();
+
+/**
+ * Registers the asking script (public/focus-block.js) on the blocked sites Chrome has allowed,
+ * or removes it when blocking is off. Registrations persist, so this runs only on changes, one
+ * at a time (two at once would register the same id twice).
+ */
+function syncBlocker() {
+  syncing = syncing.then(registerBlocker).catch((e) => console.warn('[bg] focus block', e));
+  return syncing;
+}
+
+async function registerBlocker() {
+  const s = await getSettings();
+  const sites = s.focusBlock ? s.focusBlockSites : [];
+  const missing = new Set(await unallowedSites(sites));
+  const matches = sites.filter((x) => !missing.has(x)).map(sitePattern);
+  const key = matches.join(' ');
+  if (key === registered) return;
+  await chrome.scripting.unregisterContentScripts({ ids: [BLOCK_SCRIPT] }).catch(() => undefined);
+  if (matches.length) {
+    await chrome.scripting.registerContentScripts([{ id: BLOCK_SCRIPT, matches, js: ['focus-block.js'], runAt: 'document_start' }]);
+  }
+  registered = key;
+}
+
+onKeyChange('settings', () => void syncBlocker());
+chrome.permissions.onAdded.addListener(() => void syncBlocker());
+chrome.permissions.onRemoved.addListener(() => void syncBlocker());
+
+/** Sends a tab on a blocked site to the blocked page, if a focus round is running. */
+async function blockTab(tabId: number, url: string | undefined) {
+  const s = await getSettings();
+  if (!url || !s.focusBlock || !isBlockedUrl(url, s.focusBlockSites) || !blockingNow(await getFocus())) return;
+  await chrome.tabs.update(tabId, { url: chrome.runtime.getURL(`blocked.html?from=${encodeURIComponent(url)}`) });
+}
+
+/** When a focus round starts, tabs already open on blocked sites go too. */
+async function blockOpenTabs() {
+  const s = await getSettings();
+  if (!s.focusBlock) return;
+  const missing = new Set(await unallowedSites(s.focusBlockSites));
+  const url = s.focusBlockSites.filter((x) => !missing.has(x)).map(sitePattern);
+  if (!url.length) return;
+  for (const tab of await chrome.tabs.query({ url })) if (tab.id !== undefined) await blockTab(tab.id, tab.url);
+}
 
 async function finishFocus() {
   const s = await getFocus();
@@ -147,11 +204,12 @@ chrome.idle.onStateChanged.addListener(async (state) => {
   if (refillDeferred) await refill({ fromIdle: true });
 });
 
-chrome.runtime.onMessage.addListener((msg: ToBackground, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((msg: ToBackground, sender, sendResponse) => {
   if (msg?.to !== 'bg') return;
   (async () => {
     try {
       if (msg.type === 'refill') await refill({ lowPower: msg.lowPower, force: msg.force });
+      if (msg.type === 'focus-check' && sender.tab?.id !== undefined) await blockTab(sender.tab.id, sender.tab.url ?? sender.url);
       if (msg.type === 'offscreen-idle' && (await hasOffscreen())) await chrome.offscreen.closeDocument();
     } catch (e) {
       console.warn('[bg]', msg.type, e);

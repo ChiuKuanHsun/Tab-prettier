@@ -183,6 +183,12 @@ export const en: Messages = {
     startWork: '{phase} {n} min',
   },
 
+  blocked: {
+    title: 'Focusing',
+    kicker: 'Focusing',
+    text: "{site} can wait until this focus round is over. When time's up, or the timer is paused or stopped, you'll be taken back.",
+    textNoSite: 'This site can wait until the focus round is over.',
+  },
   options: {
     title: 'Tab Prettier settings',
     heading: 'Settings',
@@ -202,6 +208,7 @@ export const en: Messages = {
       blend: 'Blend',
       motion: 'Motion',
       power: 'Power',
+      focus: 'Focus',
       uploads: 'Uploads',
       favorites: 'Favorites',
       anilist: 'AniList',
@@ -342,6 +349,13 @@ export const en: Messages = {
       perfMedium: 'Medium',
       perfHigh: 'High',
     },
+    focus: {
+      block: 'Block sites while focusing',
+      blockHint: 'In focus rounds, not in breaks',
+      sites: 'Blocked sites',
+      sitesHint: 'Comma separated; subdomains included',
+      missing: "{sites} not allowed yet, so they can't be blocked.",
+    },
     uploads: {
       note: 'Files stay on this computer.',
       addBg: '+ Add background',
@@ -430,6 +444,10 @@ export const en: Messages = {
       perf: 'How much effort each new scene takes. High: compares 3 candidate characters, picks the best colour match and computes depth. Medium: compares 2. Low: uses 1, skips depth (no 3D background motion), stores smaller images and only works while the computer is idle, which suits office laptops. Auto decides from whether a usable graphics card (WebGPU) is available, memory and CPU cores.',
       queueSize: 'New tabs don\'t have to wait because a few scenes are prepared ahead in a queue. 0 decides automatically from how often scenes change (2–5); the maximum is 30, about 1 MB each. Raising it prepares a few more in the background, giving "Use existing scenes only" more to cycle through. Lowering it doesn\'t delete prepared scenes; the new number applies as they get used up.',
       cache: '"Use existing scenes only" never downloads or processes new images in the background, saving the most power. It cycles through the queued scenes, the 30 most recently shown and your favorites, preferring ones not seen for a while. "Clear and regenerate with new settings" at the top of the settings page still generates a new batch.',
+    },
+    focus: {
+      block: "With this on, opening these sites during a focus round of the focus timer shows the time left instead; when time's up, or the timer is paused or stopped, the tab goes back to the page. Breaks aren't blocked. Tabs already open on these sites when a focus round starts are blocked too.",
+      sites: "Chrome only lets the extension block a site you've allowed: it asks when you switch this on or add sites, and sites not allowed yet are listed below. It's only used to decide whether to block; page content is never read.",
     },
     uploads: {
       formats: 'Backgrounds can be images, GIFs or MP4/WebM videos. Characters must be images and are cut out automatically. Files stay on this computer.',

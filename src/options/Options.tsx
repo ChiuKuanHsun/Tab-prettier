@@ -25,6 +25,7 @@ import { ListCharacters, useCharPicks } from '../widgets/ListCharacters';
 import { detectLocation, geocode, type Place } from '../lib/weather';
 import { THEMES } from '../themes';
 import { detectTier, type PerfTier } from '../lib/perf';
+import { DEFAULT_BLOCK_SITES, parseSites, sitePattern, unallowedSites } from '../lib/focus-block';
 import { requestHosts, SUGGEST, useHosts } from '../lib/permissions';
 import { localePref, saveLocalePref, t, tRich, type LocalePref } from '../i18n';
 import { SECTION_IDS, type SectionId } from './sections';
@@ -160,6 +161,67 @@ function HostSwitch(props: { label: string; hint?: string; on: boolean; origins:
             {t('widgets.permission.allow')}
           </button>
         </p>
+      )}
+    </>
+  );
+}
+
+/**
+ * Sites blocked during focus rounds. Each needs Chrome's permission, asked for from a click (the
+ * switch, or "Allow"), since Chrome only asks in response to one.
+ */
+function FocusBlock({ s, set }: { s: Settings; set: (patch: Partial<Settings>) => void }) {
+  const sites = s.focusBlockSites;
+  const [missing, setMissing] = useState<string[]>([]);
+  useEffect(() => {
+    const check = () => void unallowedSites(sites).then(setMissing);
+    check();
+    chrome.permissions.onAdded.addListener(check);
+    chrome.permissions.onRemoved.addListener(check);
+    return () => {
+      chrome.permissions.onAdded.removeListener(check);
+      chrome.permissions.onRemoved.removeListener(check);
+    };
+  }, [sites.join()]);
+  const allow = (list: string[]) => list.length && void requestHosts(list.map(sitePattern));
+
+  return (
+    <>
+      <Field label={t('options.focus.block')} hint={t('options.focus.blockHint')}>
+        <input
+          type="checkbox"
+          checked={s.focusBlock}
+          onChange={() => {
+            if (!s.focusBlock) allow(missing);
+            set({ focusBlock: !s.focusBlock });
+          }}
+        />
+      </Field>
+      {s.focusBlock && (
+        <div class="opt-field opt-field-block">
+          <span class="opt-label">
+            {t('options.focus.sites')}
+            <small>
+              {t('options.focus.sitesHint')}
+              <button type="button" class="opt-link" onClick={() => set({ focusBlockSites: DEFAULT_BLOCK_SITES })}>
+                {t('options.sources.excludeReset')}
+              </button>
+            </small>
+          </span>
+          <textarea
+            rows={3}
+            value={sites.join(', ')}
+            onChange={(e) => set({ focusBlockSites: parseSites((e.target as HTMLTextAreaElement).value) })}
+          />
+          {missing.length > 0 && (
+            <p class="opt-warn opt-host-warn">
+              {t('options.focus.missing', { sites: missing.join(', ') })}
+              <button type="button" class="opt-link" onClick={() => allow(missing)}>
+                {t('widgets.permission.allow')}
+              </button>
+            </p>
+          )}
+        </div>
       )}
     </>
   );
@@ -877,6 +939,10 @@ export function Options() {
           />
           <span class="unit">{t('options.favorites.limitUnit')}</span>
         </Field>
+      </Section>
+
+      <Section id="focus" title={t('options.nav.focus')}>
+        <FocusBlock s={s} set={set} />
       </Section>
 
       <Section id="uploads" title={t('options.nav.uploads')} note={t('options.uploads.note')}>

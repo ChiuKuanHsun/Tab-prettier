@@ -17,6 +17,7 @@ export default defineConfig(({ mode }) => ({
         options: resolve('options.html'),
         help: resolve('help.html'),
         offscreen: resolve('offscreen.html'),
+        blocked: resolve('blocked.html'),
         background: resolve('src/background/index.ts'),
       },
       output: {

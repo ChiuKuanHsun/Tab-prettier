@@ -1,0 +1,68 @@
+/* The page shown instead of a blocked site: the new tab's scene, dimmed, and the time left. */
+:root {
+  --accent: #c9a7ff;
+  --ink: #f4f1f7;
+  --ink-soft: rgb(244 241 247 / 0.72);
+  --serif-display: 'Cormorant Garamond', 'Times New Roman', serif;
+  --serif-ja: 'Shippori Mincho', 'Yu Mincho', 'Hiragino Mincho ProN', serif;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #0e0d10;
+  color: var(--ink);
+  font-family: var(--serif-ja);
+}
+
+.blocked {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 100%;
+  overflow: hidden;
+}
+
+.blocked-bg {
+  position: absolute;
+  inset: -24px;
+  width: calc(100% + 48px);
+  height: calc(100% + 48px);
+  object-fit: cover;
+  filter: blur(14px) brightness(0.45) saturate(0.9);
+}
+
+.blocked-card {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 16px;
+  text-align: center;
+  text-shadow: 0 2px 18px rgb(0 0 0 / 0.45);
+}
+
+.blocked-kicker {
+  margin: 0;
+  font-size: 14px;
+  letter-spacing: 0.4em;
+  color: var(--accent);
+}
+
+.blocked-time {
+  margin: 0;
+  font-family: var(--serif-display);
+  font-weight: 300;
+  font-size: clamp(88px, 16vw, 200px);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.blocked-text {
+  margin: 0;
+  max-width: 34em;
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--ink-soft);
+}

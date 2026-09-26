@@ -4,7 +4,9 @@ import type { Settings } from './types';
 /** newtab/options → service worker */
 export type ToBackground =
   | { to: 'bg'; type: 'refill'; lowPower?: boolean; force?: boolean }
-  | { to: 'bg'; type: 'offscreen-idle' };
+  | { to: 'bg'; type: 'offscreen-idle' }
+  /** From the content script on a blocked site: is it blocked right now? */
+  | { to: 'bg'; type: 'focus-check' };
 
 /** service worker → offscreen document */
 export type ToOffscreen = {

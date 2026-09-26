@@ -45,6 +45,10 @@ const ITEMS: Record<SectionId, Item[]> = {
     ['options.power.queueSize', 'help.power.queueSize'],
     ['options.power.cache', 'help.power.cache'],
   ],
+  focus: [
+    ['options.focus.block', 'help.focus.block'],
+    ['options.focus.sites', 'help.focus.sites'],
+  ],
   uploads: [
     [null, 'help.uploads.formats'],
     ['options.sources.uploadsWeight', 'help.uploads.weight'],

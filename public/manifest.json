@@ -28,7 +28,8 @@
     "favicon",
     "search",
     "idle",
-    "notifications"
+    "notifications",
+    "scripting"
   ],
   "host_permissions": [
     "https://wallhaven.cc/*",
@@ -36,7 +37,8 @@
     "https://cdn.donmai.us/*"
   ],
   "optional_host_permissions": [
-    "https://suggestqueries.google.com/*"
+    "https://suggestqueries.google.com/*",
+    "*://*/*"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
