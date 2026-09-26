@@ -205,10 +205,8 @@ export function Search({
   };
 
   const onKeyDown = (e: KeyboardEvent) => {
-    if ((e.key === 'ArrowRight' || e.key === 'End' || e.key === 'Tab') && completion && accept()) {
-      if (e.key === 'Tab') e.preventDefault();
-      return;
-    }
+    // → takes the completion (Tab keeps moving focus, as elsewhere on the page)
+    if (e.key === 'ArrowRight' && completion && accept()) return;
     if (e.key === 'Escape') {
       e.stopPropagation();
       if (completion) setNoComplete(true);
