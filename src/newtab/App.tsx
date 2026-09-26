@@ -4,6 +4,7 @@ import { computeLayout } from '../lib/compose';
 import { saveSettings } from '../lib/settings';
 import type { SceneTheme } from '../lib/types';
 import { AnimePanel } from '../widgets/Anime';
+import { hexToRgb, luminance } from '../lib/color';
 import { BirthdayBadge, birthdayToday, CakeIcon, CreditPanel } from '../widgets/Credit';
 import { Dock, type DockItem } from '../widgets/Dock';
 import { FavoriteButton, FavoriteRotationToggle } from '../widgets/Favorite';
@@ -227,7 +228,12 @@ export function App() {
               onSuggestOff={() => void saveSettings({ ...settings, searchSuggest: false })}
             />
           </div>
-          {settings.pinLinks && <LinkStrip perRow={settings.linksPerRow} accent={settings.linkIconsTint ? theme.accent : undefined} />}
+          {settings.pinLinks && (
+            <LinkStrip
+              perRow={settings.linksPerRow}
+              tint={settings.linkIconsTint ? { accent: theme.accent, light: luminance(hexToRgb(theme.ink)) > 0.4 } : undefined}
+            />
+          )}
           {!scene && <p class="preparing">{msg('newtab.preparing')}</p>}
         </div>
         <Dock

@@ -25,14 +25,17 @@ export function normaliseUrl(u: string) {
   return /^[a-z][a-z0-9+.-]*:/i.test(t) ? t : `https://${t}`;
 }
 
+/** Colours for the pinned icons: the scene's accent, and whether the text there is light. */
+export interface IconTint { accent: string; light: boolean }
+
 /** A pinned link's icon; tinted, the original shows through on hover. */
-function StripIcon({ url, title, accent }: { url: string; title: string; accent?: string }) {
+function StripIcon({ url, title, tint }: { url: string; title: string; tint?: IconTint }) {
   const src = favicon(url);
   const [tinted, setTinted] = useState<string>();
   useEffect(() => {
     setTinted(undefined);
-    if (accent) void duotone(src, accent).then(setTinted, () => undefined);
-  }, [src, accent]);
+    if (tint) void duotone(src, tint.accent, tint.light).then(setTinted, () => undefined);
+  }, [src, tint?.accent, tint?.light]);
   return (
     <>
       <img src={src} alt={title} width={20} height={20} />
@@ -43,16 +46,16 @@ function StripIcon({ url, title, accent }: { url: string; title: string; accent?
 
 /**
  * Compact favicon rows under the search box when links are pinned: `perRow` a row, and with
- * `accent` the icons take the scene's colours.
+ * `tint` the icons take the scene's colours.
  */
-export function LinkStrip({ perRow, accent }: { perRow: number; accent?: string }) {
+export function LinkStrip({ perRow, tint }: { perRow: number; tint?: IconTint }) {
   const [groups] = useLinks();
   const links = groups.flatMap((g) => g.links).slice(0, 24);
   return (
     <nav class="link-strip" style={{ '--per-row': perRow }} aria-label={t('widgets.links.strip')} data-enter="rise">
       {links.map((l) => (
         <a key={l.id} href={l.url} title={l.title}>
-          <StripIcon url={l.url} title={l.title} accent={accent} />
+          <StripIcon url={l.url} title={l.title} tint={tint} />
         </a>
       ))}
     </nav>
