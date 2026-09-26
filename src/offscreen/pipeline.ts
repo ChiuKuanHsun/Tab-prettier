@@ -15,6 +15,7 @@ import { t } from '../i18n';
 import { db } from '../lib/db';
 import { deriveTheme, quantize } from '../lib/palette';
 import { birthdayCharacters, type ListAnime } from '../lib/list-chars';
+import type { PerfBudget } from '../lib/perf';
 import { lastWeather } from '../lib/weather';
 import { uid } from '../lib/settings';
 import type { BirthdayOf, Credit, MediaKind, Scene, SceneChar, Settings, Upload } from '../lib/types';
@@ -84,7 +85,7 @@ async function bgFromUpload(u: Upload): Promise<Bg> {
   };
 }
 
-async function bgFromWallhaven(s: Settings, blacklist: Set<string>, bucket: TimeBucket): Promise<Bg> {
+async function bgFromWallhaven(s: Settings, blacklist: Set<string>, bucket: TimeBucket, budget: PerfBudget): Promise<Bg> {
   const weather = (await lastWeather())?.mood;
   for (let attempt = 0; attempt < 5; attempt++) {
     const cand = await wallhaven(s, blacklist, bucket, weather);
@@ -97,7 +98,7 @@ async function bgFromWallhaven(s: Settings, blacklist: Set<string>, bucket: Time
         blacklist.add(cand.credit.id);
         continue;
       }
-      const { c } = fit(bmp, 2560, 1600);
+      const { c } = fit(bmp, ...budget.bgMax);
       const blob = await c.convertToBlob({ type: 'image/webp', quality: 0.88 });
       const thumb = thumbOf(bmp, bmp.width, bmp.height);
       return {
@@ -132,12 +133,12 @@ async function bgGenerated(): Promise<Bg> {
   };
 }
 
-async function buildBackground(s: Settings, blacklist: Set<string>, bucket: TimeBucket): Promise<Bg> {
+async function buildBackground(s: Settings, blacklist: Set<string>, bucket: TimeBucket, budget: PerfBudget): Promise<Bg> {
   const ups = await uploadsByRole('bg');
   if (ups.length && (Math.random() < s.sources.uploadsWeight || !s.sources.wallhaven)) {
     return bgFromUpload(ups[Math.floor(Math.random() * ups.length)]);
   }
-  if (s.sources.wallhaven) return bgFromWallhaven(s, blacklist, bucket);
+  if (s.sources.wallhaven) return bgFromWallhaven(s, blacklist, bucket, budget);
   return bgGenerated();
 }
 
@@ -195,12 +196,12 @@ interface Prepared {
 }
 
 /** Downloads and segments one character candidate; undefined if the cut-out isn't usable. */
-async function prepareCharacter(cand: Candidate | Upload, blacklist: Set<string>): Promise<Prepared | undefined> {
+async function prepareCharacter(cand: Candidate | Upload, blacklist: Set<string>, budget: PerfBudget): Promise<Prepared | undefined> {
   const isUpload = 'blob' in cand;
   const credit: Credit = isUpload ? { id: `upload:${cand.id}`, source: 'upload', artist: cand.name } : cand.credit;
   try {
     const bmp = await createImageBitmap(isUpload ? cand.blob : await fetchBlob(cand.url));
-    const { c, ctx } = fit(bmp, 1400, 2000);
+    const { c, ctx } = fit(bmp, ...budget.charMax);
     const w = c.width, h = c.height;
     const t0 = performance.now();
     // Art already on a transparent background is its own mask; only the rest needs the model.
@@ -254,14 +255,16 @@ async function finishCharacter(
 }
 
 /**
- * Gathers up to three usable characters and keeps the one whose colour mood is closest to the
- * background (preferred tags win ties); the others go back to their pools for later scenes.
+ * Gathers up to `budget.candidates` usable characters and keeps the one whose colour mood is
+ * closest to the background (preferred tags win ties); the others go back to their pools for
+ * later scenes.
  */
 async function buildCharacter(
   s: Settings,
   blacklist: Set<string>,
   bg: Bg,
   light: { x: number; y: number },
+  budget: PerfBudget,
   listAnime?: ListAnime[],
 ) {
   const bgStats = labStats(bg.thumb.data);
@@ -269,7 +272,7 @@ async function buildCharacter(
   const ready: Prepared[] = [];
   let featured = (await danbooruResting()) ? undefined : sceneFeatured(s, listAnime);
   if (featured) log('featured scene');
-  for (let attempt = 0; attempt < 8 && ready.length < 3; attempt++) {
+  for (let attempt = 0; attempt < 8 && ready.length < budget.candidates; attempt++) {
     // Chosen characters that keep failing (few usable images, network) give way to the usual sources.
     if (featured && attempt === 4 && !ready.length) featured = undefined;
     const cand = await nextCharCandidate(s, blacklist, featured).catch((e) => log('no candidate', e));
@@ -278,7 +281,7 @@ async function buildCharacter(
       featured = undefined;
       continue;
     }
-    const p = await prepareCharacter(cand, blacklist);
+    const p = await prepareCharacter(cand, blacklist, budget);
     if (!p) continue;
     ready.push(p);
     if ('blob' in cand) break; // the user's own upload always wins
@@ -316,11 +319,16 @@ function regionAverage(img: ImageData, x0: number, x1: number, y0: number, y1: n
   return n ? [r / n, g / n, b / n] : [128, 128, 128];
 }
 
-export async function buildScene(s: Settings, blacklist: Set<string>, listAnime?: ListAnime[]): Promise<Scene> {
-  const bg = await buildBackground(s, blacklist, timeBucket());
+export async function buildScene(
+  s: Settings,
+  blacklist: Set<string>,
+  budget: PerfBudget,
+  listAnime?: ListAnime[],
+): Promise<Scene> {
+  const bg = await buildBackground(s, blacklist, timeBucket(), budget);
   // Depth map for the new tab's 2.5D motion (images only; optional — the tab falls back to flat).
   let depth: Blob | undefined;
-  if (bg.kind === 'image') {
+  if (bg.kind === 'image' && budget.depth) {
     try {
       const t0 = performance.now();
       depth = await estimateDepth(await createImageBitmap(bg.blob));
@@ -339,7 +347,7 @@ export async function buildScene(s: Settings, blacklist: Set<string>, listAnime?
 
   const wantsChar = s.sources.nekosia || s.sources.waifuim || s.sources.danbooru || (await uploadsByRole('char')).length > 0;
   const scenery = !wantsChar || (s.layoutVariety && bg.kind === 'image' && Math.random() < SCENERY_CHANCE);
-  const char = scenery ? undefined : await buildCharacter(s, blacklist, bg, light, listAnime);
+  const char = scenery ? undefined : await buildCharacter(s, blacklist, bg, light, budget, listAnime);
   const variant: Variant = !char ? 'scenery' : s.layoutVariety ? pickCharVariant(char.cut.bottom) : 'standard';
   log('scene', bucket, variant, charSide);
 

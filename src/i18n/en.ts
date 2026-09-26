@@ -335,6 +335,12 @@ export const en: Messages = {
       cache: 'Use existing scenes only',
       cacheNote: 'No new images; cycles saved scenes and favorites',
       idleOnly: 'Process new images only when idle',
+      perf: 'Performance level',
+      perfHint: 'How much work new scenes take',
+      perfAuto: 'Auto (this computer: {tier})',
+      perfLow: 'Low',
+      perfMedium: 'Medium',
+      perfHigh: 'High',
     },
     uploads: {
       note: 'Files stay on this computer.',
@@ -421,6 +427,7 @@ export const en: Messages = {
     power: {
       powerSave: 'Turns off particles, video and breathing, and processes new images only when idle.',
       idleOnly: 'Downloading and cutting out images uses power; with this on, it waits until the computer is idle.',
+      perf: 'How much effort each new scene takes. High: compares 3 candidate characters, picks the best colour match and computes depth. Medium: compares 2. Low: uses 1, skips depth (no 3D background motion), stores smaller images and only works while the computer is idle, which suits office laptops. Auto decides from whether a usable graphics card (WebGPU) is available, memory and CPU cores.',
       queueSize: 'New tabs don\'t have to wait because a few scenes are prepared ahead in a queue. 0 decides automatically from how often scenes change (2–5); the maximum is 30, about 1 MB each. Raising it prepares a few more in the background, giving "Use existing scenes only" more to cycle through. Lowering it doesn\'t delete prepared scenes; the new number applies as they get used up.',
       cache: '"Use existing scenes only" never downloads or processes new images in the background, saving the most power. It cycles through the queued scenes, the 30 most recently shown and your favorites, preferring ones not seen for a while. "Clear and regenerate with new settings" at the top of the settings page still generates a new batch.',
     },

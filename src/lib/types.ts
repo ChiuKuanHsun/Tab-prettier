@@ -150,6 +150,8 @@ export interface Settings {
   /** 'cache' also stops making new scenes: stored ones take turns (see pickScene). */
   powerSave: 'auto' | 'on' | 'cache' | 'off';
   processOnlyWhenIdle: boolean;
+  /** How much work a scene may take (see lib/perf); 'auto' detects the computer. */
+  perfTier: 'auto' | 'low' | 'medium' | 'high';
   /** Ready scenes to keep queued; 0 = automatic (2–5, by how often scenes change). */
   queueSize: number;
   pinLinks: boolean;
@@ -205,6 +207,7 @@ export const DEFAULT_SETTINGS: Settings = {
   enterAnimation: true,
   powerSave: 'auto',
   processOnlyWhenIdle: false,
+  perfTier: 'auto',
   queueSize: 0,
   pinLinks: false,
   searchEngine: 'default',

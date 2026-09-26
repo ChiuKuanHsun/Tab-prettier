@@ -1,5 +1,6 @@
 import { enqueue, queueCount } from '../lib/db';
 import type { Broadcast, ToBackground, ToOffscreen } from '../lib/messages';
+import { PERF, resolveTier } from '../lib/perf';
 import { buildScene } from './pipeline';
 import { releaseDepth } from './depth';
 import { backend, releaseModel } from './segment';
@@ -40,7 +41,8 @@ async function refill(msg: ToOffscreen) {
       for (const id of job.blacklist) blacklist.add(id);
       const t0 = performance.now();
       try {
-        const scene = await buildScene(job.settings, blacklist, job.listAnime);
+        const tier = await resolveTier(job.settings.perfTier, true);
+        const scene = await buildScene(job.settings, blacklist, PERF[tier], job.listAnime);
         if (!sameSettings(job, latest)) {
           console.log('[offscreen] settings changed while building; scene dropped');
           continue;
@@ -48,7 +50,7 @@ async function refill(msg: ToOffscreen) {
         await enqueue(scene);
         failures = 0;
         const count = await queueCount();
-        console.log(`[offscreen] scene ready in ${Math.round(performance.now() - t0)}ms (${backend}), queue=${count}`);
+        console.log(`[offscreen] scene ready in ${Math.round(performance.now() - t0)}ms (${backend}, ${tier}), queue=${count}`);
         chrome.runtime.sendMessage({ to: 'all', type: 'queue-updated', count } satisfies Broadcast).catch(() => {});
       } catch (e) {
         failures++;

@@ -24,9 +24,17 @@ import { isPicked, type ListAnime } from '../lib/list-chars';
 import { ListCharacters, useCharPicks } from '../widgets/ListCharacters';
 import { detectLocation, geocode, type Place } from '../lib/weather';
 import { THEMES } from '../themes';
+import { detectTier, type PerfTier } from '../lib/perf';
 import { requestHosts, SUGGEST, useHosts } from '../lib/permissions';
 import { localePref, saveLocalePref, t, tRich, type LocalePref } from '../i18n';
 import { SECTION_IDS, type SectionId } from './sections';
+
+const PERF_TIERS: PerfTier[] = ['low', 'medium', 'high'];
+const TIER_LABEL: Record<PerfTier, () => string> = {
+  low: () => t('options.power.perfLow'),
+  medium: () => t('options.power.perfMedium'),
+  high: () => t('options.power.perfHigh'),
+};
 
 /**
  * Nekosia tags with plenty of safe images (at least ~30 each, measured 2026-09-26), most first;
@@ -526,6 +534,7 @@ export function Options() {
   const [toast, setToast] = useState<string>();
   const [storageUsed, setStorageUsed] = useState<number>();
   const [confirmClear, setConfirmClear] = useState(false);
+  const [detectedTier, setDetectedTier] = useState<PerfTier>();
 
   const reload = async () => {
     const d = await db();
@@ -539,6 +548,7 @@ export function Options() {
   useEffect(() => {
     void getSettings().then(setS);
     void reload();
+    void detectTier().then(setDetectedTier);
   }, []);
 
   const flash = (m: string) => {
@@ -843,6 +853,16 @@ export function Options() {
           </select>
         </Field>
         {s.powerSave === 'cache' && <small class="opt-muted">{t('options.power.cacheNote')}</small>}
+        <Field label={t('options.power.perf')} hint={t('options.power.perfHint')}>
+          <select value={s.perfTier} onChange={(e) => set({ perfTier: (e.target as HTMLSelectElement).value as Settings['perfTier'] })}>
+            <option value="auto">{t('options.power.perfAuto', { tier: detectedTier ? TIER_LABEL[detectedTier]() : '…' })}</option>
+            {PERF_TIERS.map((tier) => (
+              <option key={tier} value={tier}>
+                {TIER_LABEL[tier]()}
+              </option>
+            ))}
+          </select>
+        </Field>
         <Field label={t('options.power.idleOnly')}>
           <input type="checkbox" checked={s.processOnlyWhenIdle} onChange={() => set({ processOnlyWhenIdle: !s.processOnlyWhenIdle })} />
         </Field>

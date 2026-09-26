@@ -40,6 +40,7 @@ const ITEMS: Record<SectionId, Item[]> = {
   ],
   power: [
     ['options.power.powerSave', 'help.power.powerSave'],
+    ['options.power.perf', 'help.power.perf'],
     ['options.power.idleOnly', 'help.power.idleOnly'],
     ['options.power.queueSize', 'help.power.queueSize'],
     ['options.power.cache', 'help.power.cache'],

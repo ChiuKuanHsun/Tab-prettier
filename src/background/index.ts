@@ -6,6 +6,7 @@ import { getBlacklist, getSettings } from '../lib/settings';
 import { getToken, myListAnime } from '../lib/anilist';
 import { chosenAnime, withPickedCharacters, type ListAnime } from '../lib/list-chars';
 import { getCharPicks } from '../lib/list-picks';
+import { PERF, resolveTier } from '../lib/perf';
 import type { Settings } from '../lib/types';
 
 const OFFSCREEN_URL = 'offscreen.html';
@@ -51,7 +52,10 @@ async function refill(opts: { fromIdle?: boolean; lowPower?: boolean; force?: bo
   if (settings.powerSave === 'cache' && !opts.force && (await hasAnyScene())) return;
   const target = queueTarget(settings);
   if ((await queueCount()) >= target) return;
-  if ((settings.processOnlyWhenIdle || opts.lowPower) && !opts.fromIdle) {
+  // the low tier (chosen, or detected by the offscreen page) also waits for idle — unless there
+  // is nothing at all to show yet
+  const idleOnly = settings.processOnlyWhenIdle || opts.lowPower || PERF[await resolveTier(settings.perfTier, false)].idleOnly;
+  if (idleOnly && !opts.fromIdle && (await hasAnyScene())) {
     const state = await chrome.idle.queryState(60);
     if (state === 'active') {
       await chrome.storage.session.set({ refillDeferred: true });
