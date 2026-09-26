@@ -5,6 +5,8 @@ const SIZE = 1024;
 // The wasm binary is emitted by Vite next to this bundle and resolved via import.meta.url.
 // Extension pages aren't cross-origin isolated, so no SharedArrayBuffer threads.
 ort.env.wasm.numThreads = 1;
+// Errors only: the WebGPU backend warns on every load that it runs shape ops on the CPU, by design.
+ort.env.logLevel = 'error';
 
 let sessionP: Promise<ort.InferenceSession> | undefined;
 export let backend: 'webgpu' | 'wasm' | undefined;
