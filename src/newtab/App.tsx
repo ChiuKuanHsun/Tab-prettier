@@ -236,6 +236,7 @@ export function App() {
               suggest={settings.searchSuggest}
               onEngine={(e) => void saveSettings({ ...settings, searchEngine: e })}
               onSuggestOff={() => void saveSettings({ ...settings, searchSuggest: false })}
+              history={settings.searchHistory}
             />
           </div>
           {settings.pinLinks && (

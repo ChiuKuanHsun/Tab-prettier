@@ -14,6 +14,8 @@ export const SUGGEST = ['https://suggestqueries.google.com/*'];
 export const RECENT: Perms = { permissions: ['sessions', 'tabs'] };
 /** The sites Chrome's own new tab offers as shortcuts. */
 export const TOP_SITES: Perms = { permissions: ['topSites'] };
+/** Address-bar-like search: visited sites and past searches (history), open tabs (tabs). */
+export const SEARCH_HISTORY: Perms = { permissions: ['history', 'tabs'] };
 
 export const hasPerms = (p: Perms) => chrome.permissions.contains(p);
 

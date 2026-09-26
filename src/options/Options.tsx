@@ -27,7 +27,7 @@ import { THEMES } from '../themes';
 import { detectTier, type PerfTier } from '../lib/perf';
 import { allowFolder, bindFolder, folderAccess, getFolder, listFolder, unbindFolder, type FolderHandle, type FolderRole } from '../lib/folders';
 import { DEFAULT_BLOCK_SITES, parseSites, sitePattern, unallowedSites, watchedSites } from '../lib/focus-block';
-import { RECENT, requestHosts, requestPerms, SUGGEST, TOP_SITES, usePerms, type Perms } from '../lib/permissions';
+import { RECENT, requestHosts, requestPerms, SEARCH_HISTORY, SUGGEST, TOP_SITES, usePerms, type Perms } from '../lib/permissions';
 import { localePref, saveLocalePref, t, tRich, type LocalePref } from '../i18n';
 import { SECTION_IDS, type SectionId } from './sections';
 
@@ -865,6 +865,13 @@ export function Options() {
           on={s.linksTop}
           perms={TOP_SITES}
           onChange={(on) => set({ linksTop: on })}
+        />
+        <PermSwitch
+          label={t('options.look.searchHistory')}
+          hint={t('options.look.searchHistoryHint')}
+          on={s.searchHistory}
+          perms={SEARCH_HISTORY}
+          onChange={(on) => set({ searchHistory: on })}
         />
         <PermSwitch
           label={t('options.look.suggest')}

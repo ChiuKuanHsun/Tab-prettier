@@ -174,6 +174,8 @@ export interface Settings {
   linksRecent: boolean;
   /** The Links panel also lists Chrome's top sites (optional topSites permission). */
   linksTop: boolean;
+  /** The search box suggests visited sites, past searches and open tabs (optional history + tabs). */
+  searchHistory: boolean;
   searchEngine: string;
   searchSuggest: boolean;
   /** auto = locate by IP; manual = weatherLocation; off = no weather. */
@@ -238,6 +240,7 @@ export const DEFAULT_SETTINGS: Settings = {
   linksPerRow: 8,
   linksRecent: false,
   linksTop: false,
+  searchHistory: false,
   searchEngine: 'default',
   searchSuggest: true,
   weatherMode: 'auto',

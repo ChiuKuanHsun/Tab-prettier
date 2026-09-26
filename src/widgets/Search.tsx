@@ -1,7 +1,17 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { t } from '../i18n';
-import { SUGGEST, useHosts } from '../lib/permissions';
+import {
+  composeSuggestions,
+  displayUrl,
+  inlineCompletion,
+  looksLikeAddress,
+  type OpenTab,
+  type Suggestion,
+  type Visit,
+} from '../lib/omnibox';
+import { SEARCH_HISTORY, SUGGEST, useHosts, usePerms } from '../lib/permissions';
 import { HostPrompt } from './HostPrompt';
+import { favicon } from './Links';
 
 export const ENGINES: Record<string, { label: string; url?: string }> = {
   default: { label: t('widgets.search.defaultEngine') },
@@ -20,31 +30,69 @@ async function fetchSuggestions(q: string, engine: string, signal: AbortSignal):
   if (engine === 'youtube') params.set('ds', 'yt');
   const res = await fetch(`https://suggestqueries.google.com/complete/search?${params}`, { signal });
   const data = (await res.json()) as [string, string[]];
-  return (data[1] ?? []).slice(0, 7);
+  return (data[1] ?? []).slice(0, 8);
+}
+
+/** Visits and open tabs for the typed text (the history API matches words in addresses and titles). */
+async function browserData(text: string): Promise<{ visits: Visit[]; tabs: OpenTab[]; currentTabId?: number }> {
+  const [visits, tabs, current] = await Promise.all([
+    chrome.history.search({ text, startTime: 0, maxResults: 200 }),
+    chrome.tabs.query({}),
+    chrome.tabs.getCurrent(),
+  ]);
+  return {
+    visits: visits.filter((v): v is Visit & chrome.history.HistoryItem => !!v.url),
+    tabs: tabs.flatMap((tab) => (tab.id !== undefined && tab.url ? [{ id: tab.id, windowId: tab.windowId, url: tab.url, title: tab.title ?? '' }] : [])),
+    currentTabId: current?.id,
+  };
 }
 
 const isUrl = (t: string) => /^https?:\/\/\S+$/i.test(t);
+
+/** What the box shows while a suggestion is picked with the arrow keys. */
+const boxText = (s: Suggestion) => (s.kind === 'url' || s.kind === 'tab' ? displayUrl(s.url) : s.text);
+
+const Clock = () => (
+  <svg class="search-suggest-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M12 7.5V12l3 2" />
+  </svg>
+);
+const Magnifier = () => (
+  <svg class="search-suggest-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="10.5" cy="10.5" r="6" />
+    <path d="M15 15l5 5" />
+  </svg>
+);
 
 export function Search({
   engine,
   onEngine,
   suggest,
   onSuggestOff,
+  history,
 }: {
   engine: string;
   onEngine: (e: string) => void;
   suggest: boolean;
   /** Turns suggestions off (the user declined to allow them). */
   onSuggestOff: () => void;
+  /** Suggest visited sites, past searches and open tabs, like the address bar (optional permissions). */
+  history: boolean;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
-  const [items, setItems] = useState<string[]>([]);
+  const [google, setGoogle] = useState<string[]>([]);
+  const [browser, setBrowser] = useState<Awaited<ReturnType<typeof browserData>>>();
   const [active, setActive] = useState(-1);
   const [showList, setShowList] = useState(false);
+  /** Set after a deletion or Esc: no inline completion until the next typed character. */
+  const [noComplete, setNoComplete] = useState(false);
   const cur = ENGINES[engine] ?? ENGINES.default;
   const allowed = useHosts(SUGGEST);
+  const historyOk = usePerms(SEARCH_HISTORY);
+  const useHistory = history && !!historyOk;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -70,50 +118,97 @@ export function Search({
     };
   }, []);
 
-  // Debounced suggestions; each keystroke aborts the previous request.
+  const text = q.trim();
+
+  // Debounced Google suggestions; each keystroke aborts the previous request.
   useEffect(() => {
-    const text = q.trim();
     if (!suggest || !allowed || !text || isUrl(text)) {
-      setItems([]);
+      setGoogle([]);
       return;
     }
     const ctrl = new AbortController();
-    const t = setTimeout(() => {
-      fetchSuggestions(text, engine, ctrl.signal).then(
-        (s) => {
-          setItems(s.filter((x) => x !== text));
-          setActive(-1);
-        },
-        () => {},
-      );
+    const timer = setTimeout(() => {
+      fetchSuggestions(text, engine, ctrl.signal).then(setGoogle, () => {});
     }, 140);
     return () => {
-      clearTimeout(t);
+      clearTimeout(timer);
       ctrl.abort();
     };
-  }, [q, engine, suggest, allowed]);
+  }, [text, engine, suggest, allowed]);
 
-  const go = (raw: string) => {
-    const text = raw.trim();
-    if (!text) return;
-    if (isUrl(text)) location.href = text;
-    else if (cur.url) location.href = cur.url.replace('%s', encodeURIComponent(text));
-    else void chrome.search.query({ text, disposition: 'CURRENT_TAB' });
+  // History and tabs are local and quick: no debounce, so the inline completion keeps up with typing.
+  useEffect(() => {
+    if (!useHistory || !text) {
+      setBrowser(undefined);
+      return;
+    }
+    let alive = true;
+    void browserData(text).then((d) => alive && setBrowser(d), () => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [text, useHistory]);
+
+  useEffect(() => setActive(-1), [text]);
+
+  const items = text ? composeSuggestions(text, { ...browser, google: google.filter((g) => g !== text) }) : [];
+  // the address-bar completion: typed text plus the rest of a site name, the rest selected
+  const completion = useHistory && !noComplete && active < 0 && q === text ? inlineCompletion(browser?.visits ?? [], q) : undefined;
+  const boxValue = active >= 0 && items[active] ? boxText(items[active]) : completion ? q + completion.display.slice(q.length) : q;
+
+  useLayoutEffect(() => {
+    if (completion && document.activeElement === input.current) input.current!.setSelectionRange(q.length, boxValue.length);
+  }, [boxValue, completion?.display]);
+
+  const search = (raw: string) => {
+    const s = raw.trim();
+    if (!s) return;
+    if (isUrl(s)) location.href = s;
+    else if (looksLikeAddress(s)) location.href = `https://${s}`;
+    else if (cur.url) location.href = cur.url.replace('%s', encodeURIComponent(s));
+    else void chrome.search.query({ text: s, disposition: 'CURRENT_TAB' });
+  };
+
+  const go = async (s: Suggestion) => {
+    if (s.kind === 'url') location.href = s.url;
+    else if (s.kind === 'tab') {
+      await chrome.tabs.update(s.tabId, { active: true });
+      await chrome.windows.update(s.windowId, { focused: true });
+      // a new tab that was only opened to get there isn't needed any more
+      if (window.history.length <= 1) {
+        const self = await chrome.tabs.getCurrent();
+        if (self?.id !== undefined) await chrome.tabs.remove(self.id);
+      }
+    } else search(s.text);
   };
 
   const listOpen = showList && items.length > 0;
   // Suggestions are on but Google isn't allowed yet: ask where they would appear.
-  const ask = showList && suggest && allowed === false && !!q.trim() && !isUrl(q.trim());
+  const ask = showList && suggest && allowed === false && !!text && !isUrl(text);
+
+  const accept = () => {
+    if (!completion) return false;
+    setQ(completion.display);
+    return true;
+  };
 
   const onKeyDown = (e: KeyboardEvent) => {
+    if ((e.key === 'ArrowRight' || e.key === 'End' || e.key === 'Tab') && completion && accept()) {
+      if (e.key === 'Tab') e.preventDefault();
+      return;
+    }
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      if (completion) setNoComplete(true);
+      else if (active >= 0) setActive(-1);
+      else setShowList(false);
+      return;
+    }
     if (!listOpen) return;
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
       const n = items.length;
-      setActive((a) => (e.key === 'ArrowDown' ? (a + 1) % n : (a - 1 + n) % n));
-    } else if (e.key === 'Escape') {
-      e.stopPropagation();
-      setShowList(false);
+      setActive((a) => (e.key === 'ArrowDown' ? (a + 1) % n : a <= 0 ? n - 1 : a - 1));
     }
   };
 
@@ -123,7 +218,9 @@ export function Search({
       role="search"
       onSubmit={(e) => {
         e.preventDefault();
-        go(listOpen && active >= 0 ? items[active] : q);
+        if (active >= 0 && items[active]) void go(items[active]);
+        else if (completion) location.href = completion.url;
+        else search(q);
       }}
     >
       <div class="search-engine">
@@ -165,14 +262,16 @@ export function Search({
         aria-label={t('common.search')}
         aria-keyshortcuts="/"
         role="combobox"
-        aria-autocomplete="list"
+        aria-autocomplete="both"
         aria-expanded={listOpen}
         aria-controls="search-suggestions"
         aria-activedescendant={listOpen && active >= 0 ? `sugg-${active}` : undefined}
         autoComplete="off"
-        value={listOpen && active >= 0 ? items[active] : q}
+        value={boxValue}
         onInput={(e) => {
+          // typing over the selected completion replaces it, so the value is what was typed
           setQ((e.target as HTMLInputElement).value);
+          setNoComplete((e as InputEvent).inputType?.startsWith('delete') ?? false);
           setShowList(true);
         }}
         onKeyDown={onKeyDown}
@@ -183,21 +282,32 @@ export function Search({
       {listOpen && (
         <ul id="search-suggestions" class="search-suggest" role="listbox" aria-label={t('widgets.search.suggestions')}>
           {items.map((s, i) => {
-            const typed = q.trim();
-            const head = s.toLowerCase().startsWith(typed.toLowerCase()) ? s.slice(0, typed.length) : '';
+            const main = s.kind === 'url' || s.kind === 'tab' ? s.title : s.text;
+            const head = s.kind === 'suggest' && main.toLowerCase().startsWith(text.toLowerCase()) ? main.slice(0, text.length) : '';
             return (
               <li
-                key={s}
+                key={`${s.kind}:${s.kind === 'url' || s.kind === 'tab' ? s.url : s.text}`}
                 id={`sugg-${i}`}
                 role="option"
                 aria-selected={i === active}
                 // keeps the input focused, so its blur doesn't close the list before the click
                 onMouseDown={(e) => e.preventDefault()}
-                // searches it; hovering only highlights
-                onClick={() => go(s)}
+                // goes there; hovering only highlights
+                onClick={() => void go(s)}
               >
-                {head && <span class="search-suggest-typed">{head}</span>}
-                <span>{s.slice(head.length)}</span>
+                {s.kind === 'url' || s.kind === 'tab' ? (
+                  <img class="search-suggest-icon" src={favicon(s.url, 16)} alt="" width={16} height={16} />
+                ) : s.kind === 'past' ? (
+                  <Clock />
+                ) : (
+                  <Magnifier />
+                )}
+                <span class="search-suggest-main">
+                  {head && <span class="search-suggest-typed">{head}</span>}
+                  {main.slice(head.length)}
+                </span>
+                {s.kind === 'url' && <span class="search-suggest-sub">{displayUrl(s.url)}</span>}
+                {s.kind === 'tab' && <span class="search-suggest-sub">{t('widgets.search.switchTab')}</span>}
               </li>
             );
           })}

@@ -11,6 +11,7 @@ const ITEMS: Record<SectionId, Item[]> = {
     ['options.look.rotation', 'help.look.rotation'],
     ['options.look.rotationMinutes', 'help.look.minutes'],
     ['options.look.rotationTabs', 'help.look.tabs'],
+    ['options.look.searchHistory', 'help.look.searchHistory'],
     ['options.look.suggest', 'help.look.suggest'],
     ['options.look.linkTint', 'help.look.linkTint'],
     ['options.look.linksRecent', 'help.look.linksRecent'],

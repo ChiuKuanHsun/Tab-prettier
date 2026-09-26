@@ -36,7 +36,7 @@
     "https://danbooru.donmai.us/*",
     "https://cdn.donmai.us/*"
   ],
-  "optional_permissions": ["sessions", "tabs", "topSites"],
+  "optional_permissions": ["sessions", "tabs", "topSites", "history"],
   "optional_host_permissions": [
     "https://suggestqueries.google.com/*",
     "*://*/*"
