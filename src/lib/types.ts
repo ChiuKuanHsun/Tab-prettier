@@ -136,8 +136,12 @@ export interface Settings {
     /** Characters carrying these tags win ties when choosing among candidates. */
     preferTags: string;
   };
-  /** Vary the composition (close-ups, distant figures, scenery-only) instead of one layout. */
+  /** Sometimes a scene with no character, the clock centred. */
   layoutVariety: boolean;
+  /** Close-ups of bust shots, the lower part sunk below the bottom edge (feet can be cut off). */
+  closeups: boolean;
+  /** Full-body figures smaller, a little into the scene. */
+  distantShots: boolean;
   bgBlur: number; // px
   bgDim: number; // 0..0.6
   harmonize: number; // 0..1 colour-transfer strength
@@ -207,6 +211,8 @@ export const DEFAULT_SETTINGS: Settings = {
     preferTags: '',
   },
   layoutVariety: true,
+  closeups: true,
+  distantShots: true,
   bgBlur: 1.5,
   bgDim: 0.12,
   harmonize: 0.35,

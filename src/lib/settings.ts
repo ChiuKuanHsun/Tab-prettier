@@ -48,6 +48,8 @@ export async function getSettings(): Promise<Settings> {
     ...s,
     sources: { ...DEFAULT_SETTINGS.sources, ...s?.sources },
   };
+  // Composition variety used to be one switch: off meant no close-ups or distant figures either.
+  if (s?.layoutVariety === false && s.closeups === undefined) merged.closeups = merged.distantShots = false;
   // Before auto-location existed, a saved city meant "on" and none meant "off".
   if (!s?.weatherMode && s?.weatherLocation) merged.weatherMode = 'manual';
   const legacy = LEGACY_ROTATION[merged.rotation as string];

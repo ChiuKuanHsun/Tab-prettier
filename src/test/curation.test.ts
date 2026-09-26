@@ -8,6 +8,7 @@ import {
   parseTagList,
   pickCharVariant,
   preferScore,
+  shownVariant,
   tagMatches,
   timeBucket,
 } from '../lib/curation';
@@ -56,6 +57,17 @@ describe('variants', () => {
     expect(pickCharVariant(true, 0.1)).toBe('closeup');
     expect(pickCharVariant(false, 0.1)).toBe('distant');
     expect(pickCharVariant(true, 0.9)).toBe('standard');
+  });
+
+  it('leaves out compositions the user switched off, also for scenes already made', () => {
+    const none = { closeups: false, distantShots: false };
+    expect(pickCharVariant(true, 0.1, none)).toBe('standard');
+    expect(pickCharVariant(false, 0.1, none)).toBe('standard');
+    expect(pickCharVariant(true, 0.1, { closeups: true, distantShots: false })).toBe('closeup');
+    expect(shownVariant('closeup', none)).toBe('standard');
+    expect(shownVariant('distant', none)).toBe('standard');
+    expect(shownVariant('scenery', none)).toBe('scenery');
+    expect(shownVariant('closeup', { closeups: true, distantShots: false })).toBe('closeup');
   });
 
   const vp = { w: 1600, h: 900 };

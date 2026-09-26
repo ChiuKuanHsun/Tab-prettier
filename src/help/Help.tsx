@@ -32,6 +32,8 @@ const ITEMS: Record<SectionId, Item[]> = {
   ],
   blend: [
     [null, 'help.blend.bake'],
+    ['options.blend.closeups', 'help.blend.closeups'],
+    ['options.blend.distant', 'help.blend.distant'],
     ['options.blend.variety', 'help.blend.variety'],
     ['options.blend.rim', 'help.blend.rim'],
   ],

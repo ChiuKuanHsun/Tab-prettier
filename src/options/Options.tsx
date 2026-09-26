@@ -885,6 +885,12 @@ export function Options() {
         <Field label={t('options.blend.harmonize')} hint={t('options.blend.harmonizeHint')}>
           <Range value={s.harmonize} min={0} max={1} step={0.05} onChange={(v) => set({ harmonize: v })} fmt={(v) => `${Math.round(v * 100)}%`} />
         </Field>
+        <Field label={t('options.blend.closeups')} hint={t('options.blend.closeupsHint')}>
+          <input type="checkbox" checked={s.closeups} onChange={() => set({ closeups: !s.closeups })} />
+        </Field>
+        <Field label={t('options.blend.distant')} hint={t('options.blend.distantHint')}>
+          <input type="checkbox" checked={s.distantShots} onChange={() => set({ distantShots: !s.distantShots })} />
+        </Field>
         <Field label={t('options.blend.variety')} hint={t('options.blend.varietyHint')}>
           <input type="checkbox" checked={s.layoutVariety} onChange={() => set({ layoutVariety: !s.layoutVariety })} />
         </Field>

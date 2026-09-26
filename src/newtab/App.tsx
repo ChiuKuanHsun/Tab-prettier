@@ -5,6 +5,7 @@ import { saveSettings } from '../lib/settings';
 import type { SceneTheme } from '../lib/types';
 import { AnimePanel } from '../widgets/Anime';
 import { hexToRgb, luminance } from '../lib/color';
+import { shownVariant } from '../lib/curation';
 import { BirthdayBadge, birthdayToday, CakeIcon, CreditPanel } from '../widgets/Credit';
 import { Dock, type DockItem } from '../widgets/Dock';
 import { FavoriteButton, FavoriteRotationToggle } from '../widgets/Favorite';
@@ -87,7 +88,7 @@ export function App() {
 
   const theme = scene?.theme ?? FALLBACK_THEME;
   const side = scene?.layout.charSide ?? 'right';
-  const layout = computeLayout(vp, side, scene?.char, scene?.layout.variant);
+  const layout = computeLayout(vp, side, scene?.char, shownVariant(scene?.layout.variant, settings));
   const t = layout.text;
   const colLeft = Math.min(t.inner, t.outer);
   const colW = Math.abs(t.inner - t.outer);
