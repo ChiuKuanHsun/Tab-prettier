@@ -8,10 +8,7 @@ export type ToBackground =
   /** From the content script on a listed site: the service worker redirects the tab if needed. */
   | { to: 'bg'; type: 'focus-check' };
 
-/**
- * To the content script: whether to show the corner timer during focus rounds, its label, and the
- * new tab's current accent colour (used when the site has no colourful theme colour of its own).
- */
+/** To the content script: whether to show the corner timer during focus rounds, its label and the new tab's accent. */
 export type FocusCheckReply = { remind: boolean; label: string; accent?: string };
 
 /** service worker → offscreen document */
