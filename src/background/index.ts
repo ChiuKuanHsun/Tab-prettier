@@ -1,9 +1,9 @@
 import { loadLocalePref, t } from '../i18n';
 import { hasAnyScene, queueCount } from '../lib/db';
 import { FOCUS_ALARM, getFocus, getFocusPrefs, setFocus, startFocus, type FocusState } from '../lib/focus';
-import { queueTarget, type ToBackground, type ToOffscreen } from '../lib/messages';
+import { queueTarget, type FocusCheckReply, type ToBackground, type ToOffscreen } from '../lib/messages';
 import { getBlacklist, getSettings, onKeyChange } from '../lib/settings';
-import { blockingNow, isBlockedUrl, sitePattern, unallowedSites } from '../lib/focus-block';
+import { allowedThisRound, blockingNow, clearAllowed, sitePattern, siteRule, unallowedSites, watchedSites } from '../lib/focus-block';
 import { getToken, myListAnime } from '../lib/anilist';
 import { chosenAnime, withPickedCharacters, type ListAnime } from '../lib/list-chars';
 import { getCharPicks } from '../lib/list-picks';
@@ -107,19 +107,21 @@ chrome.storage.onChanged.addListener((changes, area) => {
     const s = (changes.focus.newValue as FocusState) ?? { status: 'idle' };
     void scheduleFocus(s);
     if (blockingNow(s)) void blockOpenTabs();
+    // "continue anyway" lasts until the round is over (a pause keeps it)
+    if (s.status === 'idle' || s.status === 'done' || s.phase === 'break') void clearAllowed();
   }
 });
 
-// --- Blocking sites while focusing -------------------------------------------------
+// --- Distracting sites while focusing ---------------------------------------------
 
 const BLOCK_SCRIPT = 'focus-block';
 let registered: string | undefined;
 let syncing = Promise.resolve();
 
 /**
- * Registers the asking script (public/focus-block.js) on the blocked sites Chrome has allowed,
- * or removes it when blocking is off. Registrations persist, so this runs only on changes, one
- * at a time (two at once would register the same id twice).
+ * Registers the asking script (public/focus-block.js) on the listed sites Chrome has allowed,
+ * or removes it when the feature is off. Registrations persist, so this runs only on changes,
+ * one at a time (two at once would register the same id twice).
  */
 function syncBlocker() {
   syncing = syncing.then(registerBlocker).catch((e) => console.warn('[bg] focus block', e));
@@ -127,10 +129,7 @@ function syncBlocker() {
 }
 
 async function registerBlocker() {
-  const s = await getSettings();
-  const sites = s.focusBlock ? s.focusBlockSites : [];
-  const missing = new Set(await unallowedSites(sites));
-  const matches = sites.filter((x) => !missing.has(x)).map(sitePattern);
+  const matches = (await allowedWatched(await getSettings())).map(sitePattern);
   const key = matches.join(' ');
   if (key === registered) return;
   await chrome.scripting.unregisterContentScripts({ ids: [BLOCK_SCRIPT] }).catch(() => undefined);
@@ -144,21 +143,37 @@ onKeyChange('settings', () => void syncBlocker());
 chrome.permissions.onAdded.addListener(() => void syncBlocker());
 chrome.permissions.onRemoved.addListener(() => void syncBlocker());
 
-/** Sends a tab on a blocked site to the blocked page, if a focus round is running. */
-async function blockTab(tabId: number, url: string | undefined) {
-  const s = await getSettings();
-  if (!url || !s.focusBlock || !isBlockedUrl(url, s.focusBlockSites) || !blockingNow(await getFocus())) return;
-  await chrome.tabs.update(tabId, { url: chrome.runtime.getURL(`blocked.html?from=${encodeURIComponent(url)}`) });
+/** Both lists' sites that Chrome has allowed (none when the feature is off). */
+async function allowedWatched(s: Settings) {
+  if (!s.focusBlock) return [];
+  const sites = [...new Set([...watchedSites(s.focusBlockSites), ...watchedSites(s.focusRemindSites)])];
+  const missing = new Set(await unallowedSites(sites));
+  return sites.filter((x) => !missing.has(x));
 }
 
-/** When a focus round starts, tabs already open on blocked sites go too. */
-async function blockOpenTabs() {
+/** How the page in a tab is treated (undefined: not listed, or the feature is off). */
+async function ruleFor(url: string | undefined) {
   const s = await getSettings();
-  if (!s.focusBlock) return;
-  const missing = new Set(await unallowedSites(s.focusBlockSites));
-  const url = s.focusBlockSites.filter((x) => !missing.has(x)).map(sitePattern);
+  return url && s.focusBlock ? siteRule(url, s.focusBlockSites, s.focusRemindSites) : undefined;
+}
+
+/**
+ * Sends a tab on a "stop first" site to the blocked page while a focus round runs — unless it's
+ * playing sound (music to work to) or was let through this round.
+ */
+async function blockTab(tab: chrome.tabs.Tab, url: string | undefined) {
+  const rule = await ruleFor(url);
+  if (!url || tab.id === undefined || tab.audible || rule?.mode !== 'block' || !blockingNow(await getFocus())) return;
+  if ((await allowedThisRound()).includes(rule.site)) return;
+  const q = new URLSearchParams({ from: url, site: rule.site });
+  await chrome.tabs.update(tab.id, { url: chrome.runtime.getURL(`blocked.html?${q}`) });
+}
+
+/** When a focus round starts, tabs already open on "stop first" sites go too (not ones playing sound). */
+async function blockOpenTabs() {
+  const url = (await allowedWatched(await getSettings())).map(sitePattern);
   if (!url.length) return;
-  for (const tab of await chrome.tabs.query({ url })) if (tab.id !== undefined) await blockTab(tab.id, tab.url);
+  for (const tab of await chrome.tabs.query({ url })) await blockTab(tab, tab.url);
 }
 
 async function finishFocus() {
@@ -207,14 +222,22 @@ chrome.idle.onStateChanged.addListener(async (state) => {
 chrome.runtime.onMessage.addListener((msg: ToBackground, sender, sendResponse) => {
   if (msg?.to !== 'bg') return;
   (async () => {
+    let reply: object = { ok: true };
     try {
       if (msg.type === 'refill') await refill({ lowPower: msg.lowPower, force: msg.force });
-      if (msg.type === 'focus-check' && sender.tab?.id !== undefined) await blockTab(sender.tab.id, sender.tab.url ?? sender.url);
+      if (msg.type === 'focus-check' && sender.tab) {
+        const url = sender.tab.url ?? sender.url;
+        const rule = await ruleFor(url);
+        await blockTab(sender.tab, url);
+        await loadLocalePref();
+        // the page shows the corner timer during focus rounds when it's listed at all
+        reply = { remind: !!rule, label: t('blocked.kicker') } satisfies FocusCheckReply;
+      }
       if (msg.type === 'offscreen-idle' && (await hasOffscreen())) await chrome.offscreen.closeDocument();
     } catch (e) {
       console.warn('[bg]', msg.type, e);
     }
-    sendResponse({ ok: true });
+    sendResponse(reply);
   })();
   return true;
 });

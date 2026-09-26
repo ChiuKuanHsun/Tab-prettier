@@ -66,3 +66,19 @@ body {
   line-height: 1.8;
   color: var(--ink-soft);
 }
+
+.blocked-go {
+  margin-top: 14px;
+  padding: 8px 18px;
+  border: 1px solid rgb(244 241 247 / 0.35);
+  border-radius: 999px;
+  background: rgb(20 18 24 / 0.35);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+.blocked-go:hover,
+.blocked-go:focus-visible { color: var(--ink); border-color: var(--accent); }

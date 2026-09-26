@@ -25,7 +25,7 @@ import { ListCharacters, useCharPicks } from '../widgets/ListCharacters';
 import { detectLocation, geocode, type Place } from '../lib/weather';
 import { THEMES } from '../themes';
 import { detectTier, type PerfTier } from '../lib/perf';
-import { DEFAULT_BLOCK_SITES, parseSites, sitePattern, unallowedSites } from '../lib/focus-block';
+import { DEFAULT_BLOCK_SITES, parseSites, sitePattern, unallowedSites, watchedSites } from '../lib/focus-block';
 import { requestHosts, SUGGEST, useHosts } from '../lib/permissions';
 import { localePref, saveLocalePref, t, tRich, type LocalePref } from '../i18n';
 import { SECTION_IDS, type SectionId } from './sections';
@@ -167,11 +167,12 @@ function HostSwitch(props: { label: string; hint?: string; on: boolean; origins:
 }
 
 /**
- * Sites blocked during focus rounds. Each needs Chrome's permission, asked for from a click (the
- * switch, or "Allow"), since Chrome only asks in response to one.
+ * Distracting sites during focus rounds: a "stop first" list and a "remind" list. Each site needs
+ * Chrome's permission, asked for from a click (the switch, or "Allow"), since Chrome only asks in
+ * response to one.
  */
 function FocusBlock({ s, set }: { s: Settings; set: (patch: Partial<Settings>) => void }) {
-  const sites = s.focusBlockSites;
+  const sites = [...new Set([...watchedSites(s.focusBlockSites), ...watchedSites(s.focusRemindSites)])];
   const [missing, setMissing] = useState<string[]>([]);
   useEffect(() => {
     const check = () => void unallowedSites(sites).then(setMissing);
@@ -184,6 +185,27 @@ function FocusBlock({ s, set }: { s: Settings; set: (patch: Partial<Settings>) =
     };
   }, [sites.join()]);
   const allow = (list: string[]) => list.length && void requestHosts(list.map(sitePattern));
+
+  const list = (key: 'focusBlockSites' | 'focusRemindSites', label: string, hint: string, reset?: string[]) => (
+    <div class="opt-field opt-field-block">
+      <span class="opt-label">
+        {label}
+        <small>
+          {hint}
+          {reset && (
+            <button type="button" class="opt-link" onClick={() => set({ [key]: reset })}>
+              {t('options.sources.excludeReset')}
+            </button>
+          )}
+        </small>
+      </span>
+      <textarea
+        rows={2}
+        value={s[key].join(', ')}
+        onChange={(e) => set({ [key]: parseSites((e.target as HTMLTextAreaElement).value) })}
+      />
+    </div>
+  );
 
   return (
     <>
@@ -198,21 +220,9 @@ function FocusBlock({ s, set }: { s: Settings; set: (patch: Partial<Settings>) =
         />
       </Field>
       {s.focusBlock && (
-        <div class="opt-field opt-field-block">
-          <span class="opt-label">
-            {t('options.focus.sites')}
-            <small>
-              {t('options.focus.sitesHint')}
-              <button type="button" class="opt-link" onClick={() => set({ focusBlockSites: DEFAULT_BLOCK_SITES })}>
-                {t('options.sources.excludeReset')}
-              </button>
-            </small>
-          </span>
-          <textarea
-            rows={3}
-            value={sites.join(', ')}
-            onChange={(e) => set({ focusBlockSites: parseSites((e.target as HTMLTextAreaElement).value) })}
-          />
+        <>
+          {list('focusBlockSites', t('options.focus.sites'), t('options.focus.sitesHint'), DEFAULT_BLOCK_SITES)}
+          {list('focusRemindSites', t('options.focus.remindSites'), t('options.focus.remindSitesHint'))}
           {missing.length > 0 && (
             <p class="opt-warn opt-host-warn">
               {t('options.focus.missing', { sites: missing.join(', ') })}
@@ -221,7 +231,7 @@ function FocusBlock({ s, set }: { s: Settings; set: (patch: Partial<Settings>) =
               </button>
             </p>
           )}
-        </div>
+        </>
       )}
     </>
   );

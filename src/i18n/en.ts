@@ -186,8 +186,9 @@ export const en: Messages = {
   blocked: {
     title: 'Focusing',
     kicker: 'Focusing',
-    text: "{site} can wait until this focus round is over. When time's up, or the timer is paused or stopped, you'll be taken back.",
-    textNoSite: 'This site can wait until the focus round is over.',
+    text: "Focusing — can {site} wait? When time's up, or the timer is paused or stopped, you'll be taken back.",
+    textNoSite: 'Focusing — can this site wait?',
+    continue: 'Continue anyway (for this round)',
   },
   options: {
     title: 'Tab Prettier settings',
@@ -350,11 +351,13 @@ export const en: Messages = {
       perfHigh: 'High',
     },
     focus: {
-      block: 'Block sites while focusing',
-      blockHint: 'In focus rounds, not in breaks',
-      sites: 'Blocked sites',
-      sitesHint: 'Comma separated; subdomains included',
-      missing: "{sites} not allowed yet, so they can't be blocked.",
+      block: 'Distracting sites',
+      blockHint: 'Stopped or reminded in focus rounds, not breaks',
+      sites: 'Stop first',
+      sitesHint: 'You can still continue; a leading - exempts a site',
+      remindSites: 'Only remind',
+      remindSitesHint: 'Not stopped; time left shown in a corner',
+      missing: '{sites} not allowed yet, so left alone for now.',
     },
     uploads: {
       note: 'Files stay on this computer.',
@@ -446,8 +449,8 @@ export const en: Messages = {
       cache: '"Use existing scenes only" never downloads or processes new images in the background, saving the most power. It cycles through the queued scenes, the 30 most recently shown and your favorites, preferring ones not seen for a while. "Clear and regenerate with new settings" at the top of the settings page still generates a new batch.',
     },
     focus: {
-      block: "With this on, opening these sites during a focus round of the focus timer shows the time left instead; when time's up, or the timer is paused or stopped, the tab goes back to the page. Breaks aren't blocked. Tabs already open on these sites when a focus round starts are blocked too.",
-      sites: "Chrome only lets the extension block a site you've allowed: it asks when you switch this on or add sites, and sites not allowed yet are listed below. It's only used to decide whether to block; page content is never read.",
+      block: "Only during focus rounds of the focus timer; breaks and pauses are left alone. \"Stop first\" sites show the time left when opened; \"Continue anyway\" lets the site through for the rest of the round, and when time's up or the timer stops the tab goes back to the page. \"Only remind\" sites work as usual with the time left in the bottom-left corner. Tabs playing sound (music to work to) are never stopped.",
+      sites: "Comma separated; subdomains are included. A leading - exempts a site: the default -music.youtube.com keeps YouTube Music playing. Chrome only lets the extension handle sites you've allowed: it asks when you switch this on or add sites, and sites not allowed yet are listed below. It's only used to decide what to do; page content is never read.",
     },
     uploads: {
       formats: 'Backgrounds can be images, GIFs or MP4/WebM videos. Characters must be images and are cut out automatically. Files stay on this computer.',

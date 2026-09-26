@@ -5,8 +5,11 @@ import type { Settings } from './types';
 export type ToBackground =
   | { to: 'bg'; type: 'refill'; lowPower?: boolean; force?: boolean }
   | { to: 'bg'; type: 'offscreen-idle' }
-  /** From the content script on a blocked site: is it blocked right now? */
+  /** From the content script on a listed site: the service worker redirects the tab if needed. */
   | { to: 'bg'; type: 'focus-check' };
+
+/** To the content script: whether to show the corner timer during focus rounds, and its label. */
+export type FocusCheckReply = { remind: boolean; label: string };
 
 /** service worker → offscreen document */
 export type ToOffscreen = {

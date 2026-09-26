@@ -153,10 +153,12 @@ export interface Settings {
   processOnlyWhenIdle: boolean;
   /** How much work a scene may take (see lib/perf); 'auto' detects the computer. */
   perfTier: 'auto' | 'low' | 'medium' | 'high';
-  /** Send tabs on focusBlockSites to the blocked page while a focus round runs. */
+  /** Handle distracting sites during focus rounds (see lib/focus-block). */
   focusBlock: boolean;
-  /** Sites like "youtube.com" (subdomains included). */
+  /** "Stop first" sites like "youtube.com" (subdomains included; "-site" exempts one). */
   focusBlockSites: string[];
+  /** Sites that only get the corner timer. */
+  focusRemindSites: string[];
   /** Ready scenes to keep queued; 0 = automatic (2–5, by how often scenes change). */
   queueSize: number;
   pinLinks: boolean;
@@ -215,6 +217,7 @@ export const DEFAULT_SETTINGS: Settings = {
   perfTier: 'auto',
   focusBlock: false,
   focusBlockSites: DEFAULT_BLOCK_SITES,
+  focusRemindSites: [],
   queueSize: 0,
   pinLinks: false,
   searchEngine: 'default',

@@ -2,12 +2,16 @@ import { useEffect, useState } from 'preact/hooks';
 import { t } from '../i18n';
 import { getCurrent } from '../lib/db';
 import { formatRemaining, getFocus, onFocusChange, remainingMs, type FocusState } from '../lib/focus';
-import { blockingNow } from '../lib/focus-block';
+import { allowForRound, blockingNow } from '../lib/focus-block';
 import { useNow } from '../newtab/hooks';
+
+const params = new URLSearchParams(location.search);
+/** The list entry that stopped the tab, e.g. "youtube.com" (let through for the round on request). */
+const listed = params.get('site') ?? '';
 
 /** Where the tab was going; only web pages are gone back to. */
 const from = (() => {
-  const raw = new URLSearchParams(location.search).get('from') ?? '';
+  const raw = params.get('from') ?? '';
   try {
     const u = new URL(raw);
     return /^https?:$/.test(u.protocol) ? u : undefined;
@@ -34,8 +38,8 @@ function useBackdrop() {
 }
 
 /**
- * Shown instead of a blocked site during a focus round: the time left, and a way back once the
- * round ends (or is paused or stopped), which happens by itself.
+ * Shown instead of a "stop first" site during a focus round: the time left, a way on for the
+ * rest of the round, and the way back once the round ends (or is paused or stopped), by itself.
  */
 export function Blocked() {
   const [focus, setFocusState] = useState<FocusState>();
@@ -64,6 +68,18 @@ export function Blocked() {
           {left !== undefined ? formatRemaining(left) : '--:--'}
         </p>
         <p class="blocked-text">{site ? t('blocked.text', { site }) : t('blocked.textNoSite')}</p>
+        {from && listed && (
+          <button
+            type="button"
+            class="blocked-go"
+            onClick={async () => {
+              await allowForRound(listed);
+              location.replace(from.href);
+            }}
+          >
+            {t('blocked.continue')}
+          </button>
+        )}
       </div>
     </main>
   );
