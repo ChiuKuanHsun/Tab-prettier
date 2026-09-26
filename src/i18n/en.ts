@@ -443,7 +443,7 @@ export const en: Messages = {
     },
     blend: {
       bake: 'Color blending and rim light are baked in when a scene is generated. After changing them, press "Clear and regenerate with new settings" at the top of the settings page to apply. Blur and dim apply instantly.',
-      closeups: "About a third of bust shots are enlarged into close-ups, with the lower sixth below the bottom edge. Full-body art whose feet touch the image's bottom edge counts as a bust shot too, so switch this off to always see the feet. Scenes already made switch to the standard layout as well.",
+      closeups: "About a third of bust shots are enlarged into close-ups, with the lower sixth below the bottom edge. Full-body art whose feet touch the image's bottom edge counts as a bust shot too, so switch this off to always see the feet. The switch only affects display: while it's off every close-up (favourites included) shows in the standard layout, and switching it back on restores them.",
       distant: 'About 30% of full-body figures are shown at 60% of the window height, raised a little, as if standing in the scene.',
       variety: 'Sometimes no character, just scenery with the clock centered.',
       rim: 'Lights the character\'s edges from the direction of the background\'s light source.',

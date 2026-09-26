@@ -348,7 +348,9 @@ export async function buildScene(
   const wantsChar = s.sources.nekosia || s.sources.waifuim || s.sources.danbooru || (await uploadsByRole('char')).length > 0;
   const scenery = !wantsChar || (s.layoutVariety && bg.kind === 'image' && Math.random() < SCENERY_CHANCE);
   const char = scenery ? undefined : await buildCharacter(s, blacklist, bg, light, budget, listAnime);
-  const variant: Variant = !char ? 'scenery' : pickCharVariant(char.cut.bottom, Math.random(), s);
+  // chosen whatever the switches say: they decide at display time (see shownVariant), so a scene
+  // keeps its composition for when one is switched back on
+  const variant: Variant = !char ? 'scenery' : pickCharVariant(char.cut.bottom);
   log('scene', bucket, variant, charSide);
 
   // Theme is judged against where the text sits (the calm third, or the centre for scenery),

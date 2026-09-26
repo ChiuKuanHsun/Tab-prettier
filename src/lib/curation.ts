@@ -90,14 +90,15 @@ export const SCENERY_CHANCE = 0.12;
 /** Which compositions the user allows besides the standard one. */
 export interface VariantPrefs { closeups: boolean; distantShots: boolean }
 
-export function pickCharVariant(cutBottom: boolean, rand = Math.random(), allow: VariantPrefs = { closeups: true, distantShots: true }): Variant {
-  if (cutBottom) return allow.closeups && rand < 0.35 ? 'closeup' : 'standard';
-  return allow.distantShots && rand < 0.3 ? 'distant' : 'standard';
+/** A scene's composition, recorded whatever the switches say (they apply when it's shown). */
+export function pickCharVariant(cutBottom: boolean, rand = Math.random()): Variant {
+  if (cutBottom) return rand < 0.35 ? 'closeup' : 'standard';
+  return rand < 0.3 ? 'distant' : 'standard';
 }
 
 /**
- * The composition to show a stored scene in: one the user has since switched off becomes the
- * standard one, so queued and favourite scenes follow the setting straight away.
+ * The composition to show a scene in: one the user has switched off becomes the standard one.
+ * Only the display changes, so switching it back on restores it.
  */
 export function shownVariant(v: Variant | undefined, allow: VariantPrefs): Variant | undefined {
   if ((v === 'closeup' && !allow.closeups) || (v === 'distant' && !allow.distantShots)) return 'standard';
