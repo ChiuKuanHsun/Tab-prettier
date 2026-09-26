@@ -29,9 +29,12 @@
     "idle",
     "notifications"
   ],
-  "optional_host_permissions": [
+  "host_permissions": [
     "https://wallhaven.cc/*",
-    "https://*.donmai.us/*",
+    "https://danbooru.donmai.us/*",
+    "https://cdn.donmai.us/*"
+  ],
+  "optional_host_permissions": [
     "https://suggestqueries.google.com/*"
   ],
   "content_security_policy": {

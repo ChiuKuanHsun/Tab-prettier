@@ -24,7 +24,7 @@ import { isPicked, type ListAnime } from '../lib/list-chars';
 import { ListCharacters, useCharPicks } from '../widgets/ListCharacters';
 import { detectLocation, geocode, type Place } from '../lib/weather';
 import { THEMES } from '../themes';
-import { DANBOORU, requestHosts, SUGGEST, useHosts, WALLHAVEN } from '../lib/permissions';
+import { requestHosts, SUGGEST, useHosts } from '../lib/permissions';
 import { t, tRich } from '../i18n';
 import { SECTION_IDS, type SectionId } from './sections';
 
@@ -618,12 +618,9 @@ export function Options() {
       </Section>
 
       <Section id="sources" title={t('options.nav.sources')} note={t('options.sources.note')}>
-        <HostSwitch
-          label={t('options.sources.wallhaven')}
-          on={s.sources.wallhaven}
-          origins={WALLHAVEN}
-          onChange={(on) => setSrc({ wallhaven: on })}
-        />
+        <Field label={t('options.sources.wallhaven')}>
+          <input type="checkbox" checked={s.sources.wallhaven} onChange={() => setSrc({ wallhaven: !s.sources.wallhaven })} />
+        </Field>
         <Field label={t('options.sources.timeAware')} hint={t('options.sources.timeAwareHint')}>
           <input type="checkbox" checked={s.sources.timeAware} onChange={() => setSrc({ timeAware: !s.sources.timeAware })} />
         </Field>
@@ -646,13 +643,9 @@ export function Options() {
         <Field label={t('options.sources.waifuim')}>
           <input type="checkbox" checked={s.sources.waifuim} onChange={() => setSrc({ waifuim: !s.sources.waifuim })} />
         </Field>
-        <HostSwitch
-          label={t('options.sources.danbooru')}
-          hint={t('options.sources.danbooruHint')}
-          on={s.sources.danbooru}
-          origins={DANBOORU}
-          onChange={(on) => setSrc({ danbooru: on })}
-        />
+        <Field label={t('options.sources.danbooru')} hint={t('options.sources.danbooruHint')}>
+          <input type="checkbox" checked={s.sources.danbooru} onChange={() => setSrc({ danbooru: !s.sources.danbooru })} />
+        </Field>
         {s.sources.danbooru && (
           <Field label={t('options.sources.duo')} hint={t('options.sources.duoHint')}>
             <input type="checkbox" checked={s.sources.allowDuo} onChange={() => setSrc({ allowDuo: !s.sources.allowDuo })} />

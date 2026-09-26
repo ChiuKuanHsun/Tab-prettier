@@ -85,13 +85,6 @@ export async function enqueue(scene: Scene) {
   await (await db()).put('queue', scene);
 }
 
-/** Removes the queued scenes that match, so the refill replaces them. */
-export async function dropQueued(match: (s: Scene) => boolean) {
-  const tx = (await db()).transaction('queue', 'readwrite');
-  for (const s of await tx.store.getAll()) if (match(s)) await tx.store.delete(s.id);
-  await tx.done;
-}
-
 /**
  * Atomically pops a ready scene, so parallel new tabs never get the same one: a scene for a
  * birthday that is today first (unless `birthdays` is off), then the oldest one matching

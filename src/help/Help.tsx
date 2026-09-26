@@ -17,7 +17,6 @@ const ITEMS: Record<SectionId, Item[]> = {
   ],
   sources: [
     [null, 'help.sources.overview'],
-    ['options.sources.wallhaven', 'help.sources.permission'],
     ['options.sources.timeAware', 'help.sources.timeAware'],
     ['options.sources.query', 'help.sources.query'],
     ['options.sources.danbooru', 'help.sources.danbooru'],

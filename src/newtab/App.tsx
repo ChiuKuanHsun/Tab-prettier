@@ -5,10 +5,6 @@ import { saveSettings } from '../lib/settings';
 import type { SceneTheme } from '../lib/types';
 import { AnimePanel } from '../widgets/Anime';
 import { BirthdayBadge, birthdayToday, CakeIcon, CreditPanel } from '../widgets/Credit';
-import { HostPrompt } from '../widgets/HostPrompt';
-import { DANBOORU, HOST_SOURCES, SOURCE_HOSTS, useHosts, WALLHAVEN, type HostSource } from '../lib/permissions';
-
-const SOURCE_NAME: Record<HostSource, string> = { wallhaven: 'Wallhaven', danbooru: 'Danbooru' };
 import { Dock, type DockItem } from '../widgets/Dock';
 import { FavoriteButton, FavoriteRotationToggle } from '../widgets/Favorite';
 import { NextSceneButton } from '../widgets/NextScene';
@@ -57,9 +53,6 @@ export function App() {
   const focusActive = focus.status === 'running';
   const now = useNow(focusActive || settings?.clockSeconds ? 1000 : 60_000);
   const { scene, urls, next } = useScene(settings, lowPower);
-  const allowed: Record<HostSource, boolean | undefined> = { wallhaven: useHosts(WALLHAVEN), danbooru: useHosts(DANBOORU) };
-  // switched-on sources still waiting for the user to allow their sites
-  const blocked = settings ? HOST_SOURCES.filter((k) => settings.sources[k] && allowed[k] === false) : [];
   const stage = useRef<HTMLElement>(null);
   const [ready, setReady] = useState(false);
 
@@ -235,15 +228,6 @@ export function App() {
             />
           </div>
           {settings.pinLinks && <LinkStrip />}
-          {blocked.length > 0 && (
-            <HostPrompt
-              text={msg('widgets.permission.sources', { names: blocked.map((k) => SOURCE_NAME[k]).join('、') })}
-              origins={blocked.flatMap((k) => [...SOURCE_HOSTS[k]])}
-              onDecline={() =>
-                void saveSettings({ ...settings, sources: { ...settings.sources, ...Object.fromEntries(blocked.map((k) => [k, false])) } })
-              }
-            />
-          )}
           {!scene && <p class="preparing">{msg('newtab.preparing')}</p>}
         </div>
         <Dock
