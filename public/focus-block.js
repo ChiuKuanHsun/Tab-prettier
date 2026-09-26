@@ -1,20 +1,18 @@
 // Registered by the service worker on the listed distracting sites (see src/lib/focus-block.ts).
 // It asks the service worker, which sends the tab to the blocked page if needed. While a focus
 // round runs it shows a small timer in a corner: no clicks, hidden in fullscreen, gone after.
-(async () => {
-  const reply = await chrome.runtime.sendMessage({ to: 'bg', type: 'focus-check' }).catch(() => undefined);
-  if (!reply?.remind) return;
-
+(() => {
   const running = (f) => !!f && f.status === 'running' && f.phase === 'work' && f.endAt > Date.now();
   const fmt = (ms) => {
     const s = Math.ceil(ms / 1000);
     return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
   };
 
-  let host, text, timer;
+  let reply, host, text, timer, watching = false;
+
   function show(focus) {
     clearInterval(timer);
-    if (!running(focus)) {
+    if (!reply?.remind || !running(focus)) {
       host?.remove();
       host = undefined;
       return;
@@ -61,9 +59,21 @@
     timer = setInterval(tick, 1000);
   }
 
-  const { focus } = await chrome.storage.local.get('focus');
-  show(focus);
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local' && changes.focus) show(changes.focus.newValue);
-  });
+  async function check() {
+    reply = await chrome.runtime.sendMessage({ to: 'bg', type: 'focus-check' }).catch(() => undefined);
+    if (!reply?.remind) return;
+    const { focus } = await chrome.storage.local.get('focus');
+    show(focus);
+    if (watching) return;
+    watching = true;
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === 'local' && changes.focus) show(changes.focus.newValue);
+    });
+  }
+
+  // A page prerendered from the address bar isn't in a tab yet (nothing to redirect): ask once
+  // it's shown. A page restored by Back/Forward doesn't run this script again: ask again then.
+  if (document.prerendering) document.addEventListener('prerenderingchange', () => void check(), { once: true });
+  else void check();
+  addEventListener('pageshow', (e) => e.persisted && void check());
 })();
