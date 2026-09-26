@@ -839,7 +839,11 @@ textarea:focus { border-color: var(--accent); }
 @keyframes countdown-pulse { 50% { opacity: 0.35; } }
 
 /* Links */
-.links { display: grid; gap: 18px; }
+.links { position: relative; display: grid; gap: 18px; }
+/* Out of editing, "Edit" sits on the first group's title line instead of a row of its own; while
+   editing, that title is an input, so the buttons get their row back. */
+.links:not(.is-editing) > .panel-actions { position: absolute; top: -4px; right: 0; margin: 0; }
+.links:not(.is-editing) > .link-group:first-of-type .panel-kicker { padding-right: 5em; }
 .link-group-head { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
 .inline-input { flex: 1; font-size: 12px; letter-spacing: 0.2em; }
 .link-list {
