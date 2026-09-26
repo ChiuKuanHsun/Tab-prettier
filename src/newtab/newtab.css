@@ -558,12 +558,15 @@ button, input, textarea { font: inherit; color: inherit; }
 .dock-tabs::before {
   content: '';
   position: absolute;
-  inset: -16px -36px -14px;
+  inset: -16px -48px -14px;
   z-index: -1;
-  border-radius: 999px;
   background: color-mix(in oklab, var(--surface) 40%, transparent);
   backdrop-filter: blur(12px) saturate(1.15);
-  mask-image: radial-gradient(closest-side, #000 55%, transparent);
+  /* solid under the whole row, however long; it fades only in the margin beyond the words */
+  mask-image:
+    linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent),
+    linear-gradient(to bottom, transparent, #000 12px, #000 calc(100% - 12px), transparent);
+  mask-composite: intersect;
   pointer-events: none;
 }
 
