@@ -1,5 +1,5 @@
 import { loadLocalePref, t } from '../i18n';
-import { hasAnyScene, queueCount } from '../lib/db';
+import { getCurrent, hasAnyScene, queueCount } from '../lib/db';
 import { FOCUS_ALARM, getFocus, getFocusPrefs, setFocus, startFocus, type FocusState } from '../lib/focus';
 import { queueTarget, type FocusCheckReply, type ToBackground, type ToOffscreen } from '../lib/messages';
 import { getBlacklist, getSettings, onKeyChange } from '../lib/settings';
@@ -231,7 +231,8 @@ chrome.runtime.onMessage.addListener((msg: ToBackground, sender, sendResponse) =
         await blockTab(sender.tab, url);
         await loadLocalePref();
         // the page shows the corner timer during focus rounds when it's listed at all
-        reply = { remind: !!rule, label: t('blocked.kicker') } satisfies FocusCheckReply;
+        const accent = (await getCurrent())?.scene.theme.accent;
+        reply = { remind: !!rule, label: t('blocked.kicker'), accent } satisfies FocusCheckReply;
       }
       if (msg.type === 'offscreen-idle' && (await hasOffscreen())) await chrome.offscreen.closeDocument();
     } catch (e) {
