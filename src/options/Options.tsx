@@ -772,6 +772,23 @@ export function Options() {
         <Field label={t('options.look.pinLinks')} hint={t('options.look.pinLinksHint')}>
           <input type="checkbox" checked={s.pinLinks} onChange={() => set({ pinLinks: !s.pinLinks })} />
         </Field>
+        {s.pinLinks && (
+          <>
+            <Field label={t('options.look.linksPerRow')} hint={t('options.look.linksPerRowHint')}>
+              <input
+                type="number"
+                class="num"
+                min={3}
+                max={16}
+                value={s.linksPerRow}
+                onChange={(e) => set({ linksPerRow: Math.min(16, Math.max(3, Math.round(Number((e.target as HTMLInputElement).value) || 8))) })}
+              />
+            </Field>
+            <Field label={t('options.look.linkTint')} hint={t('options.look.linkTintHint')}>
+              <input type="checkbox" checked={s.linkIconsTint} onChange={() => set({ linkIconsTint: !s.linkIconsTint })} />
+            </Field>
+          </>
+        )}
         <HostSwitch
           label={t('options.look.suggest')}
           hint={t('options.look.suggestHint')}

@@ -227,7 +227,7 @@ export function App() {
               onSuggestOff={() => void saveSettings({ ...settings, searchSuggest: false })}
             />
           </div>
-          {settings.pinLinks && <LinkStrip />}
+          {settings.pinLinks && <LinkStrip perRow={settings.linksPerRow} accent={settings.linkIconsTint ? theme.accent : undefined} />}
           {!scene && <p class="preparing">{msg('newtab.preparing')}</p>}
         </div>
         <Dock

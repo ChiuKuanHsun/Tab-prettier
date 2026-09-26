@@ -162,6 +162,10 @@ export interface Settings {
   /** Ready scenes to keep queued; 0 = automatic (2–5, by how often scenes change). */
   queueSize: number;
   pinLinks: boolean;
+  /** Pinned link icons in two tones of the scene's accent (original colours on hover). */
+  linkIconsTint: boolean;
+  /** Most pinned links per row before wrapping. */
+  linksPerRow: number;
   searchEngine: string;
   searchSuggest: boolean;
   /** auto = locate by IP; manual = weatherLocation; off = no weather. */
@@ -220,6 +224,8 @@ export const DEFAULT_SETTINGS: Settings = {
   focusRemindSites: [],
   queueSize: 0,
   pinLinks: false,
+  linkIconsTint: false,
+  linksPerRow: 8,
   searchEngine: 'default',
   searchSuggest: true,
   weatherMode: 'auto',

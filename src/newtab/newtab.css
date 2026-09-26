@@ -458,7 +458,15 @@ button, input, textarea { font: inherit; color: inherit; }
 .search-input::placeholder { color: var(--ink-soft); }
 .search-input::-webkit-search-cancel-button { filter: grayscale(1); }
 
-.link-strip { display: flex; gap: 14px; flex-wrap: wrap; }
+/* Wraps after --per-row icons (36px each, 14px apart); rows follow the text side. */
+.link-strip {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  max-width: calc(var(--per-row, 8) * 36px + (var(--per-row, 8) - 1) * 14px);
+}
+.text-right .link-strip { justify-content: flex-end; }
+.text-center .link-strip { justify-content: center; }
 .link-strip a {
   display: grid;
   place-items: center;
@@ -469,6 +477,11 @@ button, input, textarea { font: inherit; color: inherit; }
   transition: transform 0.2s var(--ease-out);
 }
 .link-strip a:hover { transform: translateY(-2px); }
+/* the tinted icon sits over the original and fades away on hover */
+.link-strip img { grid-area: 1 / 1; }
+.link-tint { transition: opacity 0.2s; }
+.link-strip a:hover .link-tint,
+.link-strip a:focus-visible .link-tint { opacity: 0; }
 
 .preparing {
   margin: 0;

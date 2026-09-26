@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { t } from '../i18n';
+import { duotone } from '../lib/duotone';
 import { getLinks, onKeyChange, saveLinks, uid } from '../lib/settings';
 import type { LinkGroup } from '../lib/types';
 
@@ -24,15 +25,34 @@ export function normaliseUrl(u: string) {
   return /^[a-z][a-z0-9+.-]*:/i.test(t) ? t : `https://${t}`;
 }
 
-/** Compact favicon row shown under the search box when links are pinned. */
-export function LinkStrip() {
-  const [groups] = useLinks();
-  const links = groups.flatMap((g) => g.links).slice(0, 12);
+/** A pinned link's icon; tinted, the original shows through on hover. */
+function StripIcon({ url, title, accent }: { url: string; title: string; accent?: string }) {
+  const src = favicon(url);
+  const [tinted, setTinted] = useState<string>();
+  useEffect(() => {
+    setTinted(undefined);
+    if (accent) void duotone(src, accent).then(setTinted, () => undefined);
+  }, [src, accent]);
   return (
-    <nav class="link-strip" aria-label={t('widgets.links.strip')} data-enter="rise">
+    <>
+      <img src={src} alt={title} width={20} height={20} />
+      {tinted && <img class="link-tint" src={tinted} alt="" width={20} height={20} />}
+    </>
+  );
+}
+
+/**
+ * Compact favicon rows under the search box when links are pinned: `perRow` a row, and with
+ * `accent` the icons take the scene's colours.
+ */
+export function LinkStrip({ perRow, accent }: { perRow: number; accent?: string }) {
+  const [groups] = useLinks();
+  const links = groups.flatMap((g) => g.links).slice(0, 24);
+  return (
+    <nav class="link-strip" style={{ '--per-row': perRow }} aria-label={t('widgets.links.strip')} data-enter="rise">
       {links.map((l) => (
         <a key={l.id} href={l.url} title={l.title}>
-          <img src={favicon(l.url)} alt={l.title} width={20} height={20} />
+          <StripIcon url={l.url} title={l.title} accent={accent} />
         </a>
       ))}
     </nav>
