@@ -143,6 +143,9 @@ export const en: Messages = {
       placeholder: 'Search or type a URL…',
       suggestions: 'Search suggestions',
     },
+    folder: {
+      prompt: 'To keep using the pictures in "{name}", allow reading the folder again.',
+    },
     permission: {
       allow: 'Allow',
       decline: 'No thanks',
@@ -374,6 +377,16 @@ export const en: Messages = {
       note: 'Files stay on this computer.',
       addBg: '+ Add background',
       addChar: '+ Add character',
+      folderBg: 'Background folder',
+      folderChar: 'Character folder',
+      folderNone: 'None',
+      folderPick: 'Choose folder',
+      folderChange: 'Change',
+      folderUnbind: 'Remove',
+      folderCount: '{name} · {n} files',
+      folderNeedsAccess: '{name} · needs access again',
+      folderGone: "{name} · can't be found (moved or deleted?)",
+      folderAllow: 'Allow reading again',
     },
     favorites: {
       note: 'Press ♡ in a new tab to favorite.',
@@ -469,6 +482,7 @@ export const en: Messages = {
     uploads: {
       formats: 'Backgrounds can be images, GIFs or MP4/WebM videos. Characters must be images and are cut out automatically. Files stay on this computer.',
       weight: 'How often they appear is set by "My uploads share" under "Sources".',
+      folder: "With a folder bound, whatever you put in it joins the draw along with your uploads, no uploading one by one; subfolders (two levels) count too. The background folder can hold images, GIFs and videos; the character folder only images. After Chrome restarts it may need you to allow reading again: the new tab shows a prompt, press \"Allow\"; until then the folder is skipped.",
     },
     favorites: {
       how: 'Press ♡ at the bottom of a new tab to favorite. When the scene changes, favorites come back at random at the chance you set, preferring ones that match the time of day.',

@@ -55,6 +55,7 @@ const ITEMS: Record<SectionId, Item[]> = {
   uploads: [
     [null, 'help.uploads.formats'],
     ['options.sources.uploadsWeight', 'help.uploads.weight'],
+    ['options.uploads.folderBg', 'help.uploads.folder'],
   ],
   favorites: [
     [null, 'help.favorites.how'],

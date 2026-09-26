@@ -6,6 +6,7 @@ import type { SceneTheme } from '../lib/types';
 import { AnimePanel } from '../widgets/Anime';
 import { hexToRgb, luminance } from '../lib/color';
 import { download, exportScene } from './exportScene';
+import { FolderPrompt } from '../widgets/FolderPrompt';
 import { shownVariant } from '../lib/curation';
 import { BirthdayBadge, birthdayToday, CakeIcon, CreditPanel } from '../widgets/Credit';
 import { Dock, type DockItem } from '../widgets/Dock';
@@ -243,6 +244,7 @@ export function App() {
               tint={settings.linkIconsTint ? { accent: theme.accent, light: luminance(hexToRgb(theme.ink)) > 0.4 } : undefined}
             />
           )}
+          <FolderPrompt />
           {!scene && <p class="preparing">{msg('newtab.preparing')}</p>}
         </div>
         <Dock

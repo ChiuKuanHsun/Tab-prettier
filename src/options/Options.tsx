@@ -25,6 +25,7 @@ import { ListCharacters, useCharPicks } from '../widgets/ListCharacters';
 import { detectLocation, geocode, type Place } from '../lib/weather';
 import { THEMES } from '../themes';
 import { detectTier, type PerfTier } from '../lib/perf';
+import { allowFolder, bindFolder, folderAccess, getFolder, listFolder, unbindFolder, type FolderHandle, type FolderRole } from '../lib/folders';
 import { DEFAULT_BLOCK_SITES, parseSites, sitePattern, unallowedSites, watchedSites } from '../lib/focus-block';
 import { requestHosts, SUGGEST, useHosts } from '../lib/permissions';
 import { localePref, saveLocalePref, t, tRich, type LocalePref } from '../i18n';
@@ -234,6 +235,68 @@ function FocusBlock({ s, set }: { s: Settings; set: (patch: Partial<Settings>) =
         </>
       )}
     </>
+  );
+}
+
+/**
+ * A folder bound as a source of backgrounds or characters: its name and how many usable files it
+ * holds, with a way to (re)choose it, unbind it, or allow reading it again after a restart.
+ */
+function FolderRow({ role }: { role: FolderRole }) {
+  const [handle, setHandle] = useState<FolderHandle | null>();
+  const [state, setState] = useState<{ count: number } | 'prompt' | 'gone'>();
+
+  const refresh = async (h: FolderHandle | undefined) => {
+    setHandle(h ?? null);
+    setState(undefined);
+    if (!h) return;
+    try {
+      if ((await folderAccess(h)) !== 'granted') return setState('prompt');
+      setState({ count: (await listFolder(h, role)).length });
+    } catch {
+      setState('gone');
+    }
+  };
+  useEffect(() => void getFolder(role).then(refresh), []);
+
+  const label = t(role === 'bg' ? 'options.uploads.folderBg' : 'options.uploads.folderChar');
+  const status = !handle
+    ? t('options.uploads.folderNone')
+    : state === 'prompt'
+      ? t('options.uploads.folderNeedsAccess', { name: handle.name })
+      : state === 'gone'
+        ? t('options.uploads.folderGone', { name: handle.name })
+        : state
+          ? t('options.uploads.folderCount', { name: handle.name, n: state.count })
+          : handle.name;
+
+  return (
+    <div class="folder-row">
+      <span class="opt-label">{label}</span>
+      <span class={state === 'prompt' || state === 'gone' ? 'opt-warn' : 'opt-muted'}>{status}</span>
+      <span class="folder-actions">
+        {state === 'prompt' && (
+          <button type="button" class="opt-link" onClick={async () => handle && (await allowFolder(handle)) && void refresh(handle)}>
+            {t('options.uploads.folderAllow')}
+          </button>
+        )}
+        <button type="button" class="opt-link" onClick={async () => void refresh((await bindFolder(role)) ?? handle ?? undefined)}>
+          {handle ? t('options.uploads.folderChange') : t('options.uploads.folderPick')}
+        </button>
+        {handle && (
+          <button
+            type="button"
+            class="opt-link"
+            onClick={async () => {
+              await unbindFolder(role);
+              void refresh(undefined);
+            }}
+          >
+            {t('options.uploads.folderUnbind')}
+          </button>
+        )}
+      </span>
+    </div>
   );
 }
 
@@ -989,6 +1052,8 @@ export function Options() {
             <input type="file" accept="image/*" multiple hidden onChange={(e) => void addUploads((e.target as HTMLInputElement).files, 'char')} />
           </label>
         </div>
+        <FolderRow role="bg" />
+        <FolderRow role="char" />
         <ul class="thumb-grid">
           {uploads.map((u) => (
             <li key={u.id}>

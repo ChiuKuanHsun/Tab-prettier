@@ -145,6 +145,9 @@ export const zhTW = {
       placeholder: '搜尋，或輸入網址…',
       suggestions: '搜尋建議',
     },
+    folder: {
+      prompt: '要繼續使用資料夾「{name}」裡的圖，需要重新允許讀取。',
+    },
     permission: {
       allow: '允許',
       decline: '不用了',
@@ -376,6 +379,16 @@ export const zhTW = {
       note: '檔案只存在這台電腦。',
       addBg: '+ 加入背景',
       addChar: '+ 加入角色',
+      folderBg: '背景資料夾',
+      folderChar: '角色資料夾',
+      folderNone: '未綁定',
+      folderPick: '選擇資料夾',
+      folderChange: '更換',
+      folderUnbind: '解除',
+      folderCount: '{name} · {n} 個檔案',
+      folderNeedsAccess: '{name} · 需要重新允許讀取',
+      folderGone: '{name} · 找不到了（可能已移動或刪除）',
+      folderAllow: '重新允許讀取',
     },
     favorites: {
       note: '在新分頁按 ♡ 收藏。',
@@ -471,6 +484,7 @@ export const zhTW = {
     uploads: {
       formats: '背景可用圖片、GIF 或 MP4/WebM 影片；角色請用圖片，會自動去背。檔案只存在這台電腦。',
       weight: '出現機率由「圖源」裡的「使用自己上傳的比例」決定。',
+      folder: '綁定資料夾後，放進去的圖會自動加入，和上傳的圖一起抽，不用逐張上傳；子資料夾（兩層內）也算。背景資料夾可放圖片、GIF 與影片，角色資料夾只用圖片。Chrome 重新開啟後可能需要重新允許讀取：新分頁會出現提示，按「允許」即可，在那之前會先跳過這個資料夾。',
     },
     favorites: {
       how: '在新分頁按下方的 ♡ 收藏。換圖時，收藏的畫面會依設定的機率隨機再出現，並優先挑符合目前時段的。',

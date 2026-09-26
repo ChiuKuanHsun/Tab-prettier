@@ -16,6 +16,7 @@ import { db } from '../lib/db';
 import { deriveTheme, quantize } from '../lib/palette';
 import { birthdayCharacters, type ListAnime } from '../lib/list-chars';
 import type { PerfBudget } from '../lib/perf';
+import { folderUpload, readableFolderFiles, type FolderFile, type FolderRole } from '../lib/folders';
 import { lastWeather } from '../lib/weather';
 import { uid } from '../lib/settings';
 import type { BirthdayOf, Credit, MediaKind, Scene, SceneChar, Settings, Upload } from '../lib/types';
@@ -66,6 +67,33 @@ function thumbOf(src: CanvasImageSource, w: number, h: number): ImageData {
 async function uploadsByRole(role: Upload['role']) {
   const all = await (await db()).getAll('uploads');
   return all.filter((u) => u.role === role);
+}
+
+// A folder is listed at most once a minute, not for every character attempt.
+const folderLists = new Map<FolderRole, { at: number; files: FolderFile[] }>();
+async function folderFiles(role: FolderRole) {
+  const hit = folderLists.get(role);
+  if (hit && Date.now() - hit.at < 60_000) return hit.files;
+  const files = await readableFolderFiles(role);
+  folderLists.set(role, { at: Date.now(), files });
+  return files;
+}
+
+/**
+ * The user's own pictures for a role: uploads plus the bound folder's files, one pool. A folder
+ * file is only read when it's drawn.
+ */
+async function ownMedia(role: Upload['role']) {
+  const ups = await uploadsByRole(role);
+  const files = await folderFiles(role);
+  const count = ups.length + files.length;
+  return {
+    count,
+    pick(): Promise<Upload> {
+      const i = Math.floor(Math.random() * count);
+      return i < ups.length ? Promise.resolve(ups[i]) : folderUpload(files[i - ups.length], role);
+    },
+  };
 }
 
 async function bgFromUpload(u: Upload): Promise<Bg> {
@@ -134,9 +162,9 @@ async function bgGenerated(): Promise<Bg> {
 }
 
 async function buildBackground(s: Settings, blacklist: Set<string>, bucket: TimeBucket, budget: PerfBudget): Promise<Bg> {
-  const ups = await uploadsByRole('bg');
-  if (ups.length && (Math.random() < s.sources.uploadsWeight || !s.sources.wallhaven)) {
-    return bgFromUpload(ups[Math.floor(Math.random() * ups.length)]);
+  const own = await ownMedia('bg');
+  if (own.count && (Math.random() < s.sources.uploadsWeight || !s.sources.wallhaven)) {
+    return bgFromUpload(await own.pick());
   }
   if (s.sources.wallhaven) return bgFromWallhaven(s, blacklist, bucket, budget);
   return bgGenerated();
@@ -177,12 +205,12 @@ async function nextCharCandidate(s: Settings, blacklist: Set<string>, featured?:
     if (!f) throw new Error('no featured character');
     return { ...(await danbooru(s, blacklist, f.tag)), birthday: f.birthday };
   }
-  const ups = await uploadsByRole('char');
-  if (ups.length && Math.random() < s.sources.uploadsWeight) return pickOne(ups);
+  const own = await ownMedia('char');
+  if (own.count && Math.random() < s.sources.uploadsWeight) return own.pick();
   const useDanbooru = s.sources.danbooru && !(await danbooruResting());
   const fns = [s.sources.nekosia && nekosia, s.sources.waifuim && waifuim, useDanbooru && danbooru]
     .filter(Boolean) as ((s: Settings, blacklist: Set<string>) => Promise<Candidate>)[];
-  if (!fns.length) return ups[0];
+  if (!fns.length) return own.count ? own.pick() : undefined;
   return pickOne(fns)(s, blacklist);
 }
 
@@ -345,7 +373,7 @@ export async function buildScene(
   const close = Math.abs(emptiness.left - emptiness.right) < 0.08;
   const charSide = close ? (Math.random() < 0.5 ? 'left' : 'right') : chooseCharSide(emptiness);
 
-  const wantsChar = s.sources.nekosia || s.sources.waifuim || s.sources.danbooru || (await uploadsByRole('char')).length > 0;
+  const wantsChar = s.sources.nekosia || s.sources.waifuim || s.sources.danbooru || (await ownMedia('char')).count > 0;
   const scenery = !wantsChar || (s.layoutVariety && bg.kind === 'image' && Math.random() < SCENERY_CHANCE);
   const char = scenery ? undefined : await buildCharacter(s, blacklist, bg, light, budget, listAnime);
   // chosen whatever the switches say: they decide at display time (see shownVariant), so a scene
