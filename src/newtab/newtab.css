@@ -438,6 +438,8 @@ button, input, textarea { font: inherit; color: inherit; }
   color: var(--ink);
 }
 .search-suggest-typed { color: var(--ink-soft); }
+/* hover only highlights; the arrow keys (or a click) put the suggestion in the box */
+.search-suggest li:hover { background: color-mix(in oklab, var(--accent) 12%, transparent); }
 .search-suggest [aria-selected='true'] {
   background: color-mix(in oklab, var(--accent) 22%, transparent);
   box-shadow: inset 2px 0 0 var(--accent);
