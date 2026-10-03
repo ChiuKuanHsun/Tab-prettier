@@ -85,6 +85,30 @@ export function autoParticle(month = new Date().getMonth()): Kind {
 
 interface P { x: number; y: number; vx: number; vy: number; r: number; a: number; spin: number; rot: number; hue: number }
 
+interface Sprite { img: HTMLCanvasElement; w: number; h: number }
+
+/**
+ * A particle shape drawn once into a small canvas, `w`×`h` around its centre (and blurred, for the
+ * near plane), so a frame is only drawImage calls: no paths or gradients per particle, and no
+ * full-screen blur over the whole canvas.
+ */
+function sprite(w: number, h: number, blur: number, paint: (c: CanvasRenderingContext2D) => void): Sprite {
+  const res = 2 * Math.min(1.5, devicePixelRatio); // supersampled: particles are drawn up to ~1.5× this size
+  const pad = Math.ceil(blur * 3) + 1;
+  const W = w + pad * 2, H = h + pad * 2;
+  const canvas = () => Object.assign(document.createElement('canvas'), { width: Math.ceil(W * res), height: Math.ceil(H * res) });
+  const shape = canvas();
+  const c = shape.getContext('2d')!;
+  c.setTransform(res, 0, 0, res, (W / 2) * res, (H / 2) * res);
+  paint(c);
+  if (!blur) return { img: shape, w: W, h: H };
+  const soft = canvas();
+  const s = soft.getContext('2d')!;
+  s.filter = `blur(${blur * res}px)`;
+  s.drawImage(shape, 0, 0);
+  return { img: soft, w: W, h: H };
+}
+
 /**
  * Falling or floating particles on one depth plane: `far` sits behind the character (most of them,
  * so the figure stays clear), `near` is a handful of large, fast, blurred ones in front of it, like
@@ -101,7 +125,6 @@ export function Particles({ kind, accent, running, plane }: { kind: Kind; accent
     const resize = () => {
       w = cv.clientWidth; h = cv.clientHeight;
       cv.width = w * dpr; cv.height = h * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     resize();
     addEventListener('resize', resize);
@@ -123,38 +146,57 @@ export function Particles({ kind, accent, running, plane }: { kind: Kind; accent
     });
     const ps = Array.from({ length: count }, () => spawn(true));
 
+    // sprites are drawn at a mid-range radius and scaled to each particle's
+    const blur = near ? 2.5 : 0;
+    const R = (near ? 2.6 : 1) * (kind === 'rain' ? 17 : kind === 'bokeh' ? 19 : 4);
+    const lw = near ? 2 : 1;
+    const sprites: Sprite[] =
+      kind === 'sakura'
+        ? ['#f7c6d0', '#fbe1e6'].map((col) => sprite(R * 3.2, R * 2, blur, (c) => {
+            c.fillStyle = col;
+            c.beginPath();
+            c.ellipse(0, 0, R * 1.6, R, 0, 0, Math.PI * 2);
+            c.fill();
+          }))
+        : kind === 'snow'
+          ? [sprite(R * 1.4, R * 1.4, blur, (c) => {
+              c.fillStyle = '#fff';
+              c.beginPath();
+              c.arc(0, 0, R * 0.7, 0, Math.PI * 2);
+              c.fill();
+            })]
+          : kind === 'rain'
+            ? [sprite(lw, R, blur, (c) => {
+                c.strokeStyle = 'rgba(220,230,255,.6)';
+                c.lineWidth = lw;
+                c.beginPath();
+                c.moveTo(0, -R / 2);
+                c.lineTo(0, R / 2);
+                c.stroke();
+              })]
+            : ['#fff6e0', accent].map((col) => sprite(R * 2, R * 2, blur, (c) => {
+                const g = c.createRadialGradient(0, 0, 0, 0, 0, R);
+                g.addColorStop(0, col);
+                g.addColorStop(1, 'transparent');
+                c.fillStyle = g;
+                c.beginPath();
+                c.arc(0, 0, R, 0, Math.PI * 2);
+                c.fill();
+              }));
+
     const draw = (p: P) => {
-      ctx.globalAlpha = p.a;
-      if (kind === 'sakura') {
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate(p.rot);
-        ctx.fillStyle = p.hue > 0.5 ? '#f7c6d0' : '#fbe1e6';
-        ctx.beginPath();
-        ctx.ellipse(0, 0, p.r * 1.6, p.r, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      } else if (kind === 'snow') {
-        ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r * 0.7, 0, Math.PI * 2);
-        ctx.fill();
-      } else if (kind === 'rain') {
-        ctx.strokeStyle = 'rgba(220,230,255,.6)';
-        ctx.lineWidth = near ? 2 : 1;
-        ctx.beginPath();
-        ctx.moveTo(p.x, p.y);
-        ctx.lineTo(p.x + p.vx * 2, p.y + p.r);
-        ctx.stroke();
-      } else {
-        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
-        g.addColorStop(0, p.hue > 0.6 ? '#fff6e0' : accent);
-        g.addColorStop(1, 'transparent');
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fill();
+      const s = sprites[kind === 'sakura' ? (p.hue > 0.5 ? 0 : 1) : kind === 'bokeh' ? (p.hue > 0.6 ? 0 : 1) : 0];
+      let sx = p.r / R, sy = sx, rot = kind === 'sakura' ? p.rot : 0, cx = p.x, cy = p.y;
+      if (kind === 'rain') {
+        // a streak from the drop's head along its velocity, as long as r
+        const dx = p.vx * 2;
+        sx = 1; sy = Math.hypot(dx, p.r) / R; rot = Math.atan2(-dx, p.r);
+        cx += dx / 2; cy += p.r / 2;
       }
+      const cos = Math.cos(rot) * dpr, sin = Math.sin(rot) * dpr;
+      ctx.globalAlpha = p.a;
+      ctx.setTransform(cos * sx, sin * sx, -sin * sy, cos * sy, cx * dpr, cy * dpr);
+      ctx.drawImage(s.img, -s.w / 2, -s.h / 2, s.w, s.h);
     };
 
     // 30fps budget
@@ -165,7 +207,8 @@ export function Particles({ kind, accent, running, plane }: { kind: Kind; accent
       const dt = Math.min(3, (now - last) / 16.7);
       last = now;
       t += dt;
-      ctx.clearRect(0, 0, w, h);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, cv.width, cv.height);
       for (let i = 0; i < ps.length; i++) {
         const p = ps[i];
         p.x += (p.vx + (kind === 'sakura' || kind === 'snow' ? Math.sin(t * 0.02 + p.hue * 9) * 0.4 : 0)) * dt;

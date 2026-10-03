@@ -200,7 +200,9 @@ button, input, textarea { font: inherit; color: inherit; }
   filter: blur(6px);
 }
 
-.is-breathing .char-img { animation: breathe 7s ease-in-out infinite; }
+/* The wrapper breathes, not the image: the image's drop shadow is then painted once into the
+   wrapper's layer and the compositor only scales it, instead of re-blurring it every frame. */
+.is-breathing .char { transform-origin: 50% 100%; will-change: transform; animation: breathe 7s ease-in-out infinite; }
 
 @keyframes breathe {
   50% { transform: scale(1.007) translateY(-0.25%); }
@@ -213,8 +215,6 @@ button, input, textarea { font: inherit; color: inherit; }
 }
 
 .layer-particles { width: 100%; height: 100%; }
-/* the few particles in front of the character are out of focus */
-.layer-particles.is-near { filter: blur(2.5px); }
 
 /* --- UI layer ------------------------------------------------------------- */
 
