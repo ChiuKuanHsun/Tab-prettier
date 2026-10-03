@@ -178,7 +178,6 @@ export function App() {
     'stage',
     ready && 'is-ready',
     `text-${t.side}`,
-    settings.breathing && animate && !lowPower && 'is-breathing',
     !scene && 'is-empty',
   ]
     .filter(Boolean)
@@ -207,7 +206,9 @@ export function App() {
         </div>
       </div>
 
-      {scene?.char && urls?.char && layout.char && <Character scene={scene} url={urls.char} box={layout.char} />}
+      {scene?.char && urls?.char && layout.char && (
+        <Character scene={scene} url={urls.char} box={layout.char} breathing={settings.breathing && animate && !lowPower && visible} />
+      )}
 
       <div class="layer layer-fog" />
       {showParticles && <Particles kind={particleKind} accent={theme.accent} running={visible} plane="near" />}

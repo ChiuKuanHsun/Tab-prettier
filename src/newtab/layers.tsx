@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { DepthBackground, type DepthFog } from './DepthBackground';
+import { onTick } from './ticker';
 import type { Layout } from '../lib/compose';
 import type { ParticleKind, Scene } from '../lib/types';
 
@@ -55,8 +56,25 @@ export function Background({
   );
 }
 
-export function Character({ scene, url, box }: { scene: Scene; url: string; box: NonNullable<Layout['char']> }) {
+/** One breath: rise a quarter percent and swell 0.7% from the feet, eased in and out. */
+const BREATH_MS = 7000;
+
+export function Character({ scene, url, box, breathing }: { scene: Scene; url: string; box: NonNullable<Layout['char']>; breathing: boolean }) {
   const c = scene.char!;
+  const fig = useRef<HTMLDivElement>(null);
+  // On the shared ticker rather than a CSS animation, which would recomposite at the display's rate.
+  useEffect(() => {
+    const el = fig.current;
+    if (!breathing || !el) return;
+    const off = onTick((now) => {
+      const k = (1 - Math.cos((now / BREATH_MS) * 2 * Math.PI)) / 2;
+      el.style.transform = `translateY(${(-0.25 * k).toFixed(4)}%) scale(${(1 + 0.007 * k).toFixed(5)})`;
+    });
+    return () => {
+      off();
+      el.style.transform = '';
+    };
+  }, [breathing]);
   // Drop shadow falls away from the estimated light.
   const lx = -scene.layout.light.x, ly = Math.max(0.3, -scene.layout.light.y);
   return (
@@ -65,7 +83,7 @@ export function Character({ scene, url, box }: { scene: Scene; url: string; box:
       data-enter={scene.layout.charSide === 'right' ? 'from-right' : 'from-left'}
       style={{ '--sx': `${(lx * 22).toFixed(1)}px`, '--sy': `${(ly * 16).toFixed(1)}px` }}
     >
-      <div class="char" style={{ left: `${box.left}px`, width: `${box.width}px`, height: `${box.height}px`, bottom: `${box.bottom}px` }}>
+      <div ref={fig} class={`char ${breathing ? 'is-breathing' : ''}`} style={{ left: `${box.left}px`, width: `${box.width}px`, height: `${box.height}px`, bottom: `${box.bottom}px` }}>
         {!c.cut.bottom && <div class="char-contact" />}
         <img class="char-img" src={url} alt="" decoding="async" draggable={false} />
       </div>
@@ -199,12 +217,10 @@ export function Particles({ kind, accent, running, plane }: { kind: Kind; accent
       ctx.drawImage(s.img, -s.w / 2, -s.h / 2, s.w, s.h);
     };
 
-    // 30fps budget
-    let raf = 0, last = 0, t = 0;
+    // speeds are per 60fps frame; dt scales them to the ticker's longer steps
+    let last = performance.now(), t = 0;
     const frame = (now: number) => {
-      raf = requestAnimationFrame(frame);
-      if (now - last < 33) return;
-      const dt = Math.min(3, (now - last) / 16.7);
+      const dt = Math.min(4, (now - last) / 16.7);
       last = now;
       t += dt;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -221,9 +237,9 @@ export function Particles({ kind, accent, running, plane }: { kind: Kind; accent
         draw(ps[i]);
       }
     };
-    if (running) raf = requestAnimationFrame(frame);
+    const off = running ? onTick(frame) : () => {};
     return () => {
-      cancelAnimationFrame(raf);
+      off();
       removeEventListener('resize', resize);
     };
   }, [kind, accent, running, plane]);

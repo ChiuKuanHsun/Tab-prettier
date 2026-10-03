@@ -200,13 +200,9 @@ button, input, textarea { font: inherit; color: inherit; }
   filter: blur(6px);
 }
 
-/* The wrapper breathes, not the image: the image's drop shadow is then painted once into the
-   wrapper's layer and the compositor only scales it, instead of re-blurring it every frame. */
-.is-breathing .char { transform-origin: 50% 100%; will-change: transform; animation: breathe 7s ease-in-out infinite; }
-
-@keyframes breathe {
-  50% { transform: scale(1.007) translateY(-0.25%); }
-}
+/* The wrapper breathes (driven from layers.tsx), not the image: the image's drop shadow is then
+   painted once into the wrapper's layer and only scaled, instead of re-blurred every frame. */
+.char.is-breathing { transform-origin: 50% 100%; will-change: transform; }
 
 /* Foreground fog laps over the character's lower edge, seating it in the scene. */
 .layer-fog {
