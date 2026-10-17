@@ -39,12 +39,10 @@ and what's airing today — kept quiet so the picture stays the point.
 
 <!-- prettier-ignore -->
 <div align="center">
-  <img src="docs/screenshots/newtab-en.png" alt="A new tab: scenery in the back, a character in front, the clock between them" width="720" />
+  <img src="docs/screenshots/newtab-1.png" alt="A new tab: scenery in the back, a character in front, the clock between them" width="720" />
+  <br /><br />
+  <img src="docs/screenshots/newtab-2.png" alt="Another new tab scene" width="720" />
 </div>
-
-| <img src="docs/screenshots/night-en.png" width="240"/> | <img src="docs/screenshots/links-en.png" width="240"/> | <img src="docs/screenshots/options-en.png" width="240"/> |
-|:-:|:-:|:-:|
-| Night scene with rain | Links panel and search | Settings |
 
 ---
 

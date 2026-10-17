@@ -36,12 +36,10 @@ Tab Prettier 把 Chrome 的新分頁換成一幅當場合成的畫：一張場�
 
 <!-- prettier-ignore -->
 <div align="center">
-  <img src="docs/screenshots/newtab-zh-TW.png" alt="新分頁：背景是場景，角色站在前面，時鐘夾在中間" width="720" />
+  <img src="docs/screenshots/newtab-1.png" alt="新分頁：背景是場景，角色站在前面，時鐘夾在中間" width="720" />
+  <br /><br />
+  <img src="docs/screenshots/newtab-2.png" alt="另一幅新分頁畫面" width="720" />
 </div>
-
-| <img src="docs/screenshots/night-zh-TW.png" width="240"/> | <img src="docs/screenshots/links-zh-TW.png" width="240"/> | <img src="docs/screenshots/options-zh-TW.png" width="240"/> |
-|:-:|:-:|:-:|
-| 下雨的夜景 | 連結面板與搜尋 | 設定頁 |
 
 ---
 
