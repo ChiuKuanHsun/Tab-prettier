@@ -14,6 +14,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Preact](https://img.shields.io/badge/Preact-673ab8?style=flat-square&logo=preact&logoColor=white)](https://preactjs.com)
 [![ONNX Runtime Web](https://img.shields.io/badge/ONNX_Runtime-Web-005ce6?style=flat-square)](https://onnxruntime.ai)
+[![%E6%8E%88%E6%AC%8A](https://img.shields.io/badge/%E6%8E%88%E6%AC%8A-GPL--3.0-a0522d?style=flat-square)](LICENSE)
 [![%E6%94%AF%E6%8C%81%E9%96%8B%E7%99%BC](https://img.shields.io/badge/%E6%94%AF%E6%8C%81%E9%96%8B%E7%99%BC-ko--fi-ff5e5b?style=flat-square&logo=kofi&logoColor=white)](https://kuanhsun.pages.dev/support?lang=zh-TW)
 
 [實際畫面](#實際畫面) • [功能](#功能) • [運作方式](#運作方式) • [開始使用](#開始使用) • [怎麼操作](#怎麼操作) • [常見問題](#常見問題)
@@ -215,4 +216,11 @@ Chrome 只允許另外的「佈景主題」改分頁列的顏色，而且佈景�
 Tab Prettier 本身不含任何圖片。圖片從上面列出的公開圖庫取得，著作權屬於原作者；出處面板會連到每張圖的來源。
 Tab Prettier 與這些網站及 AniList 都沒有任何關係。
 
-原始碼公開僅供參考，不授予任何授權，保留所有權利；上面列出的第三方元件依各自的授權條款。
+---
+
+## 授權
+
+Tab Prettier 採用 [GNU 通用公共授權條款第 3 版（GPL-3.0）](LICENSE)。你可以使用、研究、修改和散布；
+散布以它為基礎的作品時，也必須以 GPL-3.0 釋出並附上原始碼。
+
+上面列出的第三方元件依各自的授權條款。兩個模型是 Apache-2.0，可以納入 GPL-3.0 的作品；重新散布時請保留它們的出處標示。

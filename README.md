@@ -17,6 +17,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Preact](https://img.shields.io/badge/Preact-673ab8?style=flat-square&logo=preact&logoColor=white)](https://preactjs.com)
 [![ONNX Runtime Web](https://img.shields.io/badge/ONNX_Runtime-Web-005ce6?style=flat-square)](https://onnxruntime.ai)
+[![License](https://img.shields.io/badge/License-GPL--3.0-a0522d?style=flat-square)](LICENSE)
 [![Support](https://img.shields.io/badge/Support-ko--fi-ff5e5b?style=flat-square&logo=kofi&logoColor=white)](https://kuanhsun.pages.dev/support?lang=en)
 
 [Screenshots](#screenshots) • [Features](#features) • [How it works](#how-it-works) • [Getting started](#getting-started) • [Using it](#using-it) • [FAQ](#faq)
@@ -240,5 +241,13 @@ Tab Prettier contains no artwork. Pictures are fetched from the public galleries
 remain the work of their artists; the credits panel links each one to its source. Tab Prettier
 has no affiliation with any of those sites or with AniList.
 
-The source is published for reference. No licence is granted: all rights reserved, apart from
-the third-party components above, which keep their own licences.
+---
+
+## Licence
+
+Tab Prettier is licensed under the [GNU General Public License v3.0](LICENSE). You may use, study,
+change and share it; anything you distribute that is built on it must be released under GPL-3.0
+too, with its source.
+
+The third-party components above keep their own licences. The two models are Apache-2.0, which
+GPL-3.0 can include; keep their attribution if you redistribute them.
