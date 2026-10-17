@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'preact/hooks';
-import { pointer } from './motion';
-import { onTick } from './ticker';
+import { onPointerEase, pointer } from './motion';
+import { onTick, SLOW_FPS } from './ticker';
 
 const VERT = `#version 300 es
 in vec2 aPos;
@@ -74,9 +74,9 @@ export interface DepthFog { amount: number; color: [number, number, number] }
 
 /**
  * Background drawn through WebGL with a depth-driven parallax: the eased pointer moves the
- * camera, plus a slow drift so the scene breathes on its own; `fog` hazes the distance. Renders
- * on the shared ambient clock and only while the tab is visible (with no motion, only when the fog
- * changes). Calls
+ * camera, plus a slow drift so the scene breathes on its own; `fog` hazes the distance. The drift
+ * renders on the shared ambient clock, following the pointer at ≤30fps while it settles; only while
+ * the tab is visible (with no motion, only when the fog changes). Calls
  * `onFail` (so the caller can show the flat image) if WebGL2 or the textures aren't available.
  */
 export function DepthBackground({
@@ -120,7 +120,7 @@ export function DepthBackground({
       onFail();
       return;
     }
-    let alive = true, stop = () => {};
+    let alive = true, last = 0, stop = () => {};
     let cleanup = () => {};
     let release = () => {};
     const t0 = performance.now();
@@ -190,13 +190,20 @@ export function DepthBackground({
         };
         draw(performance.now());
         onReady();
-        // same ticks as the particles and breathing, so they share one composite
-        stop = onTick((now) => {
-          if (!runningRef.current) return;
+        const frame = (now: number) => {
+          if (!runningRef.current || now - last < 33) return;
           // a still picture (no motion) is only redrawn when the fog changes
           if (strengthRef.current <= 0 && fogRef.current === drawnFog) return;
+          last = now;
           draw(now);
-        });
+        };
+        // the slow drift shares the ambient ticks; the pointer's own easing steps make it responsive
+        const offTick = onTick(frame, SLOW_FPS);
+        const offPointer = onPointerEase(frame);
+        stop = () => {
+          offTick();
+          offPointer();
+        };
         cleanup = () => removeEventListener('resize', resize);
       } catch (e) {
         console.warn('[depth] falling back to flat background', e);

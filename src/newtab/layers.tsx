@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { DepthBackground, type DepthFog } from './DepthBackground';
-import { onTick } from './ticker';
+import { onTick, SLOW_FPS } from './ticker';
 import type { Layout } from '../lib/compose';
 import type { ParticleKind, Scene } from '../lib/types';
 
@@ -62,14 +62,15 @@ const BREATH_MS = 7000;
 export function Character({ scene, url, box, breathing }: { scene: Scene; url: string; box: NonNullable<Layout['char']>; breathing: boolean }) {
   const c = scene.char!;
   const fig = useRef<HTMLDivElement>(null);
-  // On the shared ticker rather than a CSS animation, which would recomposite at the display's rate.
+  // On the shared ticker rather than a CSS animation, which would recomposite at the display's
+  // rate; a slow one, since a breath moves the figure well under a pixel per tick.
   useEffect(() => {
     const el = fig.current;
     if (!breathing || !el) return;
     const off = onTick((now) => {
       const k = (1 - Math.cos((now / BREATH_MS) * 2 * Math.PI)) / 2;
       el.style.transform = `translateY(${(-0.25 * k).toFixed(4)}%) scale(${(1 + 0.007 * k).toFixed(5)})`;
-    });
+    }, SLOW_FPS);
     return () => {
       off();
       el.style.transform = '';
