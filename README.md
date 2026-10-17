@@ -7,7 +7,10 @@
 
 *Every new tab is a new anime scene: scenery and a character composed in layered depth*
 
-**[Add to Chrome → Chrome Web Store](https://chromewebstore.google.com/detail/fnacfhfopcdcgidgjllgngoigaajbapi)**
+<a href="https://chromewebstore.google.com/detail/fnacfhfopcdcgidgjllgngoigaajbapi">
+    <img src="https://res.cloudinary.com/do2max7gt/image/upload/v1745580622/chrome-web-store_vkyxkm.png" alt="Logo" width="250">
+</a>
+
 
 [![Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-Install-4285f4?style=flat-square&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/fnacfhfopcdcgidgjllgngoigaajbapi)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-a0522d?style=flat-square)](https://developer.chrome.com/docs/extensions/develop/migrate/what-is-mv3)
