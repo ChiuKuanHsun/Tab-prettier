@@ -158,17 +158,20 @@ Image sources: Wallhaven, Danbooru (general rating only), Nekosia, waifu.im. Wea
 
 ### 隱私權政策
 
-決定：暫不提供。
+**網址**：https://chiukuanhsun.github.io/Tab-prettier/privacy.html
+（原始檔 `docs/privacy.html`，繁中＋英文同一頁。內容要和上面的揭露表一致，改功能時兩邊一起更新。）
 
-⚠️ 風險：上面勾選了任何一種使用者資料，主頁就會要求填隱私權政策網址，沒有就不能送審。
-如果審核卡在這裡，最簡單的做法是在 repo 放一頁 `docs/privacy.html`，用 GitHub Pages 公開，
-內容就是上面「資料使用揭露」那張表加上「開發者不蒐集、不保存、不販售任何資料」。
+開啟方式（只要做一次）：
+1. push 到 GitHub
+2. repo 的 Settings → Pages → Source 選「Deploy from a branch」，Branch 選 `master`、資料夾選 `/docs`，按 Save
+3. 約一分鐘後打開上面的網址，確認看得到政策再送審
 
 ## 發布設定
 
 - **公開程度**：公開
 - **地區**：所有地區
-- **發布者名稱／聯絡信箱**：使用者自行設定
+- **聯絡信箱**：kuanhsunextension@gmail.com（公開顯示在商店頁，審核通知也寄到這裡）
+- **支援網址**：https://github.com/ChiuKuanHsun/Tab-prettier/issues
 
 ## 審核風險提醒
 
