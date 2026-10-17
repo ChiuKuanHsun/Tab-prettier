@@ -98,11 +98,11 @@ Image sources: Wallhaven, Danbooru (general rating only), Nekosia, waifu.im. Wea
 | 素材 | 尺寸 | 狀態 | 備註 |
 |---|---|---|---|
 | 商店圖示 | 128×128 PNG | ✅ | `public/icons/icon-128.png` |
-| 截圖 1 | 1280×800 | ⬜ | 新分頁全畫面：角色、時鐘、天氣 |
-| 截圖 2 | 1280×800 | ⬜ | 另一幅新分頁（換主題或時段，例如夜晚、下雨） |
-| 小型宣傳圖塊 | 440×280 | ⬜ | 選填，精選版位用 |
+| 截圖 1 | 1280×800 | ✅ | `store-assets/screenshot-1.png`（英文介面） |
+| 截圖 2 | 1280×800 | ✅ | `store-assets/screenshot-2.png`（繁中介面） |
+| 小型宣傳圖塊 | 440×280 | ✅ | `store-assets/promo-small.png`，選填，精選版位用 |
 
-只放兩張新分頁截圖，商店和 README 共用：存成 `docs/screenshots/newtab-1.png`、`newtab-2.png`，README 就會自動顯示。
+README 用 `docs/screenshots/newtab-1.png`、`newtab-2.png` 原圖；`store-assets/` 是從同兩張裁成 16:10、去掉透明通道的商店版。兩種語言的商店資訊都上傳這兩張。
 截圖要用目前版本實際的畫面，不能是合成示意圖。
 擷取方式：把 Chrome 視窗調成 1280×800 的內容區，按 F12 →「Ctrl+Shift+P」→「Capture screenshot」。
 
