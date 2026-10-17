@@ -102,11 +102,11 @@ export function Search({
   /** Set after a deletion or Esc: no inline completion until the next typed character. */
   const [noComplete, setNoComplete] = useState(false);
   /**
-   * The IME's unfinished text (注音 before it's chosen), or undefined when not composing. Until the
-   * IME commits, the box is left exactly as the IME has it: no completion, no selection, and no
-   * suggestions for half a syllable. Some IMEs drop the composition when a page touches the value.
+   * While an IME is composing (注音 before it's chosen), the box never touches the input: no inline
+   * completion, no selection. Some IMEs drop the composition when a page changes the value, and
+   * some never send compositionend, so any plain input or leaving the box also ends it.
    */
-  const [draft, setDraft] = useState<string>();
+  const [composing, setComposing] = useState(false);
   const cur = ENGINES[engine] ?? ENGINES.default;
   const allowed = useHosts(SUGGEST);
   const historyOk = usePerms(SEARCH_HISTORY);
@@ -171,8 +171,8 @@ export function Search({
   const visits = useMemo(() => (browser && text ? relevant(browser.visits, text) : []), [browser, text]);
   const items = text ? composeSuggestions(text, { visits, tabs: browser?.tabs, currentTabId: browser?.currentTabId, google: google.filter((g) => g !== text) }) : [];
   // the address-bar completion: typed text plus the rest of a site name, the rest selected
-  const completion = useHistory && !noComplete && active < 0 && q === text && draft === undefined ? inlineCompletion(visits, q) : undefined;
-  const boxValue = draft ?? (active >= 0 && items[active] ? boxText(items[active]) : completion ? q + completion.display.slice(q.length) : q);
+  const completion = useHistory && !noComplete && active < 0 && q === text && !composing ? inlineCompletion(visits, q) : undefined;
+  const boxValue = active >= 0 && items[active] ? boxText(items[active]) : completion ? q + completion.display.slice(q.length) : q;
 
   // Every keystroke re-selects the completed part: typing a letter that matches it leaves the
   // shown text unchanged, and without this the selection would be gone.
@@ -288,23 +288,15 @@ export function Search({
         aria-activedescendant={listOpen && active >= 0 ? `sugg-${active}` : undefined}
         autoComplete="off"
         value={boxValue}
-        onCompositionStart={(e) => setDraft((e.target as HTMLInputElement).value)}
+        onCompositionStart={() => setComposing(true)}
         onCompositionEnd={(e) => {
-          setDraft(undefined);
+          setComposing(false);
           setQ((e.target as HTMLInputElement).value);
-          setNoComplete(false);
-          setShowList(true);
         }}
         onInput={(e) => {
-          const value = (e.target as HTMLInputElement).value;
-          if ((e as InputEvent).isComposing) {
-            setDraft(value);
-            return;
-          }
-          // some IMEs never send compositionend: any plain input means the composition is over
-          setDraft(undefined);
+          setComposing((e as InputEvent).isComposing);
           // typing over the selected completion replaces it, so the value is what was typed
-          setQ(value);
+          setQ((e.target as HTMLInputElement).value);
           setNoComplete((e as InputEvent).inputType?.startsWith('delete') ?? false);
           setShowList(true);
         }}
@@ -315,7 +307,7 @@ export function Search({
         }}
         onBlur={() => {
           setShowList(false);
-          setDraft(undefined);
+          setComposing(false);
         }}
         autoFocus
       />
