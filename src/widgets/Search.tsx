@@ -101,6 +101,12 @@ export function Search({
   const [showList, setShowList] = useState(false);
   /** Set after a deletion or Esc: no inline completion until the next typed character. */
   const [noComplete, setNoComplete] = useState(false);
+  /**
+   * The IME's unfinished text (注音 before it's chosen), or undefined when not composing. Until the
+   * IME commits, the box is left exactly as the IME has it: no completion, no selection, and no
+   * suggestions for half a syllable. Some IMEs drop the composition when a page touches the value.
+   */
+  const [draft, setDraft] = useState<string>();
   const cur = ENGINES[engine] ?? ENGINES.default;
   const allowed = useHosts(SUGGEST);
   const historyOk = usePerms(SEARCH_HISTORY);
@@ -165,8 +171,8 @@ export function Search({
   const visits = useMemo(() => (browser && text ? relevant(browser.visits, text) : []), [browser, text]);
   const items = text ? composeSuggestions(text, { visits, tabs: browser?.tabs, currentTabId: browser?.currentTabId, google: google.filter((g) => g !== text) }) : [];
   // the address-bar completion: typed text plus the rest of a site name, the rest selected
-  const completion = useHistory && !noComplete && active < 0 && q === text ? inlineCompletion(visits, q) : undefined;
-  const boxValue = active >= 0 && items[active] ? boxText(items[active]) : completion ? q + completion.display.slice(q.length) : q;
+  const completion = useHistory && !noComplete && active < 0 && q === text && draft === undefined ? inlineCompletion(visits, q) : undefined;
+  const boxValue = draft ?? (active >= 0 && items[active] ? boxText(items[active]) : completion ? q + completion.display.slice(q.length) : q);
 
   // Every keystroke re-selects the completed part: typing a letter that matches it leaves the
   // shown text unchanged, and without this the selection would be gone.
@@ -207,6 +213,8 @@ export function Search({
   };
 
   const onKeyDown = (e: KeyboardEvent) => {
+    // keys the IME is using (choosing a candidate, Esc to cancel it) aren't meant for the box
+    if (e.isComposing || e.keyCode === 229) return;
     // → takes the completion (Tab keeps moving focus, as elsewhere on the page)
     if (e.key === 'ArrowRight' && completion && accept()) return;
     if (e.key === 'Escape') {
@@ -280,9 +288,21 @@ export function Search({
         aria-activedescendant={listOpen && active >= 0 ? `sugg-${active}` : undefined}
         autoComplete="off"
         value={boxValue}
-        onInput={(e) => {
-          // typing over the selected completion replaces it, so the value is what was typed
+        onCompositionStart={(e) => setDraft((e.target as HTMLInputElement).value)}
+        onCompositionEnd={(e) => {
+          setDraft(undefined);
           setQ((e.target as HTMLInputElement).value);
+          setNoComplete(false);
+          setShowList(true);
+        }}
+        onInput={(e) => {
+          const value = (e.target as HTMLInputElement).value;
+          if ((e as InputEvent).isComposing) {
+            setDraft(value);
+            return;
+          }
+          // typing over the selected completion replaces it, so the value is what was typed
+          setQ(value);
           setNoComplete((e as InputEvent).inputType?.startsWith('delete') ?? false);
           setShowList(true);
         }}
