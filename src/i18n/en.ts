@@ -207,6 +207,7 @@ export const en: Messages = {
     regenerate: 'Clear and regenerate with new settings',
     regenerating: 'Cleared. Regenerating scenes with new settings…',
     helpLink: 'Help',
+    coffee: 'Buy me a coffee',
     added: 'Added {n} files',
     imported: 'Imported',
     badFile: 'Invalid file format',

@@ -28,7 +28,7 @@ import { detectTier, type PerfTier } from '../lib/perf';
 import { allowFolder, bindFolder, folderAccess, getFolder, listFolder, unbindFolder, type FolderHandle, type FolderRole } from '../lib/folders';
 import { DEFAULT_BLOCK_SITES, parseSites, sitePattern, unallowedSites, watchedSites } from '../lib/focus-block';
 import { RECENT, requestHosts, requestPerms, SEARCH_HISTORY, SUGGEST, TOP_SITES, usePerms, type Perms } from '../lib/permissions';
-import { localePref, saveLocalePref, t, tRich, type LocalePref } from '../i18n';
+import { locale, localePref, saveLocalePref, t, tRich, type LocalePref } from '../i18n';
 import { SECTION_IDS, type SectionId } from './sections';
 
 const PERF_TIERS: PerfTier[] = ['low', 'medium', 'high'];
@@ -1207,6 +1207,15 @@ export function Options() {
           </label>
         </div>
       </Section>
+
+      <a class="opt-coffee" href={`https://kuanhsun.pages.dev/support?lang=${locale === 'en' ? 'en' : 'zh-TW'}`} target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9Z" />
+          <path d="M17 11h1.5a2.5 2.5 0 0 1 0 5H17" />
+          <path d="M8 3.5c-.6.8-.6 1.7 0 2.5M11.5 3.5c-.6.8-.6 1.7 0 2.5" />
+        </svg>
+        {t('options.coffee')}
+      </a>
 
       {toast && (
         <div class="opt-toast" role="status">

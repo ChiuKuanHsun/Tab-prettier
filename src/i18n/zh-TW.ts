@@ -209,6 +209,7 @@ export const zhTW = {
     regenerate: '清空並用新設定重新產生',
     regenerating: '已清空，正在用新設定重新產生畫面…',
     helpLink: '使用說明',
+    coffee: '請作者喝杯咖啡',
     added: '已加入 {n} 個檔案',
     imported: '已匯入',
     badFile: '檔案格式不正確',
