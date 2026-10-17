@@ -154,6 +154,7 @@ Image sources: Wallhaven, Danbooru (general rating only), Nekosia, waifu.im. Wea
 - **位置資訊（Location）**：天氣
 - **驗證資訊（Authentication information）**：AniList 登入憑證
 - **使用者活動（User activity）**：搜尋框輸入的文字送去取得建議
+- **網路瀏覽紀錄（Web history）**：只在電腦上讀取，但商店對「處理」的認定較寬，多揭露比漏揭露安全（隱私權政策裡也有寫）
 - 三項認證都勾：不販售給第三方、不用於與功能無關的用途、不用於信用評估
 
 ### 隱私權政策
