@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { pointer } from './motion';
+import { onTick } from './ticker';
 
 const VERT = `#version 300 es
 in vec2 aPos;
@@ -74,7 +75,8 @@ export interface DepthFog { amount: number; color: [number, number, number] }
 /**
  * Background drawn through WebGL with a depth-driven parallax: the eased pointer moves the
  * camera, plus a slow drift so the scene breathes on its own; `fog` hazes the distance. Renders
- * at ≤30fps and only while the tab is visible (with no motion, only when the fog changes). Calls
+ * on the shared ambient clock and only while the tab is visible (with no motion, only when the fog
+ * changes). Calls
  * `onFail` (so the caller can show the flat image) if WebGL2 or the textures aren't available.
  */
 export function DepthBackground({
@@ -118,7 +120,7 @@ export function DepthBackground({
       onFail();
       return;
     }
-    let raf = 0, alive = true, last = 0;
+    let alive = true, stop = () => {};
     let cleanup = () => {};
     let release = () => {};
     const t0 = performance.now();
@@ -157,7 +159,7 @@ export function DepthBackground({
         const uShift = gl.getUniformLocation(prog, 'uShift');
         const uFog = gl.getUniformLocation(prog, 'uFog');
         const uFogColor = gl.getUniformLocation(prog, 'uFogColor');
-        let drawnFog = '';
+        let drawnFog: DepthFog | undefined;
 
         const resize = () => {
           const dpr = Math.min(1.5, devicePixelRatio);
@@ -183,20 +185,18 @@ export function DepthBackground({
           const f = fogRef.current;
           gl.uniform1f(uFog, f?.amount ?? 0);
           gl.uniform3f(uFogColor, ...(f?.color ?? [0, 0, 0]));
-          drawnFog = JSON.stringify(f);
+          drawnFog = f;
           gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-        };
-        const frame = (now: number) => {
-          raf = requestAnimationFrame(frame);
-          if (!runningRef.current || now - last < 33) return;
-          // a still picture (no motion) is only redrawn when the fog changes
-          if (strengthRef.current <= 0 && JSON.stringify(fogRef.current) === drawnFog) return;
-          last = now;
-          draw(now);
         };
         draw(performance.now());
         onReady();
-        raf = requestAnimationFrame(frame);
+        // same ticks as the particles and breathing, so they share one composite
+        stop = onTick((now) => {
+          if (!runningRef.current) return;
+          // a still picture (no motion) is only redrawn when the fog changes
+          if (strengthRef.current <= 0 && fogRef.current === drawnFog) return;
+          draw(now);
+        });
         cleanup = () => removeEventListener('resize', resize);
       } catch (e) {
         console.warn('[depth] falling back to flat background', e);
@@ -211,7 +211,7 @@ export function DepthBackground({
     cv.addEventListener('webglcontextlost', lost);
     return () => {
       alive = false;
-      cancelAnimationFrame(raf);
+      stop();
       cleanup();
       cv.removeEventListener('webglcontextlost', lost);
       release();

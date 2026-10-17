@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { locale, t as msg } from '../i18n'; // `t` is the layout's text box below
 import { computeLayout } from '../lib/compose';
 import { saveSettings } from '../lib/settings';
@@ -86,6 +86,13 @@ export function App() {
     // run per scene
   }, [urls, scene === undefined]);
 
+  // Haze in the distance when the effects follow the weather; kept stable across the clock's
+  // re-renders, since a still depth background redraws whenever it changes.
+  const depthFog = useMemo(
+    () => (settings?.particles === 'auto' ? weatherFog(weather?.mood, scene?.bucket) : undefined),
+    [settings?.particles, weather?.mood, scene?.bucket],
+  );
+
   if (!settings || scene === undefined) return <main class="stage" />;
 
   const theme = scene?.theme ?? FALLBACK_THEME;
@@ -105,8 +112,6 @@ export function App() {
 
   const particleKind = settings.particles === 'auto' ? (weatherParticle(weather?.mood) ?? autoParticle()) : settings.particles;
   const showParticles = particleKind !== 'off' && !lowPower && !reducedMotion;
-  // haze in the distance when the effects follow the weather
-  const depthFog = settings.particles === 'auto' ? weatherFog(weather?.mood, scene?.bucket) : undefined;
 
   const style = {
     '--accent': theme.accent,
