@@ -214,7 +214,7 @@ export function Search({
 
   const onKeyDown = (e: KeyboardEvent) => {
     // keys the IME is using (choosing a candidate, Esc to cancel it) aren't meant for the box
-    if (e.isComposing || e.keyCode === 229) return;
+    if (e.isComposing) return;
     // → takes the completion (Tab keeps moving focus, as elsewhere on the page)
     if (e.key === 'ArrowRight' && completion && accept()) return;
     if (e.key === 'Escape') {
@@ -301,6 +301,8 @@ export function Search({
             setDraft(value);
             return;
           }
+          // some IMEs never send compositionend: any plain input means the composition is over
+          setDraft(undefined);
           // typing over the selected completion replaces it, so the value is what was typed
           setQ(value);
           setNoComplete((e as InputEvent).inputType?.startsWith('delete') ?? false);
@@ -311,7 +313,10 @@ export function Search({
           setShowList(true);
           loadBrowser();
         }}
-        onBlur={() => setShowList(false)}
+        onBlur={() => {
+          setShowList(false);
+          setDraft(undefined);
+        }}
         autoFocus
       />
       {listOpen && (
