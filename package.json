@@ -1,14 +1,15 @@
 {
   "name": "tab-prettier",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite build --watch --mode development",
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "icons": "node tools/build_icons.mjs"
+    "icons": "node tools/build_icons.mjs",
+    "package": "npm run build && node tools/package.mjs"
   },
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.3.0",
