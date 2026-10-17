@@ -1,71 +1,243 @@
-# Tab Prettier — 動漫景深新分頁
+<!-- prettier-ignore -->
+<div align="center">
 
-每次開新分頁都是一幅新的合成畫:Wallhaven 無人場景當背景 × Nekosia / waifu.im 角色自動去背,
-時鐘夾在背景與角色之間,滑鼠移動有景深視差。
+<img src="./assets/icon/icon.svg" alt="" align="center" height="96" />
 
-## 安裝(開發者模式)
+# Tab Prettier
 
-```bash
-npm install
-npm run build        # 產出 dist/
+*Every new tab is a new anime scene: scenery and a character composed in layered depth*
+
+**[Add to Chrome → Chrome Web Store](https://chromewebstore.google.com/detail/fnacfhfopcdcgidgjllgngoigaajbapi)**
+
+[![Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-Install-4285f4?style=flat-square&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/fnacfhfopcdcgidgjllgngoigaajbapi)
+[![Manifest V3](https://img.shields.io/badge/Manifest-V3-a0522d?style=flat-square)](https://developer.chrome.com/docs/extensions/develop/migrate/what-is-mv3)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Preact](https://img.shields.io/badge/Preact-673ab8?style=flat-square&logo=preact&logoColor=white)](https://preactjs.com)
+[![ONNX Runtime Web](https://img.shields.io/badge/ONNX_Runtime-Web-005ce6?style=flat-square)](https://onnxruntime.ai)
+[![Support](https://img.shields.io/badge/Support-ko--fi-ff5e5b?style=flat-square&logo=kofi&logoColor=white)](https://kuanhsun.pages.dev/support?lang=en)
+
+[Screenshots](#screenshots) • [Features](#features) • [How it works](#how-it-works) • [Getting started](#getting-started) • [Using it](#using-it) • [FAQ](#faq)
+
+English · [繁體中文](README.zh-TW.md)
+
+</div>
+
+Tab Prettier replaces Chrome's new tab page with a picture composed on the spot: a piece of
+scenery for the background, an anime character cut out and standing in front of it, and the
+clock tucked between the two. Move the mouse and the scene shifts in depth.
+
+Around the picture sit the things a new tab is for — search, your links, to-dos, a focus timer
+and what's airing today — kept quiet so the picture stays the point.
+
+> [!TIP]
+> Cutting out the character and estimating depth happen **on your own computer**. No picture is
+> uploaded anywhere, and there is no account or server behind the extension.
+
+---
+
+## Screenshots
+
+<!-- prettier-ignore -->
+<div align="center">
+  <img src="docs/screenshots/newtab-en.png" alt="A new tab: scenery in the back, a character in front, the clock between them" width="720" />
+</div>
+
+| <img src="docs/screenshots/night-en.png" width="240"/> | <img src="docs/screenshots/links-en.png" width="240"/> | <img src="docs/screenshots/options-en.png" width="240"/> |
+|:-:|:-:|:-:|
+| Night scene with rain | Links panel and search | Settings |
+
+---
+
+## Features
+
+**The scene**
+
+- **Composed, not picked** — background and character are chosen separately, then cut out, colour-matched and lit to sit together, so no two tabs look the same
+- **Depth parallax** — the background is split by depth and moves in layers with the mouse; the character gently breathes
+- **Follows the day and the weather** — dawn, dusk and night scenes; rain, snow and distant haze when it's actually raining or snowing where you are
+- **Composition switches** — close-ups only, long shots, or scenery with no one in it; tags you never want to see
+- **Keep or hide** — save scenes you love, export them as a wallpaper, and hide any picture with one click
+- **Your own pictures** — upload images or point it at a folder on your computer
+
+**Your anime list**
+
+- **AniList** — sign in and characters from the shows on your list appear on your new tab
+- **Birthdays** — a character whose birthday is today gets the stage
+- **Anime panel** — what airs today and this season, no sign-in needed
+
+**New tab tools**
+
+- **Clock and weather**
+- **Search box** with address-bar style suggestions: sites you've visited and tabs that are already open
+- **Links** — pinned links with two-tone icons, recently closed tabs, top sites
+- **To-dos and notes** that sync with your Chrome profile
+- **Focus timer** — the clock turns into a countdown, and distracting sites you list get a gentle reminder while you focus
+- **Easy on the laptop** — performance tiers, a power-saving mode, and ambient motion that ticks as slowly as it can
+
+---
+
+## How it works
+
+A new tab has to open instantly, but cutting out a character and estimating depth takes seconds.
+So the work is done ahead of time, in the background, and the new tab only ever shows a scene
+that is already finished:
+
+```
+background, every 30 min or when the pool runs low
+ │
+ ├─► fetch a scenery picture ──────► depth map (Depth Anything V2)
+ │                                     │
+ ├─► fetch a character picture ────► cut-out (anime-segmentation)
+ │                                     │  refine the mask edge
+ │                                     │  match colours to the scenery
+ │                                     │  add rim light from the scenery's light
+ │                                     ▼
+ └─────────────────────────────────► composition: where the character stands,
+                                       where the clock fits, which side is lighter
+                                       │
+                                       ▼
+                               pool of ready scenes (on your computer)
+                                       │
+new tab ◄──────────────────────────────┘  six layers: background · clock · character ·
+                                          haze · particles · tools
 ```
 
-1. 開 `chrome://extensions`,右上角打開「開發人員模式」
-2. 「載入未封裝項目」→ 選 `dist/` 資料夾
-3. 開新分頁。第一次需要下載並處理圖片,約 10–30 秒後出現第一幅畫;之後都是預先處理好、秒開。
+Both models run in the browser with ONNX Runtime Web — on the GPU through WebGPU where it's
+available, on the CPU otherwise. On slower machines the background work waits until the
+computer is idle.
 
-開發時可用 `npm run dev`(watch build),改完到 `chrome://extensions` 按重新整理。
+---
 
-## 圖示
+## Getting started
 
-`assets/icon/icon.svg` 是目前的圖示(銀紫髮貓耳娘從新分頁後探頭,耳朵伸出框外);
-同資料夾的 `concept-*.svg` 是保留的備選設計。改完執行 `npm run icons` 重新產生 `public/icons/` 的 PNG。
+Install it from the **[Chrome Web Store](https://chromewebstore.google.com/detail/fnacfhfopcdcgidgjllgngoigaajbapi)**
+and open a new tab. The very first scene takes 10–30 seconds while the first pictures are
+prepared; after that every tab opens instantly.
 
-## 分頁列主題(選用)
+<details>
+<summary><b>Or build it yourself</b></summary>
 
-Chrome 的分頁列 / 工具列配色只能用「佈景主題」這種特殊擴充來改,它不能包含程式,也無法在執行中變色,
-所以做成三個固定配色的主題包,放在 `chrome-themes/`,對應三種新分頁主題:
+```bash
+git clone https://github.com/ChiuKuanHsun/Tab-prettier.git && cd Tab-prettier
+npm install
+npm run build        # outputs dist/
+```
 
-| 資料夾 | 風格 |
-|---|---|
-| `chrome-themes/editorial` | 日系雜誌極簡:墨黑分頁列、奶白字、金棕強調 |
-| `chrome-themes/dreamy` | 夢幻柔光:粉 → 紫 → 藍漸層分頁列 |
-| `chrome-themes/neon` | 賽博霓虹:深藍掃描線、青色霓虹字 |
+Open `chrome://extensions`, turn on **Developer mode**, choose **Load unpacked** and select
+`dist/`. During development `npm run dev` rebuilds on every change; press reload on the
+extensions page to pick it up.
 
-安裝:`chrome://extensions` →「載入未封裝項目」→ 選其中一個資料夾。同時只能啟用一個佈景主題,
-要換回預設到 Chrome 設定 → 外觀 →「重設為預設值」。改配色請編輯 `tools/build_chrome_themes.py` 後執行
-`python tools/build_chrome_themes.py`。
+`npm test` runs the unit tests; `npm run package` builds and zips `dist/` for the store.
 
-## 架構
-
-| 部分 | 位置 | 說明 |
+| Part | Where | What it does |
 |---|---|---|
-| 新分頁 | `src/newtab/` | 從 IndexedDB 取已就緒的 scene,渲染 背景 / 時鐘 / 角色 / 霧 / 粒子 / UI 六層 |
-| Service worker | `src/background/` | 排程補貨(alarms、閒置偵測),管理 offscreen document 的生命週期 |
-| Offscreen | `src/offscreen/` | 抓圖 → ONNX 去背(WebGPU,失敗退回 WASM)→ 遮罩精修 → LAB 色調轉移 → 輪廓光 → 構圖分析 |
-| 純演算法 | `src/lib/compose.ts`、`src/offscreen/{refine,harmonize}.ts`、`src/lib/palette.ts` | 有單元測試(`npm test`) |
-| 設定頁 | `src/options/` | 主題、圖源、融合、動態、效能、上傳、收藏、AniList、備份 |
+| New tab | `src/newtab/` | Takes a ready scene from IndexedDB and renders the six layers |
+| Service worker | `src/background/` | Schedules refills (alarms, idle detection) and runs the offscreen document |
+| Offscreen | `src/offscreen/` | Fetch → cut-out (WebGPU, WASM fallback) → mask refinement → colour transfer → rim light → composition |
+| Pure algorithms | `src/lib/compose.ts`, `src/offscreen/{refine,harmonize}.ts`, `src/lib/palette.ts` | Unit-tested |
+| Settings | `src/options/` | The options page |
 
-去背模型:[SkyTNT anime-segmentation](https://github.com/SkyTNT/anime-segmentation)(Apache-2.0),
-以 `tools/convert_model.py` 轉成 fp16(`public/models/anime-seg-fp16.onnx`,約 88MB)。
+The cut-out model is converted to fp16 with `tools/convert_model.py`.
 
-景深模型:[Depth Anything V2 Small](https://huggingface.co/onnx-community/depth-anything-v2-small)(Apache-2.0;
-Base / Large 版為非商用授權,不可替換),fp16(`public/models/depth-anything-v2-small-fp16.onnx`,約 50MB)。
-每幅背景在背景處理時算出深度圖,新分頁用 WebGL 做 2.5D 視差與推鏡。
+</details>
 
-## 其他功能
+---
 
-- **天氣**:設定頁選城市(Open-Meteo,免金鑰)。日期旁顯示天氣;下雨/下雪時優先挑雨景、雪景,粒子也會跟著變。
-- **專注計時**:「專注」面板開始後,大時鐘變成倒數;時間到由背景程式發系統通知(關掉分頁也會提醒)。
-- **搜尋建議**:輸入時向 Google 取得建議字詞,可在設定關閉。
-- **今日壽星**:番劇面板顯示今天生日的角色(AniList)。
+## Using it
 
-## AniList 追番清單
+| Key | What it does |
+|---|---|
+| `/` | Focus the search box |
+| `Alt+1` … `Alt+6` | Toggle the links, to-do, notes, focus, anime and credits panels |
+| `Esc` | Close the open panel |
 
-今日播出與本季新番不需登入。要看自己的追番清單:到設定頁的 AniList 區塊,照步驟建立 API Client,
-Redirect URL 填設定頁顯示的 `https://<擴充ID>.chromiumapp.org/`。注意未封裝安裝的擴充 ID 與上架後不同,上架後要更新。
+- **Settings** — the gear in the new tab's dock (or *Details → Extension options* on
+  `chrome://extensions`). Themes,
+  picture sources, composition, motion, performance, uploads, favourites, AniList and backup all
+  live there, with a help page linked at the top.
+- **Credits** — the credits panel names the source and tags of the current picture and links to
+  the original page.
+- **Optional features ask first** — recently closed tabs, top sites, search suggestions and focus
+  reminders ask for permission only when you switch them on.
 
-## 快捷鍵
+### AniList
 
-- `/` 聚焦搜尋
-- `Alt+1…6` 開關 連結 / 待辦 / 便條 / 專注 / 番劇 / 出處 面板,`Esc` 關閉
+Today's airing and this season's shows work without signing in. To use your own list, open the
+AniList section in Settings and follow the steps there to create an AniList API client; the
+redirect URL to paste is shown on that page.
+
+### Tab bar themes (optional)
+
+Chrome only lets a separate *theme* change the colours of the tab strip, and a theme can't
+contain code. `chrome-themes/` has three to match the new tab themes — `editorial`, `dreamy`
+and `neon`. Load one from `chrome://extensions` → *Load unpacked*.
+
+---
+
+## FAQ
+
+**Is any picture uploaded?**
+No. Pictures are downloaded from the sources below and processed on your computer.
+
+**Why is the extension so large?**
+The two models — character cut-out (88 MB) and depth (50 MB) — ship inside it so everything
+works without downloading anything else later.
+
+**Does it make the computer warm?**
+Ambient motion is kept to as few frames per second as it needs. If it still runs warm, turn off
+particles or choose the power-saving performance tier in Settings.
+
+**Can I choose which characters show up?**
+Yes: favourite characters, characters from your AniList list, or exclude tags you never want to see.
+
+**Is there NSFW content?**
+No. Every source is limited to its safest rating and adult tags are always excluded.
+
+---
+
+## Privacy
+
+- Pictures are processed on your computer; nothing is uploaded and there is no developer server
+- Settings, links, to-dos and notes stay in Chrome (and sync with your Chrome profile if you use Chrome sync)
+- Some features talk to outside services directly from your browser: picture sources, Open-Meteo for weather, Google for search suggestions, AniList when you sign in
+
+Full details: **[Privacy policy](https://chiukuanhsun.github.io/Tab-prettier/privacy.html)**
+
+---
+
+## Built with
+
+| | Role | Licence |
+|---|---|---|
+| [anime-segmentation](https://github.com/SkyTNT/anime-segmentation) by SkyTNT | character cut-out (fp16) | Apache-2.0 |
+| [Depth Anything V2 Small](https://huggingface.co/onnx-community/depth-anything-v2-small) | depth maps (fp16) | Apache-2.0 |
+| [ONNX Runtime Web](https://github.com/microsoft/onnxruntime) | in-browser inference | MIT |
+| [Preact](https://preactjs.com) | UI | MIT |
+| [Cormorant Garamond](https://fonts.google.com/specimen/Cormorant+Garamond), [Shippori Mincho](https://fonts.google.com/specimen/Shippori+Mincho) | type | OFL-1.1 |
+
+Pictures come from [Wallhaven](https://wallhaven.cc), [Danbooru](https://danbooru.donmai.us)
+(general rating only), [Nekosia](https://nekosia.cat) and [waifu.im](https://waifu.im); weather
+from [Open-Meteo](https://open-meteo.com); anime data from [AniList](https://anilist.co).
+
+> [!NOTE]
+> Only the **Small** Depth Anything V2 model is Apache-2.0. Base and Large are non-commercial,
+> so don't swap them in.
+
+---
+
+## Support
+
+If Tab Prettier makes your new tab a little nicer, you can
+**[buy me a coffee](https://kuanhsun.pages.dev/support?lang=en)**. Bug reports and ideas are
+welcome in [Issues](https://github.com/ChiuKuanHsun/Tab-prettier/issues).
+
+---
+
+## Disclaimer
+
+Tab Prettier contains no artwork. Pictures are fetched from the public galleries above and
+remain the work of their artists; the credits panel links each one to its source. Tab Prettier
+has no affiliation with any of those sites or with AniList.
+
+The source is published for reference. No licence is granted: all rights reserved, apart from
+the third-party components above, which keep their own licences.

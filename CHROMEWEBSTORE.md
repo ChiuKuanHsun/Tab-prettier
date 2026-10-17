@@ -105,6 +105,7 @@ Image sources: Wallhaven, Danbooru (general rating only), Nekosia, waifu.im. Wea
 | 截圖 5 | 1280×800 | ⬜ | AniList 清單角色或生日 |
 | 小型宣傳圖塊 | 440×280 | ⬜ | 選填，精選版位用 |
 
+README 也用同一組截圖：存成 `docs/screenshots/{newtab,night,links,options}-{en,zh-TW}.png`（對應截圖 1～4，各兩種語言），README 就會自動顯示。
 截圖要用目前版本實際的畫面，不能是合成示意圖。繁中、英文的商店資訊各自上傳截圖（介面語言要對應）。
 擷取方式：把 Chrome 視窗調成 1280×800 的內容區，按 F12 →「Ctrl+Shift+P」→「Capture screenshot」。
 
