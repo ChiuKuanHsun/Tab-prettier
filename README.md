@@ -203,7 +203,7 @@ No. Every source is limited to its safest rating and adult tags are always exclu
 - Settings, links, to-dos and notes stay in Chrome (and sync with your Chrome profile if you use Chrome sync)
 - Some features talk to outside services directly from your browser: picture sources, Open-Meteo for weather, Google for search suggestions, AniList when you sign in
 
-Full details: **[Privacy policy](https://chiukuanhsun.github.io/Tab-prettier/privacy.html)**
+Full details: **[Privacy policy](https://chiukuanhsun.github.io/Tab-prettier/)**
 
 ---
 

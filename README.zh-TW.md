@@ -181,7 +181,7 @@ Chrome 只允許另外的「佈景主題」改分頁列的顏色，而且佈景�
 - 設定、連結、待辦、便條存在 Chrome 裡（開啟 Chrome 同步時跟著你的設定檔同步）
 - 部分功能會直接從你的瀏覽器連到外部服務：圖源、天氣用的 Open-Meteo、搜尋建議用的 Google、登入時的 AniList
 
-完整內容：**[隱私權政策](https://chiukuanhsun.github.io/Tab-prettier/privacy.html)**
+完整內容：**[隱私權政策](https://chiukuanhsun.github.io/Tab-prettier/)**
 
 ---
 
