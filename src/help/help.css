@@ -4,3 +4,4 @@
 .help-item { margin: 0; display: grid; gap: 2px; }
 .help-item dt { font-weight: 500; }
 .help-item dd { margin: 0; color: var(--muted); }
+.help-list { margin: 4px 0 0; padding-inline-start: 1.2em; display: grid; gap: 4px; }

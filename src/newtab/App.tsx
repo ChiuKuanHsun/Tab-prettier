@@ -19,6 +19,7 @@ import { countdownActive, formatRemaining, PHASE_LABEL, remainingMs } from '../l
 import { LinksPanel, LinkStrip } from '../widgets/Links';
 import { Search } from '../widgets/Search';
 import { NotesPanel, TodoPanel } from '../widgets/Todo';
+import { UpdateNote } from '../widgets/UpdateNote';
 import { CLOCK_SCALE } from '../themes';
 import { Clock, Dateline, VerticalDate } from './Clock';
 import { useLowTier, useMedia, useNow, usePageVisible, usePowerSave, useScene, useSettings, useViewport } from './hooks';
@@ -261,6 +262,7 @@ export function App() {
           items={dockItems}
           side={t.side === 'right' ? 'right' : 'left'}
           settingsUrl={chrome.runtime.getURL('options.html')}
+          notice={<UpdateNote wait={!scene || focusActive} />}
           extra={
             scene && (
               <>

@@ -19,12 +19,15 @@ export function Dock({
   side,
   settingsUrl,
   extra,
+  notice,
 }: {
   items: DockItem[];
   side: 'left' | 'right';
   settingsUrl: string;
   /** Rendered in the tab row before the settings link (e.g. the favourite heart). */
   extra?: ComponentChildren;
+  /** A one-off note above the tab row (e.g. after an update); hidden while a panel is open. */
+  notice?: ComponentChildren;
 }) {
   const [open, setOpen] = useState<string>();
   const [pinned, setPinned] = useState(false);
@@ -94,6 +97,7 @@ export function Dock({
           <div class="panel-body">{active.render()}</div>
         </section>
       )}
+      {!active && notice}
       <nav class="dock-tabs" aria-label={t('newtab.dock.tools')}>
         {items.map((it, i) => (
           <button

@@ -10,6 +10,7 @@ import { chosenAnime, withPickedCharacters, type ListAnime } from '../lib/list-c
 import { getCharPicks } from '../lib/list-picks';
 import { PERF, resolveTier } from '../lib/perf';
 import type { Settings } from '../lib/types';
+import { noteUpdate } from '../lib/updates';
 
 const OFFSCREEN_URL = 'offscreen.html';
 /** Chrome makes scenes in an offscreen document; Firefox, which has none, in its background page. */
@@ -104,7 +105,8 @@ async function refillHere(msg: ToOffscreen) {
   }
 }
 
-chrome.runtime.onInstalled.addListener(async () => {
+chrome.runtime.onInstalled.addListener(async ({ reason }) => {
+  if (reason === 'update') await noteUpdate(chrome.runtime.getManifest().version);
   await chrome.alarms.create('refill', { periodInMinutes: 30 });
   await syncBlocker();
   await refill();
