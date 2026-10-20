@@ -215,12 +215,17 @@ async function finishFocus() {
     type: 'basic',
     iconUrl: chrome.runtime.getURL('icons/icon-128.png'),
     title: wasWork ? t('background.workDoneTitle') : t('background.breakDoneTitle'),
-    // Firefox shows no buttons: a click on the notification does what the first one would
-    message: IS_FIREFOX ? `${message}\n${t('background.clickFor', { action: buttons[0] })}` : message,
-    buttons: IS_FIREFOX ? undefined : buttons.map((title) => ({ title })),
     priority: 2,
-    // stays until dismissed, so a break reminder isn't missed while away from the screen
-    requireInteraction: true,
+    // Firefox rejects buttons and requireInteraction (even undefined): there a click on the
+    // notification does what the first button would
+    ...(IS_FIREFOX
+      ? { message: `${message}\n${t('background.clickFor', { action: buttons[0] })}` }
+      : {
+          message,
+          buttons: buttons.map((title) => ({ title })),
+          // stays until dismissed, so a break reminder isn't missed while away from the screen
+          requireInteraction: true,
+        }),
   });
 }
 
