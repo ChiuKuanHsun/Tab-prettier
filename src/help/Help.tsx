@@ -1,7 +1,7 @@
 import type { ComponentChildren } from 'preact';
 import { t, tRich, type MessageKey } from '../i18n';
 import { SECTION_IDS, type SectionId } from '../options/sections';
-import { redirectUrl } from '../lib/browser';
+import { IS_FIREFOX, redirectUrl } from '../lib/browser';
 
 /** One explanation: an optional term (usually the setting's own label) and its text. */
 type Item = [term: MessageKey | null, text: MessageKey];
@@ -78,7 +78,8 @@ const NEWTAB_ITEMS: Item[] = [
   ['newtab.dock.focus', 'help.newtab.focus'],
   ['newtab.dock.credit', 'help.newtab.credit'],
   [null, 'help.newtab.firstRun'],
-  [null, 'help.newtab.footer'],
+  // Chrome's footer under extension new tabs; Firefox has none
+  ...(IS_FIREFOX ? [] : [[null, 'help.newtab.footer'] as Item]),
 ];
 
 function HelpSection({
