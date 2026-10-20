@@ -12,7 +12,7 @@ import {
   type Variant,
 } from '../lib/curation';
 import { t } from '../i18n';
-import { db } from '../lib/db';
+import { db, hasAnyScene } from '../lib/db';
 import { deriveTheme, quantize } from '../lib/palette';
 import { birthdayCharacters, type ListAnime } from '../lib/list-chars';
 import type { PerfBudget } from '../lib/perf';
@@ -199,7 +199,16 @@ function sceneFeatured(s: Settings, listAnime?: ListAnime[]): Featured | undefin
   return undefined;
 }
 
-async function nextCharCandidate(s: Settings, blacklist: Set<string>, featured?: Featured): Promise<Candidate | Upload | undefined> {
+/**
+ * The next character to try. A source that fails (an error page, Cloudflare, the network) is
+ * left out of `failed` for the rest of this scene and another one is tried.
+ */
+async function nextCharCandidate(
+  s: Settings,
+  blacklist: Set<string>,
+  failed: Set<string>,
+  featured?: Featured,
+): Promise<Candidate | Upload | undefined> {
   if (featured) {
     const f = await featured();
     if (!f) throw new Error('no featured character');
@@ -208,10 +217,18 @@ async function nextCharCandidate(s: Settings, blacklist: Set<string>, featured?:
   const own = await ownMedia('char');
   if (own.count && Math.random() < s.sources.uploadsWeight) return own.pick();
   const useDanbooru = s.sources.danbooru && !(await danbooruResting());
-  const fns = [s.sources.nekosia && nekosia, s.sources.waifuim && waifuim, useDanbooru && danbooru]
-    .filter(Boolean) as ((s: Settings, blacklist: Set<string>) => Promise<Candidate>)[];
-  if (!fns.length) return own.count ? own.pick() : undefined;
-  return pickOne(fns)(s, blacklist);
+  const sources = { nekosia: s.sources.nekosia && nekosia, waifuim: s.sources.waifuim && waifuim, danbooru: useDanbooru && danbooru };
+  for (;;) {
+    const left = Object.entries(sources).filter(([name, fn]) => fn && !failed.has(name));
+    if (!left.length) return own.count ? own.pick() : undefined;
+    const [name, fn] = pickOne(left) as [string, (s: Settings, blacklist: Set<string>) => Promise<Candidate>];
+    try {
+      return await fn(s, blacklist);
+    } catch (e) {
+      log('source failed', name, e);
+      failed.add(name);
+    }
+  }
 }
 
 interface Prepared {
@@ -298,12 +315,13 @@ async function buildCharacter(
   const bgStats = labStats(bg.thumb.data);
   const prefer = parseTagList(s.sources.preferTags);
   const ready: Prepared[] = [];
+  const failed = new Set<string>();
   let featured = (await danbooruResting()) ? undefined : sceneFeatured(s, listAnime);
   if (featured) log('featured scene');
   for (let attempt = 0; attempt < 8 && ready.length < budget.candidates; attempt++) {
     // Chosen characters that keep failing (few usable images, network) give way to the usual sources.
     if (featured && attempt === 4 && !ready.length) featured = undefined;
-    const cand = await nextCharCandidate(s, blacklist, featured).catch((e) => log('no candidate', e));
+    const cand = await nextCharCandidate(s, blacklist, failed, featured).catch((e) => log('no candidate', e));
     if (!cand) {
       if (!featured) break;
       featured = undefined;
@@ -374,7 +392,9 @@ export async function buildScene(
   const charSide = close ? (Math.random() < 0.5 ? 'left' : 'right') : chooseCharSide(emptiness);
 
   const wantsChar = s.sources.nekosia || s.sources.waifuim || s.sources.danbooru || (await ownMedia('char')).count > 0;
-  const scenery = !wantsChar || (s.layoutVariety && bg.kind === 'image' && Math.random() < SCENERY_CHANCE);
+  // The very first scene always tries for a character: it's the one that has to impress.
+  const first = !(await hasAnyScene());
+  const scenery = !wantsChar || (!first && s.layoutVariety && bg.kind === 'image' && Math.random() < SCENERY_CHANCE);
   const char = scenery ? undefined : await buildCharacter(s, blacklist, bg, light, budget, listAnime);
   // chosen whatever the switches say: they decide at display time (see shownVariant), so a scene
   // keeps its composition for when one is switched back on
