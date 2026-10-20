@@ -1,0 +1,2 @@
+# LF everywhere, so the source archive (git archive) rebuilds byte for byte what was packaged
+* text=auto eol=lf
