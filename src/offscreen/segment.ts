@@ -13,7 +13,7 @@ export let backend: 'webgpu' | 'wasm' | undefined;
 
 function session() {
   sessionP ??= (async () => {
-    const url = chrome.runtime.getURL('models/anime-seg-fp16.onnx');
+    const url = new URL('/models/anime-seg-fp16.onnx', location.href).href;
     const model = new Uint8Array(await (await fetch(url)).arrayBuffer());
     if ('gpu' in navigator) {
       try {
@@ -81,10 +81,4 @@ export async function segment(
   const res = new Float32Array(outW * outH);
   for (let i = 0; i < res.length; i++) res[i] = d[i * 4] / 255;
   return res;
-}
-
-export async function releaseModel() {
-  const s = await sessionP?.catch(() => undefined);
-  sessionP = undefined;
-  await s?.release();
 }

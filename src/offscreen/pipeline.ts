@@ -16,7 +16,7 @@ import { db, hasAnyScene } from '../lib/db';
 import { deriveTheme, quantize } from '../lib/palette';
 import { birthdayCharacters, type ListAnime } from '../lib/list-chars';
 import type { PerfBudget } from '../lib/perf';
-import { folderUpload, readableFolderFiles, type FolderFile, type FolderRole } from '../lib/folders';
+import { folderUpload, type FolderFile, type FolderRole } from '../lib/folders';
 import { lastWeather } from '../lib/weather';
 import { uid } from '../lib/settings';
 import type { BirthdayOf, Credit, MediaKind, Scene, SceneChar, Settings, Upload } from '../lib/types';
@@ -24,6 +24,7 @@ import { applyRimLight, labStats, lightDirection, toGray, transferColors, type L
 import { canvas, fetchBlob, fit, pixels } from './image';
 import { alphaMask, fadeCutEdges, hasCharacter, refineMask, type RefinedMask } from './refine';
 import { estimateDepth } from './depth';
+import { callHost } from './rpc';
 import { segment } from './segment';
 import { birthdayCharacterTag, danbooru, danbooruResting, listCharacterTag, nekosia, returnToPool, waifuim, wallhaven, type Candidate } from './sources';
 
@@ -41,20 +42,6 @@ interface Bg {
 }
 
 const log = (...a: unknown[]) => console.log('[pipeline]', ...a);
-
-/** First frame of a video blob, via a detached <video> element (offscreen docs have a DOM). */
-async function videoFrame(blob: Blob): Promise<HTMLVideoElement> {
-  const v = document.createElement('video');
-  v.muted = true;
-  v.src = URL.createObjectURL(blob);
-  await new Promise<void>((res, rej) => {
-    v.onloadeddata = () => res();
-    v.onerror = () => rej(new Error('video decode failed'));
-  });
-  v.currentTime = Math.min(0.5, v.duration / 2 || 0);
-  await new Promise((res) => (v.onseeked = res));
-  return v;
-}
 
 function thumbOf(src: CanvasImageSource, w: number, h: number): ImageData {
   // cover-crop to 16:9 so the analysis matches what the viewport shows
@@ -74,7 +61,7 @@ const folderLists = new Map<FolderRole, { at: number; files: FolderFile[] }>();
 async function folderFiles(role: FolderRole) {
   const hit = folderLists.get(role);
   if (hit && Date.now() - hit.at < 60_000) return hit.files;
-  const files = await readableFolderFiles(role);
+  const files = await callHost('folderFiles', role);
   folderLists.set(role, { at: Date.now(), files });
   return files;
 }
@@ -97,15 +84,10 @@ async function ownMedia(role: Upload['role']) {
 }
 
 async function bgFromUpload(u: Upload): Promise<Bg> {
-  let src: CanvasImageSource, w: number, h: number;
-  if (u.kind === 'video') {
-    const v = await videoFrame(u.blob);
-    [src, w, h] = [v, v.videoWidth, v.videoHeight];
-  } else {
-    const b = await createImageBitmap(u.blob);
-    [src, w, h] = [b, b.width, b.height];
-  }
-  const thumb = thumbOf(src, w, h);
+  const b = u.kind === 'video' ? await callHost('videoFrame', u.blob) : await createImageBitmap(u.blob);
+  const w = b.width, h = b.height;
+  const thumb = thumbOf(b, w, h);
+  b.close();
   return {
     blob: u.blob, kind: u.kind, width: w, height: h, thumb,
     palette: quantize(thumb.data, 6),

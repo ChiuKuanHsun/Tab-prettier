@@ -16,6 +16,8 @@ const woff2Only = (): Plugin => ({
 
 export default defineConfig(({ mode }) => ({
   plugins: [woff2Only(), preact()],
+  // the scene worker imports onnxruntime-web, which needs ES modules (import.meta.url for its wasm)
+  worker: { format: 'es' },
   build: {
     outDir: 'dist',
     emptyOutDir: true,
