@@ -61,7 +61,7 @@ Tab Prettier 把 Chrome 的新分頁換成一幅當場合成的畫：一張場�
 
 - **AniList**：登入後，你清單裡的作品角色會出現在新分頁
 - **今日壽星**：今天生日的角色會特別登場
-- **番劇面板**：今天播出與本季新番，不用登入
+- **動漫面板**：今天播出與本季新番，不用登入
 
 **新分頁工具**
 
@@ -155,7 +155,7 @@ npm run build:firefox
 | 按鍵 | 作用 |
 |---|---|
 | `/` | 聚焦搜尋框 |
-| `Alt+1` … `Alt+6` | 開關 連結／待辦／便條／專注／番劇／出處 面板 |
+| `Alt+1` … `Alt+6` | 開關 連結／待辦／便條／專注／動漫／出處 面板 |
 | `Esc` | 關閉目前的面板 |
 
 - **設定**：新分頁 Dock 上的齒輪（或 `chrome://extensions` 的「詳細資料 → 擴充功能選項」）。主題、圖源、
@@ -216,7 +216,7 @@ Chrome 只允許另外的「佈景主題」改分頁列的顏色，而且佈景�
 
 圖片來自 [Wallhaven](https://wallhaven.cc)、[Danbooru](https://danbooru.donmai.us)（只取全年齡分級）、
 [Nekosia](https://nekosia.cat)、[waifu.im](https://waifu.im)；天氣來自 [Open-Meteo](https://open-meteo.com)；
-番劇資料來自 [AniList](https://anilist.co)。
+動漫資料來自 [AniList](https://anilist.co)。
 
 > [!NOTE]
 > Depth Anything V2 只有 **Small** 版是 Apache-2.0，Base 和 Large 是非商用授權，不能替換。
