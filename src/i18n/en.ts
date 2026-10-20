@@ -444,6 +444,7 @@ export const en: Messages = {
       credit: "The \"Credits\" panel shows the artist, source and tags. \"Don't show again\" adds the image to the blocklist; \"Download\" saves the background and character as a PNG at your screen's resolution, ready to use as a wallpaper.",
       firstRun: 'The first run downloads and processes images, which takes tens of seconds.',
       footer: "The strip at the bottom naming the extension is added by Chrome and can't be turned off by extensions: right-click it and choose to hide it, or turn the footer off under Customize Chrome.",
+      edgeKeep: "Edge may ask whether to keep the change an extension made to the new tab page: keep it, or the new tab goes back to Edge's own.",
     },
     look: {
       language: "Follows Chrome by default: a Chinese interface shows Traditional Chinese, anything else English. The page reloads after switching.",

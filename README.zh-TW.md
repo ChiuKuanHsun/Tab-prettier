@@ -124,6 +124,9 @@ manifest。打開 `about:debugging#/runtime/this-firefox`，按「載入暫用�
 `npm run package:firefox` 會打包成上架 addons.mozilla.org 用的 zip。Firefox 沒有 offscreen 文件，
 由背景頁自己合成畫面；不能選資料夾當來源，固定連結顯示網站自己的圖示、不套用主題色。
 
+**Edge**：直接用 Chrome 版。打開 `edge://extensions`，開啟「開發人員模式」，按「載入解壓縮」選 `dist/`；
+`npm run package` 產出的 zip 也可以直接上傳到 Microsoft Partner Center。Edge 第一次可能會詢問是否保留擴充功能的新分頁。
+
 | 部分 | 位置 | 說明 |
 |---|---|---|
 | 新分頁 | `src/newtab/` | 從 IndexedDB 取已完成的畫面，渲染六個圖層 |
