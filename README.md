@@ -137,6 +137,19 @@ and pick `dist-firefox/manifest.json`; `npm run package:firefox` zips it for add
 Firefox has no offscreen documents, so the background page makes the scenes itself; choosing a
 folder as a source isn't available there, and pinned links show each site's own icon untinted.
 
+**Rebuilding the Firefox package from source** (for add-on reviewers): needs only Node.js 22 or
+24 with npm, on any OS. From the source archive, run
+
+```bash
+npm ci
+npm run build:firefox
+```
+
+and `dist-firefox/` is the submitted package, file for file. The two ONNX models in
+`public/models/` are third-party weights, copied as they are (see the credits below; the anime-seg
+model was converted to fp16 with `tools/convert_model.py`). `npm run package:source` makes the
+source archive from the current commit.
+
 **Edge**: the Chrome build runs as is. Open `edge://extensions`, turn on **Developer mode**, choose
 **Load unpacked** and select `dist/`; the zip from `npm run package` also goes to Microsoft
 Partner Center unchanged. Edge may ask once whether to keep the extension's new tab page.

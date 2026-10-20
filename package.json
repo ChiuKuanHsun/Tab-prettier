@@ -2,7 +2,7 @@
   "name": "tab-prettier",
   "private": true,
   "license": "GPL-3.0-only",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite build --watch --mode development",
@@ -12,7 +12,8 @@
     "icons": "node tools/build_icons.mjs",
     "package": "npm run build && node tools/package.mjs",
     "build:firefox": "npm run build && node tools/firefox.mjs",
-    "package:firefox": "npm run build:firefox && node tools/package.mjs firefox"
+    "package:firefox": "npm run build:firefox && node tools/package.mjs firefox",
+    "package:source": "node tools/package.mjs source"
   },
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.3.0",

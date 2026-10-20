@@ -3,12 +3,28 @@
 // production build (npm run package / package:firefox do both); refuses a build that still has
 // source maps.
 //
-// Usage: node tools/package.mjs [firefox]
+// With `source`, zips the committed source instead (git archive of HEAD) as
+// tab-prettier-source-v<version>.zip, which addons.mozilla.org asks for alongside a bundled build.
+//
+// Usage: node tools/package.mjs [firefox|source]
+import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { crc32, deflateRawSync } from 'node:zlib';
 
 const ROOT = join(import.meta.dirname, '..');
+
+if (process.argv[2] === 'source') {
+  const git = (...args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' });
+  // the reviewers rebuild from this, so it has to be exactly what the package was built from
+  if (git('status', '--porcelain', '--untracked-files=no').trim()) throw new Error('uncommitted changes: commit them first');
+  const { version } = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+  const out = join(ROOT, `tab-prettier-source-v${version}.zip`);
+  git('archive', '--format=zip', `--output=${out}`, 'HEAD');
+  console.log(`${relative(ROOT, out)}: ${(statSync(out).size / 1e6).toFixed(1)} MB (${git('rev-parse', '--short', 'HEAD').trim()})`);
+  process.exit(0);
+}
+
 const firefox = process.argv[2] === 'firefox';
 const DIST = join(ROOT, firefox ? 'dist-firefox' : 'dist');
 const { version } = JSON.parse(readFileSync(join(DIST, 'manifest.json'), 'utf8'));

@@ -124,6 +124,15 @@ manifest。打開 `about:debugging#/runtime/this-firefox`，按「載入暫用�
 `npm run package:firefox` 會打包成上架 addons.mozilla.org 用的 zip。Firefox 沒有 offscreen 文件，
 由背景頁自己合成畫面；不能選資料夾當來源，固定連結顯示網站自己的圖示、不套用主題色。
 
+**從原始碼重建 Firefox 套件**（給附加元件審核員）：只需要 Node.js 22 或 24 和 npm，任何作業系統都可以。在原始碼資料夾執行
+
+```bash
+npm ci
+npm run build:firefox
+```
+
+產出的 `dist-firefox/` 就是上傳的套件，每個檔案都相同。`public/models/` 的兩個 ONNX 模型是第三方的權重檔，原樣放入（見下方致謝；anime-seg 模型用 `tools/convert_model.py` 轉成 fp16）。`npm run package:source` 會把目前的提交打包成原始碼 zip。
+
 **Edge**：直接用 Chrome 版。打開 `edge://extensions`，開啟「開發人員模式」，按「載入解壓縮」選 `dist/`；
 `npm run package` 產出的 zip 也可以直接上傳到 Microsoft Partner Center。Edge 第一次可能會詢問是否保留擴充功能的新分頁。
 
