@@ -122,7 +122,7 @@ npm run build        # 產出 dist/
 **Firefox**（140 以上）：`npm run build:firefox` 產出 `dist-firefox/`，程式相同、只換成 Firefox 的
 manifest。打開 `about:debugging#/runtime/this-firefox`，按「載入暫用附加元件」選 `dist-firefox/manifest.json`；
 `npm run package:firefox` 會打包成上架 addons.mozilla.org 用的 zip。Firefox 沒有 offscreen 文件，
-由背景頁自己合成畫面；不能選資料夾當來源，固定連結顯示網站自己的圖示、不套用主題色。
+由背景頁自己執行合成畫面的 worker；不能選資料夾當來源，固定連結顯示網站自己的圖示、不套用主題色。
 
 **從原始碼重建 Firefox 套件**（給附加元件審核員）：只需要 Node.js 22 或 24 和 npm，任何作業系統都可以。在原始碼資料夾執行
 
@@ -140,7 +140,7 @@ npm run build:firefox
 |---|---|---|
 | 新分頁 | `src/newtab/` | 從 IndexedDB 取已完成的畫面，渲染六個圖層 |
 | Service worker | `src/background/` | 排程補充畫面（alarms、閒置偵測），管理 offscreen document |
-| Offscreen | `src/offscreen/` | 抓圖 → 去背（WebGPU，失敗時改用 WASM）→ 精修遮罩 → 色調轉移 → 輪廓光 → 構圖分析 |
+| Offscreen | `src/offscreen/` | 在 Web Worker 裡執行，開著的新分頁才不會卡：抓圖 → 去背（WebGPU，失敗時改用 WASM）→ 精修遮罩 → 色調轉移 → 輪廓光 → 構圖分析 |
 | 純演算法 | `src/lib/compose.ts`、`src/offscreen/{refine,harmonize}.ts`、`src/lib/palette.ts` | 有單元測試 |
 | 設定頁 | `src/options/` | 設定頁 |
 

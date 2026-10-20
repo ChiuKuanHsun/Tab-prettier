@@ -10,7 +10,7 @@ let sessionP: Promise<ort.InferenceSession> | undefined;
 
 function session() {
   sessionP ??= (async () => {
-    const url = chrome.runtime.getURL('models/depth-anything-v2-small-fp16.onnx');
+    const url = new URL('/models/depth-anything-v2-small-fp16.onnx', location.href).href;
     const model = new Uint8Array(await (await fetch(url)).arrayBuffer());
     try {
       return await ort.InferenceSession.create(model, { executionProviders: ['webgpu'] });
@@ -68,10 +68,4 @@ export async function estimateDepth(src: CanvasImageSource & { width: number; he
   soft.ctx.filter = 'blur(3px)';
   soft.ctx.drawImage(raw.c, 0, 0, outW, outH);
   return soft.c.convertToBlob({ type: 'image/webp', quality: 0.9 });
-}
-
-export async function releaseDepth() {
-  const s = await sessionP?.catch(() => undefined);
-  sessionP = undefined;
-  await s?.release();
 }

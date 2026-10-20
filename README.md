@@ -134,7 +134,7 @@ extensions page to pick it up.
 **Firefox** (140 or later): `npm run build:firefox` outputs `dist-firefox/`, the same code with a
 Firefox manifest. Open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on**
 and pick `dist-firefox/manifest.json`; `npm run package:firefox` zips it for addons.mozilla.org.
-Firefox has no offscreen documents, so the background page makes the scenes itself; choosing a
+Firefox has no offscreen documents, so the background page runs the scene worker itself; choosing a
 folder as a source isn't available there, and pinned links show each site's own icon untinted.
 
 **Rebuilding the Firefox package from source** (for add-on reviewers): needs only Node.js 22 or
@@ -158,7 +158,7 @@ Partner Center unchanged. Edge may ask once whether to keep the extension's new 
 |---|---|---|
 | New tab | `src/newtab/` | Takes a ready scene from IndexedDB and renders the six layers |
 | Service worker | `src/background/` | Schedules refills (alarms, idle detection) and runs the offscreen document |
-| Offscreen | `src/offscreen/` | Fetch → cut-out (WebGPU, WASM fallback) → mask refinement → colour transfer → rim light → composition |
+| Offscreen | `src/offscreen/` | A Web Worker (so open new tabs stay smooth): fetch → cut-out (WebGPU, WASM fallback) → mask refinement → colour transfer → rim light → composition |
 | Pure algorithms | `src/lib/compose.ts`, `src/offscreen/{refine,harmonize}.ts`, `src/lib/palette.ts` | Unit-tested |
 | Settings | `src/options/` | The options page |
 
