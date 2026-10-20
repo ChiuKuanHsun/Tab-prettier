@@ -61,7 +61,7 @@ async function onCall(m: Extract<FromWorker, { type: 'call' }>) {
     const value = await (hostApi[m.name] as (...a: unknown[]) => Promise<unknown>)(...m.args);
     toWorker({ type: 'reply', id: m.id, value }, value instanceof ImageBitmap ? [value] : []);
   } catch (e) {
-    toWorker({ type: 'reply', id: m.id, error: String(e) });
+    toWorker({ type: 'reply', id: m.id, error: e instanceof Error ? e.message : String(e) });
   }
 }
 
