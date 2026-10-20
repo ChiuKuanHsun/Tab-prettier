@@ -131,6 +131,12 @@ extensions page to pick it up.
 
 `npm test` runs the unit tests; `npm run package` builds and zips `dist/` for the store.
 
+**Firefox** (140 or later): `npm run build:firefox` outputs `dist-firefox/`, the same code with a
+Firefox manifest. Open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on**
+and pick `dist-firefox/manifest.json`; `npm run package:firefox` zips it for addons.mozilla.org.
+Firefox has no offscreen documents, so the background page makes the scenes itself; choosing a
+folder as a source isn't available there, and pinned links show each site's own icon untinted.
+
 | Part | Where | What it does |
 |---|---|---|
 | New tab | `src/newtab/` | Takes a ready scene from IndexedDB and renders the six layers |

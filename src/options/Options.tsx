@@ -27,7 +27,8 @@ import { THEMES } from '../themes';
 import { detectTier, type PerfTier } from '../lib/perf';
 import { allowFolder, bindFolder, folderAccess, getFolder, listFolder, unbindFolder, type FolderHandle, type FolderRole } from '../lib/folders';
 import { DEFAULT_BLOCK_SITES, parseSites, sitePattern, unallowedSites, watchedSites } from '../lib/focus-block';
-import { RECENT, requestHosts, requestPerms, SEARCH_HISTORY, SUGGEST, TOP_SITES, usePerms, type Perms } from '../lib/permissions';
+import { LOCATION, RECENT, requestHosts, requestPerms, SEARCH_HISTORY, SUGGEST_PERMS, TOP_SITES, usePerms, type Perms } from '../lib/permissions';
+import { redirectUrl } from '../lib/browser';
 import { locale, localePref, saveLocalePref, t, tRich, type LocalePref } from '../i18n';
 import { SECTION_IDS, type SectionId } from './sections';
 
@@ -557,9 +558,17 @@ function WeatherPicker({
     );
   };
 
+  // Firefox asks before the location leaves the browser; declining keeps the old choice
+  const allowed = usePerms(LOCATION);
+  const [declined, setDeclined] = useState(0);
+  const pick = async (m: Settings['weatherMode']) => {
+    if (m === 'off' || (await requestPerms(LOCATION))) onChange({ weatherMode: m, weatherLocation: value });
+    else setDeclined((n) => n + 1);
+  };
+
   useEffect(() => {
-    if (mode === 'auto') detect();
-  }, [mode]);
+    if (mode === 'auto' && allowed) detect();
+  }, [mode, allowed]);
 
   const search = async (e: Event) => {
     e.preventDefault();
@@ -589,12 +598,20 @@ function WeatherPicker({
       <div class="focus-chips" role="radiogroup" aria-label={t('options.weather.location')}>
         {modes.map(([m, label]) => (
           <label key={m} class="radio">
-            <input type="radio" name="weather-mode" checked={mode === m} onChange={() => onChange({ weatherMode: m, weatherLocation: value })} />
+            <input key={declined} type="radio" name="weather-mode" checked={mode === m} onChange={() => void pick(m)} />
             {label}
           </label>
         ))}
       </div>
-      {mode === 'auto' && (
+      {mode !== 'off' && allowed === false && (
+        <p class="opt-warn opt-host-warn">
+          {t('options.permission.missing')}
+          <button type="button" class="opt-link" onClick={() => void requestPerms(LOCATION)}>
+            {t('widgets.permission.allow')}
+          </button>
+        </p>
+      )}
+      {mode === 'auto' && allowed && (
         <small class="opt-muted">
           {t('options.weather.detected', { place: detected ?? t('options.weather.detecting') })}
           <button type="button" class="opt-link" disabled={detected === undefined} onClick={() => detect(true)}>
@@ -877,7 +894,7 @@ export function Options() {
           label={t('options.look.suggest')}
           hint={t('options.look.suggestHint')}
           on={s.searchSuggest}
-          perms={{ origins: SUGGEST }}
+          perms={SUGGEST_PERMS}
           onChange={(on) => set({ searchSuggest: on })}
         />
         <WeatherPicker mode={s.weatherMode} value={s.weatherLocation} onChange={(patch) => set(patch)} />
@@ -1073,8 +1090,12 @@ export function Options() {
             <input type="file" accept="image/*" multiple hidden onChange={(e) => void addUploads((e.target as HTMLInputElement).files, 'char')} />
           </label>
         </div>
-        <FolderRow role="bg" />
-        <FolderRow role="char" />
+        {'showDirectoryPicker' in window && (
+          <>
+            <FolderRow role="bg" />
+            <FolderRow role="char" />
+          </>
+        )}
         <ul class="thumb-grid">
           {uploads.map((u) => (
             <li key={u.id}>
@@ -1189,7 +1210,7 @@ export function Options() {
             {t('options.anilist.redirect')}
             <small>{t('options.anilist.redirectHint')}</small>
           </span>
-          <code class="opt-copy">{`https://${chrome.runtime.id}.chromiumapp.org/`}</code>
+          <code class="opt-copy">{redirectUrl()}</code>
         </div>
         <Field label={t('options.anilist.clientId')} hint={t('options.anilist.clientIdHint')}>
           <input value={s.anilistClientId} onChange={(e) => set({ anilistClientId: (e.target as HTMLInputElement).value.trim() })} />

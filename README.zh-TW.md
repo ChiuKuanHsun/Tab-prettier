@@ -119,6 +119,11 @@ npm run build        # 產出 dist/
 
 `npm test` 執行單元測試；`npm run package` 會建置並把 `dist/` 打包成上架用的 zip。
 
+**Firefox**（140 以上）：`npm run build:firefox` 產出 `dist-firefox/`，程式相同、只換成 Firefox 的
+manifest。打開 `about:debugging#/runtime/this-firefox`，按「載入暫用附加元件」選 `dist-firefox/manifest.json`；
+`npm run package:firefox` 會打包成上架 addons.mozilla.org 用的 zip。Firefox 沒有 offscreen 文件，
+由背景頁自己合成畫面；不能選資料夾當來源，固定連結顯示網站自己的圖示、不套用主題色。
+
 | 部分 | 位置 | 說明 |
 |---|---|---|
 | 新分頁 | `src/newtab/` | 從 IndexedDB 取已完成的畫面，渲染六個圖層 |

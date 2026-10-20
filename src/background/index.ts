@@ -5,12 +5,15 @@ import { queueTarget, type FocusCheckReply, type ToBackground, type ToOffscreen 
 import { getBlacklist, getSettings, onKeyChange } from '../lib/settings';
 import { allowedThisRound, blockingNow, clearAllowed, sitePattern, siteRule, unallowedSites, watchedSites } from '../lib/focus-block';
 import { getToken, myListAnime } from '../lib/anilist';
+import { IS_FIREFOX } from '../lib/browser';
 import { chosenAnime, withPickedCharacters, type ListAnime } from '../lib/list-chars';
 import { getCharPicks } from '../lib/list-picks';
 import { PERF, resolveTier } from '../lib/perf';
 import type { Settings } from '../lib/types';
 
 const OFFSCREEN_URL = 'offscreen.html';
+/** Chrome makes scenes in an offscreen document; Firefox, which has none, in its background page. */
+const HAS_OFFSCREEN = !!chrome.offscreen;
 
 async function hasOffscreen() {
   const ctx = await chrome.runtime.getContexts({ contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT] });
@@ -64,7 +67,7 @@ async function refill(opts: { fromIdle?: boolean; lowPower?: boolean; force?: bo
     }
   }
   await chrome.storage.session.set({ refillDeferred: false });
-  await ensureOffscreen();
+  if (HAS_OFFSCREEN) await ensureOffscreen();
   const msg: ToOffscreen = {
     to: 'offscreen',
     type: 'refill',
@@ -73,6 +76,8 @@ async function refill(opts: { fromIdle?: boolean; lowPower?: boolean; force?: bo
     target,
     listAnime: await listAnimeFor(settings),
   };
+  // not awaited, like the offscreen document: whoever asked (a new tab) gets its reply at once
+  if (!HAS_OFFSCREEN) return void refillHere(msg);
   // A freshly created document may not have registered its listener yet (and other extension
   // pages can swallow the message), so retry until the offscreen document acknowledges it.
   for (let i = 0; i < 40; i++) {
@@ -81,6 +86,22 @@ async function refill(opts: { fromIdle?: boolean; lowPower?: boolean; force?: bo
     await new Promise((r) => setTimeout(r, 150));
   }
   console.warn('[bg] offscreen document never acknowledged refill');
+}
+
+/**
+ * Firefox: makes the scenes right here. Its background page unloads after ~30 s without an
+ * extension event, even mid-scene, so a storage write every 20 s (seen by the listener below)
+ * keeps it up while working.
+ */
+async function refillHere(msg: ToOffscreen) {
+  const beat = setInterval(() => void chrome.storage.local.set({ keepAlive: Date.now() }), 20_000);
+  try {
+    await (await import('../offscreen/main')).refill(msg);
+  } catch (e) {
+    console.warn('[bg] refill', e);
+  } finally {
+    clearInterval(beat);
+  }
 }
 
 chrome.runtime.onInstalled.addListener(async () => {
@@ -184,33 +205,37 @@ async function finishFocus() {
   await loadLocalePref(); // the user's language, not just Chrome's
   const work = t('lib.phase.work');
   const wasWork = s.phase === 'work';
+  const buttons = wasWork
+    ? [t('background.startBreak', { n: prefs.break }), t('background.workAgain', { phase: work, n: prefs.work })]
+    : [t('background.startWork', { phase: work, n: prefs.work })];
+  const message = wasWork
+    ? t('background.workDoneMessage', { n: Math.round(s.durationMs / 60_000) })
+    : t('background.breakDoneMessage');
   await chrome.notifications.create('focus', {
     type: 'basic',
     iconUrl: chrome.runtime.getURL('icons/icon-128.png'),
     title: wasWork ? t('background.workDoneTitle') : t('background.breakDoneTitle'),
-    message: wasWork
-      ? t('background.workDoneMessage', { n: Math.round(s.durationMs / 60_000) })
-      : t('background.breakDoneMessage'),
-    buttons: wasWork
-      ? [
-          { title: t('background.startBreak', { n: prefs.break }) },
-          { title: t('background.workAgain', { phase: work, n: prefs.work }) },
-        ]
-      : [{ title: t('background.startWork', { phase: work, n: prefs.work }) }],
+    // Firefox shows no buttons: a click on the notification does what the first one would
+    message: IS_FIREFOX ? `${message}\n${t('background.clickFor', { action: buttons[0] })}` : message,
+    buttons: IS_FIREFOX ? undefined : buttons.map((title) => ({ title })),
     priority: 2,
     // stays until dismissed, so a break reminder isn't missed while away from the screen
     requireInteraction: true,
   });
 }
 
-chrome.notifications.onButtonClicked.addListener(async (id, index) => {
+if (IS_FIREFOX) chrome.notifications.onClicked.addListener((id) => void nextRound(id, 0));
+chrome.notifications.onButtonClicked.addListener((id, index) => void nextRound(id, index));
+
+/** From the "done" notification: a break after work (first button), otherwise another work round. */
+async function nextRound(id: string, index: number) {
   if (id !== 'focus') return;
   const s = await getFocus();
   const prefs = await getFocusPrefs();
   const startBreak = s.status === 'done' && s.phase === 'work' && index === 0;
   await (startBreak ? startFocus('break', prefs.break) : startFocus('work', prefs.work));
   await chrome.notifications.clear('focus');
-});
+}
 
 chrome.idle.setDetectionInterval(60);
 chrome.idle.onStateChanged.addListener(async (state) => {
@@ -234,7 +259,7 @@ chrome.runtime.onMessage.addListener((msg: ToBackground, sender, sendResponse) =
         const accent = (await getCurrent())?.scene.theme.accent;
         reply = { remind: !!rule, label: t('blocked.kicker'), accent } satisfies FocusCheckReply;
       }
-      if (msg.type === 'offscreen-idle' && (await hasOffscreen())) await chrome.offscreen.closeDocument();
+      if (msg.type === 'offscreen-idle' && HAS_OFFSCREEN && (await hasOffscreen())) await chrome.offscreen.closeDocument();
     } catch (e) {
       console.warn('[bg]', msg.type, e);
     }

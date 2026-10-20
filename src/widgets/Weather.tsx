@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'preact/hooks';
 import { t } from '../i18n';
+import { LOCATION, usePerms } from '../lib/permissions';
 import type { WeatherLocation } from '../lib/types';
 import { getWeather, MOOD_LABEL, resolveLocation, type WeatherMood, type WeatherNow } from '../lib/weather';
 
 export function useWeather(mode: 'auto' | 'manual' | 'off' | undefined, manual: WeatherLocation | null | undefined) {
   const [state, setState] = useState<{ w: WeatherNow; place: string }>();
+  const allowed = usePerms(LOCATION);
   useEffect(() => {
-    if (!mode || mode === 'off') {
+    if (!mode || mode === 'off' || !allowed) {
       setState(undefined);
       return;
     }
@@ -27,7 +29,7 @@ export function useWeather(mode: 'auto' | 'manual' | 'off' | undefined, manual: 
       alive = false;
       clearInterval(t);
     };
-  }, [mode, manual?.latitude, manual?.longitude]);
+  }, [mode, allowed, manual?.latitude, manual?.longitude]);
   return state;
 }
 

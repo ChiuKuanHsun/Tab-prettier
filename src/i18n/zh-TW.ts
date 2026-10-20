@@ -193,6 +193,7 @@ export const zhTW = {
     startBreak: '休息 {n} 分鐘',
     workAgain: '再{phase} {n} 分鐘',
     startWork: '{phase} {n} 分鐘',
+    clickFor: '點一下這則通知：{action}',
   },
 
   blocked: {

@@ -26,7 +26,11 @@ let idleTimer: ReturnType<typeof setTimeout> | undefined;
 const sameSettings = (a: ToOffscreen, b: ToOffscreen) =>
   JSON.stringify(a.settings) === JSON.stringify(b.settings) && JSON.stringify(a.listAnime) === JSON.stringify(b.listAnime);
 
-async function refill(msg: ToOffscreen) {
+/**
+ * Makes scenes until the queue is full. Resolves when done (or at once if already running).
+ * Firefox has no offscreen documents: there its background page imports this and calls it directly.
+ */
+export async function refill(msg: ToOffscreen) {
   latest = msg;
   if (running) return;
   running = true;

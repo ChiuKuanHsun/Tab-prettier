@@ -9,7 +9,7 @@ import {
   type Suggestion,
   type Visit,
 } from '../lib/omnibox';
-import { SEARCH_HISTORY, SUGGEST, useHosts, usePerms } from '../lib/permissions';
+import { SEARCH_HISTORY, SUGGEST_PERMS, usePerms } from '../lib/permissions';
 import { HostPrompt } from './HostPrompt';
 import { favicon } from './Links';
 
@@ -108,7 +108,7 @@ export function Search({
    */
   const [composing, setComposing] = useState(false);
   const cur = ENGINES[engine] ?? ENGINES.default;
-  const allowed = useHosts(SUGGEST);
+  const allowed = usePerms(SUGGEST_PERMS);
   const historyOk = usePerms(SEARCH_HISTORY);
   // Sites, tabs and past searches only for general web searches: with a site's own search
   // (YouTube, pixiv …) the text is meant for that site, not for going somewhere.
@@ -348,7 +348,7 @@ export function Search({
       {ask && (
         // mousedown would blur the input and close this before the click lands
         <div class="search-suggest search-suggest-ask" onMouseDown={(e) => e.preventDefault()}>
-          <HostPrompt text={t('widgets.permission.suggest')} origins={SUGGEST} onDecline={onSuggestOff} />
+          <HostPrompt text={t('widgets.permission.suggest')} perms={SUGGEST_PERMS} onDecline={onSuggestOff} />
         </div>
       )}
     </form>

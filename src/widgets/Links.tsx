@@ -1,12 +1,19 @@
 import { useEffect, useState } from 'preact/hooks';
 import { t } from '../i18n';
+import { IS_FIREFOX } from '../lib/browser';
 import { duotone } from '../lib/duotone';
 import { RECENT, TOP_SITES, usePerms } from '../lib/permissions';
 import { getLinks, onKeyChange, saveLinks, uid } from '../lib/settings';
 import type { LinkGroup } from '../lib/types';
 
+/**
+ * A site's icon: Chrome's favicon service, or in Firefox (which has none) the site's own
+ * /favicon.ico — another origin, so those can't be tinted and show as they are.
+ */
 export const favicon = (url: string, size = 32) =>
-  `${chrome.runtime.getURL('/_favicon/')}?pageUrl=${encodeURIComponent(url)}&size=${size}`;
+  IS_FIREFOX
+    ? URL.parse('/favicon.ico', url)?.href ?? ''
+    : `${chrome.runtime.getURL('/_favicon/')}?pageUrl=${encodeURIComponent(url)}&size=${size}`;
 
 export function useLinks() {
   const [groups, setGroups] = useState<LinkGroup[]>([]);

@@ -191,6 +191,7 @@ export const en: Messages = {
     startBreak: 'Break {n} min',
     workAgain: '{phase} again {n} min',
     startWork: '{phase} {n} min',
+    clickFor: 'Click this notification: {action}',
   },
 
   blocked: {

@@ -1,6 +1,7 @@
 import type { ComponentChildren } from 'preact';
 import { t, tRich, type MessageKey } from '../i18n';
 import { SECTION_IDS, type SectionId } from '../options/sections';
+import { redirectUrl } from '../lib/browser';
 
 /** One explanation: an optional term (usually the setting's own label) and its text. */
 type Item = [term: MessageKey | null, text: MessageKey];
@@ -121,7 +122,6 @@ function HelpSection({
 }
 
 export function Help() {
-  const redirectUrl = `https://${chrome.runtime.id}.chromiumapp.org/`;
   return (
     <div class="opt">
       <header class="opt-hero">
@@ -159,7 +159,7 @@ export function Help() {
                     ),
                   })}
                 </li>
-                <li>{tRich('help.anilist.step2', { url: <code>{redirectUrl}</code> })}</li>
+                <li>{tRich('help.anilist.step2', { url: <code>{redirectUrl()}</code> })}</li>
                 <li>{t('help.anilist.step3')}</li>
               </ol>
               <p>{t('help.anilist.watching')}</p>

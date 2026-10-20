@@ -1,15 +1,18 @@
-// Zips dist/ into tab-prettier-v<version>.zip for the Chrome Web Store upload. Run after a
-// production build (npm run package does both); refuses a dist/ that still has source maps.
+// Zips dist/ into tab-prettier-v<version>.zip for the Chrome Web Store upload, or with `firefox`
+// dist-firefox/ into tab-prettier-firefox-v<version>.zip for addons.mozilla.org. Run after a
+// production build (npm run package / package:firefox do both); refuses a build that still has
+// source maps.
 //
-// Usage: node tools/package.mjs
+// Usage: node tools/package.mjs [firefox]
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { crc32, deflateRawSync } from 'node:zlib';
 
 const ROOT = join(import.meta.dirname, '..');
-const DIST = join(ROOT, 'dist');
+const firefox = process.argv[2] === 'firefox';
+const DIST = join(ROOT, firefox ? 'dist-firefox' : 'dist');
 const { version } = JSON.parse(readFileSync(join(DIST, 'manifest.json'), 'utf8'));
-const out = join(ROOT, `tab-prettier-v${version}.zip`);
+const out = join(ROOT, `tab-prettier${firefox ? '-firefox' : ''}-v${version}.zip`);
 
 const files = (function walk(dir) {
   return readdirSync(dir).flatMap((n) => {
@@ -17,7 +20,7 @@ const files = (function walk(dir) {
     return statSync(p).isDirectory() ? walk(p) : [p];
   });
 })(DIST);
-if (files.some((f) => f.endsWith('.map'))) throw new Error('dist/ has source maps: run a production build first');
+if (files.some((f) => f.endsWith('.map'))) throw new Error(`${relative(ROOT, DIST)}/ has source maps: run a production build first`);
 
 // A plain zip writer (deflate, no zip64): the package stays well under 4 GB.
 const local = [], central = [];
