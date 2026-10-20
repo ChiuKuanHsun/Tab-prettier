@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'preact/hooks';
 import type { Broadcast } from '../lib/messages';
 import { send } from '../lib/messages';
 import { timeBucket } from '../lib/curation';
+import { resolveTier } from '../lib/perf';
 import { pickScene } from '../lib/scene-store';
 import { getSettings, onKeyChange } from '../lib/settings';
 import type { Scene, Settings } from '../lib/types';
@@ -54,6 +55,15 @@ export function usePowerSave(mode: Settings['powerSave'] | undefined) {
     return () => bm?.removeEventListener('chargingchange', on);
   }, [mode]);
   return mode === 'on' || mode === 'cache' || (mode === 'auto' && onBattery);
+}
+
+/** The low workload level, chosen or detected (by the scene worker): the heaviest effects stay off. */
+export function useLowTier(setting: Settings['perfTier'] | undefined) {
+  const [low, setLow] = useState(false);
+  useEffect(() => {
+    if (setting) void resolveTier(setting, false).then((t) => setLow(t === 'low'));
+  }, [setting]);
+  return low;
 }
 
 export function usePageVisible() {
