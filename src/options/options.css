@@ -265,11 +265,17 @@ textarea {
 
 .opt-steps { margin: 0; padding-left: 20px; font-size: 14px; display: grid; gap: 6px; }
 
-/* Always in the corner, quiet until hovered. */
-.opt-coffee {
+/* Always in the corner, quiet until hovered: star, report, coffee. */
+.opt-corner {
   position: fixed;
   right: 24px;
   bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+.opt-corner-link {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -283,8 +289,8 @@ textarea {
   box-shadow: 0 6px 20px rgb(0 0 0 / 0.08);
   transition: border-color 0.15s, color 0.15s;
 }
-.opt-coffee:hover, .opt-coffee:focus-visible { border-color: var(--accent); color: var(--accent); }
-.opt-coffee svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.opt-corner-link:hover, .opt-corner-link:focus-visible { border-color: var(--accent); color: var(--accent); }
+.opt-corner-link svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
 .opt-toast {
   position: fixed;
@@ -311,5 +317,6 @@ textarea {
   .opt-control { justify-self: start; }
   .theme-cards { grid-template-columns: 1fr; }
   input.wide { min-width: 0; width: 100%; }
-  .opt-coffee { right: 16px; bottom: 16px; }
+  /* three stacked links would cover the last section: at the end of the page instead */
+  .opt-corner { position: static; flex-direction: row; flex-wrap: wrap; margin-top: 32px; }
 }

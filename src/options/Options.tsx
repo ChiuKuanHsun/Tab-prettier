@@ -28,9 +28,16 @@ import { detectTier, type PerfTier } from '../lib/perf';
 import { allowFolder, bindFolder, folderAccess, getFolder, listFolder, unbindFolder, type FolderHandle, type FolderRole } from '../lib/folders';
 import { DEFAULT_BLOCK_SITES, parseSites, sitePattern, unallowedSites, watchedSites } from '../lib/focus-block';
 import { LOCATION, RECENT, requestHosts, requestPerms, SEARCH_HISTORY, SUGGEST_PERMS, TOP_SITES, usePerms, type Perms } from '../lib/permissions';
-import { redirectUrl } from '../lib/browser';
+import { IS_EDGE, IS_FIREFOX, redirectUrl } from '../lib/browser';
 import { locale, localePref, saveLocalePref, t, tRich, type LocalePref } from '../i18n';
 import { SECTION_IDS, type SectionId } from './sections';
+
+const REPO_URL = 'https://github.com/ChiuKuanHsun/Tab-prettier';
+/** The problem report form (Google Forms), with the browser and version filled in. */
+const reportUrl = () =>
+  `https://docs.google.com/forms/d/e/1FAIpQLSfiNBf7L_mUgTcb8tVj4B4BTJyIJ_Qn1ID05-M0Vgkr7-ctlQ/viewform?usp=pp_url&entry.588726807=${
+    IS_FIREFOX ? 'Firefox' : IS_EDGE ? 'Edge' : 'Chrome'
+  }&entry.159026684=${chrome.runtime.getManifest().version}`;
 
 const PERF_TIERS: PerfTier[] = ['low', 'medium', 'high'];
 const TIER_LABEL: Record<PerfTier, () => string> = {
@@ -1229,14 +1236,28 @@ export function Options() {
         </div>
       </Section>
 
-      <a class="opt-coffee" href={`https://kuanhsun.pages.dev/support?lang=${locale === 'en' ? 'en' : 'zh-TW'}`} target="_blank" rel="noopener">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9Z" />
-          <path d="M17 11h1.5a2.5 2.5 0 0 1 0 5H17" />
-          <path d="M8 3.5c-.6.8-.6 1.7 0 2.5M11.5 3.5c-.6.8-.6 1.7 0 2.5" />
-        </svg>
-        {t('options.coffee')}
-      </a>
+      <div class="opt-corner">
+        <a class="opt-corner-link" href={REPO_URL} target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9L12 3.5Z" />
+          </svg>
+          {t('options.star')}
+        </a>
+        <a class="opt-corner-link" href={reportUrl()} target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 20V4.5M5 5h11l-2 3.5 2 3.5H5" />
+          </svg>
+          {t('options.report')}
+        </a>
+        <a class="opt-corner-link" href={`https://kuanhsun.pages.dev/support?lang=${locale === 'en' ? 'en' : 'zh-TW'}`} target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9Z" />
+            <path d="M17 11h1.5a2.5 2.5 0 0 1 0 5H17" />
+            <path d="M8 3.5c-.6.8-.6 1.7 0 2.5M11.5 3.5c-.6.8-.6 1.7 0 2.5" />
+          </svg>
+          {t('options.coffee')}
+        </a>
+      </div>
 
       {toast && (
         <div class="opt-toast" role="status">

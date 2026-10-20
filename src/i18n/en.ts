@@ -225,6 +225,8 @@ export const en: Messages = {
     regenerating: 'Cleared. Regenerating scenes with new settings…',
     helpLink: 'Help',
     coffee: 'Buy me a coffee',
+    star: 'Star on GitHub',
+    report: 'Report a problem',
     added: 'Added {n} files',
     imported: 'Imported',
     badFile: 'Invalid file format',
