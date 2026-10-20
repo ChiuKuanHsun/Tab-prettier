@@ -16,6 +16,8 @@ cpSync(DIST, OUT, { recursive: true, filter: (src) => !src.endsWith('offscreen.h
 const m = JSON.parse(readFileSync(join(DIST, 'manifest.json'), 'utf8'));
 // Firefox's background is an event page (it has a DOM, so it can run the pipeline), not a service worker
 m.background = { scripts: [m.background.service_worker], type: 'module' };
+// a new Firefox window opens the home page, not the new tab: take that over too
+m.chrome_settings_overrides = { homepage: m.chrome_url_overrides.newtab };
 // offscreen and favicon don't exist there
 m.permissions = m.permissions.filter((p) => p !== 'offscreen' && p !== 'favicon');
 m.browser_specific_settings = {
