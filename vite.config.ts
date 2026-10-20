@@ -29,6 +29,7 @@ export default defineConfig(({ mode }) => ({
         newtab: resolve('newtab.html'),
         options: resolve('options.html'),
         help: resolve('help.html'),
+        updates: resolve('updates.html'),
         offscreen: resolve('offscreen.html'),
         blocked: resolve('blocked.html'),
         background: resolve('src/background/index.ts'),

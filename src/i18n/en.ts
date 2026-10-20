@@ -41,13 +41,12 @@ export const en: Messages = {
   },
 
   updates: {
+    pageTitle: "Tab Prettier — What's new",
     title: "What's new",
     v110: {
       summary: 'New tabs no longer stutter while scenes are made in the background',
       worker: 'New scenes are made on a separate thread, so typing and the dock stay smooth while the queue refills.',
       workload: '"Performance level" is now "Workload"; at low, the new tab also turns off mouse parallax, depth motion and particles.',
-      firstScene: "The first scene always looks for a character, and a character source that can't be reached gives way to another.",
-      anime: 'Wording fixes in the Chinese interface.',
       browsers: 'Now available for Firefox and Edge.',
     },
   },

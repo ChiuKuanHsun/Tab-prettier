@@ -43,13 +43,12 @@ export const zhTW = {
   },
 
   updates: {
+    pageTitle: 'Tab Prettier 更新紀錄',
     title: '更新紀錄',
     v110: {
       summary: '背景準備畫面時，新分頁不再卡頓',
       worker: '新畫面改在另一條執行緒產生，背景補充畫面時，打字和底部選單都不會再卡。',
       workload: '「效能等級」改名為「畫面負擔」；調成低時，新分頁也會關閉滑鼠視差、景深運鏡與粒子。',
-      firstScene: '第一幅畫一定會找角色；角色來源連不上時，自動改用其他來源。',
-      anime: '「動畫」面板改名為「動漫」。',
       browsers: '新增 Firefox 與 Edge 版本。',
     },
   },

@@ -26,7 +26,7 @@ export function UpdateNote({ wait }: { wait: boolean }) {
       <span class="update-mark" aria-hidden="true">✦</span>
       <span class="update-version">{t('newtab.update.updated', { version: release.version })}</span>
       <span class="update-summary">{t(release.summary)}</span>
-      <a class="update-more" href={chrome.runtime.getURL('help.html#updates')} onClick={() => void dismissNotice()}>
+      <a class="update-more" href={chrome.runtime.getURL('updates.html')} onClick={() => void dismissNotice()}>
         {t('newtab.update.details')} ›
       </a>
       <button type="button" class="update-close" aria-label={t('newtab.update.close')} title={t('newtab.update.close')} onClick={close}>

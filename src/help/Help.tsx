@@ -2,7 +2,6 @@ import type { ComponentChildren } from 'preact';
 import { t, tRich, type MessageKey } from '../i18n';
 import { SECTION_IDS, type SectionId } from '../options/sections';
 import { IS_EDGE, IS_FIREFOX, redirectUrl } from '../lib/browser';
-import { RELEASES } from '../lib/updates';
 
 /** One explanation: an optional term (usually the setting's own label) and its text. */
 type Item = [term: MessageKey | null, text: MessageKey];
@@ -145,7 +144,7 @@ export function Help() {
             {t(`options.nav.${id}`)}
           </a>
         ))}
-        <a href="#updates">{t('updates.title')}</a>
+        <a href="updates.html">{t('updates.title')}</a>
       </nav>
 
       <HelpSection id="newtab" title={t('help.newtab.title')} items={NEWTAB_ITEMS} />
@@ -171,20 +170,6 @@ export function Help() {
           )}
         </HelpSection>
       ))}
-      <HelpSection id="updates" title={t('updates.title')} items={[]}>
-        {RELEASES.map((r) => (
-          <dl key={r.version} class="help-item">
-            <dt>{r.version}</dt>
-            <dd>
-              <ul class="help-list">
-                {r.items.map((k) => (
-                  <li key={k}>{t(k)}</li>
-                ))}
-              </ul>
-            </dd>
-          </dl>
-        ))}
-      </HelpSection>
     </div>
   );
 }

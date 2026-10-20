@@ -1,6 +1,6 @@
 /**
  * What changed in each version worth telling the user about: the new tab mentions an update once
- * (for a few tabs), and the help page lists them all. A version without notes updates silently.
+ * (for a few tabs), and updates.html lists them all. A version without notes updates silently.
  */
 import type { MessageKey } from '../i18n';
 
@@ -16,7 +16,7 @@ export const RELEASES: Release[] = [
   {
     version: '1.1.0',
     summary: 'updates.v110.summary',
-    items: ['updates.v110.worker', 'updates.v110.workload', 'updates.v110.firstScene', 'updates.v110.anime', 'updates.v110.browsers'],
+    items: ['updates.v110.worker', 'updates.v110.workload', 'updates.v110.browsers'],
   },
 ];
 
