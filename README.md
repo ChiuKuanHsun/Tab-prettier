@@ -74,7 +74,7 @@ and what's airing today — kept quiet so the picture stays the point.
 - **Links** — pinned links with two-tone icons, recently closed tabs, top sites
 - **To-dos and notes** that sync with your Chrome profile
 - **Focus timer** — the clock turns into a countdown, and distracting sites you list get a gentle reminder while you focus
-- **Easy on the laptop** — performance tiers, a power-saving mode, and ambient motion that ticks as slowly as it can
+- **Easy on the laptop** — workload levels, a power-saving mode, and ambient motion that ticks as slowly as it can
 
 ---
 
@@ -210,7 +210,7 @@ works without downloading anything else later.
 
 **Does it make the computer warm?**
 Ambient motion is kept to as few frames per second as it needs. If it still runs warm, turn off
-particles or choose the power-saving performance tier in Settings.
+particles or set the workload to low in Settings.
 
 **Can I choose which characters show up?**
 Yes: favourite characters, characters from your AniList list, or exclude tags you never want to see.

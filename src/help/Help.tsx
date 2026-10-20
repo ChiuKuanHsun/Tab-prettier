@@ -144,6 +144,7 @@ export function Help() {
             {t(`options.nav.${id}`)}
           </a>
         ))}
+        <a href="updates.html">{t('updates.title')}</a>
       </nav>
 
       <HelpSection id="newtab" title={t('help.newtab.title')} items={NEWTAB_ITEMS} />

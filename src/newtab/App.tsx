@@ -19,9 +19,10 @@ import { countdownActive, formatRemaining, PHASE_LABEL, remainingMs } from '../l
 import { LinksPanel, LinkStrip } from '../widgets/Links';
 import { Search } from '../widgets/Search';
 import { NotesPanel, TodoPanel } from '../widgets/Todo';
+import { UpdateNote } from '../widgets/UpdateNote';
 import { CLOCK_SCALE } from '../themes';
 import { Clock, Dateline, VerticalDate } from './Clock';
-import { useMedia, useNow, usePageVisible, usePowerSave, useScene, useSettings, useViewport } from './hooks';
+import { useLowTier, useMedia, useNow, usePageVisible, usePowerSave, useScene, useSettings, useViewport } from './hooks';
 import { autoParticle, Background, Character, Particles } from './layers';
 import { playEnter, startParallax } from './motion';
 
@@ -48,6 +49,7 @@ async function decoded(urls: (string | undefined)[]) {
 export function App() {
   const settings = useSettings();
   const lowPower = usePowerSave(settings?.powerSave);
+  const lowTier = useLowTier(settings?.perfTier);
   const reducedMotion = useMedia('(prefers-reduced-motion: reduce)');
   const visible = usePageVisible();
   const vp = useViewport();
@@ -61,13 +63,15 @@ export function App() {
   const [ready, setReady] = useState(false);
 
   const animate = !!settings && !reducedMotion;
+  // the low workload level drops the three heaviest effects: parallax, depth motion and particles
+  const parallax = animate && !lowTier ? (settings?.parallax ?? 0) : 0;
 
   // Starts once the real stage is mounted: while the scene loads, a bare placeholder <main> is
   // rendered without the ref, so keying on `ready` makes this run again when the stage appears.
   useEffect(() => {
-    if (!ready || !stage.current || !animate || !settings?.parallax) return;
+    if (!ready || !stage.current || !parallax) return;
     return startParallax(stage.current);
-  }, [ready, animate, settings?.parallax]);
+  }, [ready, parallax]);
 
   // Reveal only once the layers are decoded, then run the entrance.
   useLayoutEffect(() => {
@@ -106,12 +110,12 @@ export function App() {
   // drift between the text and character layers (12px per unit). The character doesn't move.
   const tail = (settings.clockSeconds || !settings.clock24h) && !countdownActive(focus);
   const reach = layout.char && t.side === 'left' ? t.inner - layout.char.left : 0;
-  const clockShift = tail && reach > 0 ? reach + 12 * (animate ? settings.parallax : 0) + 8 : 0;
+  const clockShift = tail && reach > 0 ? reach + 12 * parallax + 8 : 0;
   // HH:MM is ~2.35em wide; small seconds add ~0.45em
   const clockSize = (CLOCK_SCALE[settings.theme] ?? 1) * Math.max(96, Math.min((colW - clockShift) / (settings.clockSeconds && !countdownActive(focus) ? 2.8 : 2.35), vp.h * (t.side === 'center' ? 0.34 : 0.3), t.side === 'center' ? 440 : 380));
 
   const particleKind = settings.particles === 'auto' ? (weatherParticle(weather?.mood) ?? autoParticle()) : settings.particles;
-  const showParticles = particleKind !== 'off' && !lowPower && !reducedMotion;
+  const showParticles = particleKind !== 'off' && !lowPower && !lowTier && !reducedMotion;
 
   const style = {
     '--accent': theme.accent,
@@ -126,7 +130,7 @@ export function App() {
     '--accent-low': theme.low?.accent ?? theme.accent,
     '--bg-blur': `${settings.bgBlur}px`,
     '--bg-dim': settings.bgDim,
-    '--pk': animate ? settings.parallax : 0,
+    '--pk': parallax,
     '--col-left': `${colLeft}px`,
     '--col-w': `${colW}px`,
     '--col-top': `${t.top}px`,
@@ -195,7 +199,7 @@ export function App() {
           scene={scene}
           url={urls.bg}
           depthUrl={urls.depth}
-          depthStrength={animate && !lowPower ? settings.depthMotion : 0}
+          depthStrength={animate && !lowPower && !lowTier ? settings.depthMotion : 0}
           fog={depthFog}
           playing={visible && !lowPower}
         />
@@ -258,6 +262,7 @@ export function App() {
           items={dockItems}
           side={t.side === 'right' ? 'right' : 'left'}
           settingsUrl={chrome.runtime.getURL('options.html')}
+          notice={<UpdateNote wait={!scene || focusActive} />}
           extra={
             scene && (
               <>

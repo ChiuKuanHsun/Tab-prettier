@@ -33,6 +33,22 @@ export const en: Messages = {
       anime: 'Anime',
       credit: 'Credits',
     },
+    update: {
+      updated: 'Updated to {version}',
+      details: 'Details',
+      close: 'Dismiss',
+    },
+  },
+
+  updates: {
+    pageTitle: "Tab Prettier — What's new",
+    title: "What's new",
+    v110: {
+      summary: 'New tabs no longer stutter while scenes are made in the background',
+      worker: 'New scenes are made on a separate thread, so typing and the dock stay smooth while the queue refills.',
+      workload: '"Performance level" is now "Workload"; at low, the new tab also turns off mouse parallax, depth motion and particles.',
+      browsers: 'Now available for Firefox and Edge.',
+    },
   },
 
   widgets: {
@@ -209,6 +225,8 @@ export const en: Messages = {
     regenerating: 'Cleared. Regenerating scenes with new settings…',
     helpLink: 'Help',
     coffee: 'Buy me a coffee',
+    star: 'Star on GitHub',
+    report: 'Report a problem',
     added: 'Added {n} files',
     imported: 'Imported',
     badFile: 'Invalid file format',
@@ -361,7 +379,7 @@ export const en: Messages = {
     },
     power: {
       powerSave: 'Power saving',
-      powerSaveHint: 'No particles, video or breathing',
+      powerSaveHint: 'Saves more than a low workload: no video or breathing either',
       auto: 'Auto on battery',
       on: 'Always on',
       queueSize: 'Scenes prepared ahead',
@@ -369,8 +387,8 @@ export const en: Messages = {
       cache: 'Use existing scenes only',
       cacheNote: 'No new images; cycles saved scenes and favorites',
       idleOnly: 'Process new images only when idle',
-      perf: 'Performance level',
-      perfHint: 'How much work new scenes take',
+      perf: 'Workload',
+      perfHint: 'How much work new scenes and new-tab effects take',
       perfAuto: 'Auto (this computer: {tier})',
       perfLow: 'Low',
       perfMedium: 'Medium',
@@ -456,7 +474,7 @@ export const en: Messages = {
       linksRecent: "Lists the 8 most recently closed pages in the \"Links\" panel; a click reopens one with its history. Switching it on, Chrome asks whether to allow reading your browsing history.",
       linksTop: "Lists the top sites from Chrome's new tab in the \"Links\" panel, up to 8. Switching it on, Chrome asks whether to allow it.",
       linkTint: "Pinned link icons take two tones of the theme colour, still recognisable, changing with the scene; hovering shows the original. The \"Links\" panel is unaffected.",
-      weather: "Shows the weather next to the date. When it rains or snows, the background switches to a rain or snow scene and the particles follow. With particles on auto, rain, snow or fog also hazes the distance (not on the low performance level).",
+      weather: "Shows the weather next to the date. When it rains or snows, the background switches to a rain or snow scene and the particles follow. With particles on auto, rain, snow or fog also hazes the distance (not on a low workload).",
       weatherAuto: 'Auto mode uses your IP and is only accurate to the city. It can be wrong on a VPN or company network; if so, choose a city. English city names search best (e.g. Taipei).',
     },
     sources: {
@@ -481,12 +499,12 @@ export const en: Messages = {
     },
     motion: {
       reduced: 'When the system has "reduce motion" on, all animations turn off automatically.',
-      depth: "3D parallax and a slow push-in from the background's depth map; the low performance level skips depth.",
+      depth: "3D parallax and a slow push-in from the background's depth map; a low workload neither computes nor shows it.",
     },
     power: {
-      powerSave: "Auto: on while running on battery. When on, particles, video and breathing are off, and new images are processed only when idle.",
+      powerSave: "Auto: on while running on battery. When on, particles, depth motion, video and breathing are off, and new images are processed only when idle. A low workload alone still plays video and breathing.",
       idleOnly: 'Downloading and cutting out images uses power; with this on, it waits until the computer is idle.',
-      perf: "How much work each new scene takes. High: compares 3 candidate characters and computes depth; medium: compares 2; low: uses 1, skips depth, stores smaller images and only works while idle, which suits office laptops. Auto decides from the graphics card (WebGPU), memory and CPU cores.",
+      perf: "How much work making new scenes takes, and the heaviest new-tab effects. High: compares 3 candidate characters and computes depth; medium: compares 2; low: uses 1, skips depth, stores smaller images and only works while idle, and the new tab drops mouse parallax, depth motion and particles, which suits office laptops. Auto decides from the graphics card (WebGPU), memory and CPU cores.",
       queueSize: "Scenes are prepared in the background so a new tab doesn't wait. 0 decides by how often scenes change (2–5); up to 30, about 1 MB each. Lowering it doesn't delete scenes already prepared.",
       cache: "Nothing new is downloaded or processed, the most power-saving: scenes rotate among the queue, the last 30 shown and your favourites, the longest unseen first. \"Clear and regenerate with new settings\" still makes a new batch.",
     },

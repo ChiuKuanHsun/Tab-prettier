@@ -547,6 +547,52 @@ button, input, textarea { font: inherit; color: inherit; }
 }
 .dock-right { left: auto; right: var(--outer); align-items: flex-end; }
 
+/* After an update: one quiet line above the tab row, fading in once the entrance has played. */
+.update-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(640px, 70vw);
+  margin-bottom: 18px;
+  padding: 6px 6px 6px 14px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  background: color-mix(in oklab, var(--surface) 70%, transparent);
+  backdrop-filter: blur(12px) saturate(1.15);
+  border: 1px solid color-mix(in oklab, var(--ink) 14%, transparent);
+  border-left: 2px solid var(--accent);
+  text-shadow: none;
+  transition: opacity 0.5s var(--ease-out) 1.2s, translate 0.5s var(--ease-out) 1.2s;
+
+  @starting-style {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+.update-mark { color: var(--accent); }
+.update-version { white-space: nowrap; font-variant-numeric: lining-nums; }
+.update-summary { color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.update-more { color: var(--accent); white-space: nowrap; text-decoration: none; }
+.update-more:hover,
+.update-more:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
+.update-close {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--ink-soft);
+  background: none;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.update-close:hover,
+.update-close:focus-visible { color: var(--ink); background: color-mix(in oklab, var(--surface) 70%, transparent); }
+
 .dock-tabs { position: relative; isolation: isolate; display: flex; gap: 22px; align-items: baseline; }
 /* A frosted pad under the tab row keeps it readable on any art, however close the colours: the
    backdrop blurred and tinted a little towards the surface, fading out at the edges so it has no
