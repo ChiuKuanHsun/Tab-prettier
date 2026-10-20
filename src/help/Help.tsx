@@ -78,6 +78,7 @@ const NEWTAB_ITEMS: Item[] = [
   ['newtab.dock.focus', 'help.newtab.focus'],
   ['newtab.dock.credit', 'help.newtab.credit'],
   [null, 'help.newtab.firstRun'],
+  [null, 'help.newtab.footer'],
 ];
 
 function HelpSection({
